@@ -8,7 +8,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -266,10 +265,15 @@ private fun Content(state: HomeUiState, actions: HomeActions, modifier: Modifier
                 stringResource(R.string.home_see_all),
                 actions.onSeeAll
             ) {
-                GroupedCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)) {
+                GroupedCard {
                     state.newChapters.forEachIndexed { index, item ->
-                        if (index > 0) RowDivider()
-                        NewChapterRow(item, onClick = { actions.onOpenSeries(item.seriesId) })
+                        if (index > 0) RowDivider(inset = NewChapterInset)
+                        NewChapterRow(
+                            item = item,
+                            first = index == 0,
+                            last = index == state.newChapters.lastIndex,
+                            onClick = { actions.onOpenSeries(item.seriesId) }
+                        )
                     }
                 }
             }
@@ -290,13 +294,24 @@ private fun Section(title: String, action: String? = null, onAction: () -> Unit 
     }
 }
 
+/** Side padding of a new-chapter row, from the mockup's card padding. */
+private val NewChapterInset = 14.dp
+
+/** The card's 4 of top and bottom padding moves into its first and last rows, so their press reaches the edge. */
+private val CardEdgePadding = 4.dp
+
 @Composable
-private fun NewChapterRow(item: NewChapterItem, onClick: () -> Unit) {
+private fun NewChapterRow(item: NewChapterItem, first: Boolean, last: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(
+                start = NewChapterInset,
+                end = NewChapterInset,
+                top = 12.dp + if (first) CardEdgePadding else 0.dp,
+                bottom = 12.dp + if (last) CardEdgePadding else 0.dp
+            ),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

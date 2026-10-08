@@ -37,11 +37,19 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconType
 
-/** A white card, radius 20, holding rows separated by [RowDivider]. */
+/** Side padding inside a grouped-list row. */
+val RowInset = 16.dp
+
+/**
+ * A white card, radius 20, holding rows separated by [RowDivider].
+ *
+ * Rows fill the card edge to edge and pad their own content, so a pressed row lights up
+ * to the card's edges and the card's corners clip the first and last rows.
+ */
 @Composable
 fun GroupedCard(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
@@ -54,9 +62,16 @@ fun GroupedCard(
     )
 }
 
+/** A hairline between rows, inset to line up with the rows' content. */
 @Composable
-fun RowDivider(modifier: Modifier = Modifier) {
-    Spacer(modifier.fillMaxWidth().height(1.dp).background(AsconColors.SurfaceSunken))
+fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset) {
+    Spacer(
+        modifier
+            .padding(horizontal = inset)
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(AsconColors.SurfaceSunken)
+    )
 }
 
 /**
@@ -75,7 +90,8 @@ fun ListRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = if (subtitle != null) 60.dp else 56.dp)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -103,7 +119,8 @@ fun SwitchRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = if (subtitle != null) 60.dp else 56.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {

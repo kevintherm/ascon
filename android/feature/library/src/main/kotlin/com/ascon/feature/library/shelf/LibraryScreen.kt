@@ -1,8 +1,12 @@
 package com.ascon.feature.library.shelf
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,13 +27,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -156,18 +163,36 @@ private fun LazyGridScope.header(state: LibraryUiState, onFilter: (ReadingStatus
 
 private val CoverShape = RoundedCornerShape(AsconRadius.CoverLarge)
 
+private const val PRESSED_SCALE = 0.96f
+
 /** Inset of the badge and progress bar from the cover's edges. */
 private val CoverInset = 6.dp
 
 @Composable
 private fun SeriesTile(item: LibraryItem, onClick: () -> Unit) {
+    // The whole tile is the touch target, but only the cover shows the press, in the
+    // cover's own shape. A highlight around cover and text together crowds the text
+    // against rounded corners that belong to the cover.
+    // A ripple alone is a faint ink tint that vanishes on dark covers, so the cover also
+    // sinks a little while held. That reads on any cover color.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) PRESSED_SCALE else 1f, label = "coverPress")
     Column(
-        Modifier
-            .clip(RoundedCornerShape(AsconRadius.CoverLarge))
-            .clickable(onClick = onClick),
+        Modifier.clickable(interactionSource = interaction, indication = null, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(ratio = 2f / 3f)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(ratio = 2f / 3f)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(CoverShape)
+                .indication(interaction, ripple())
+        ) {
             CoverArt(item.cover, CoverShape, Modifier.matchParentSize())
             if (item.newCount > 0) {
                 NewBadge(item.newCount, Modifier.align(Alignment.TopEnd).padding(CoverInset))

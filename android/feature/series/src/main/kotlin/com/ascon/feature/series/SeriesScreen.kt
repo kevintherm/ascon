@@ -405,7 +405,8 @@ private fun ChapterListRow(row: ChapterRow, today: LocalDate, first: Boolean, la
                 Trailing(row.trailing, today)
             }
         }
-        if (!last) RowDivider()
+        // The row already pads its content, so the divider needs no inset of its own.
+        if (!last) RowDivider(inset = 0.dp)
     }
 }
 
