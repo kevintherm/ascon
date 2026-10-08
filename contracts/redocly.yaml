@@ -1,0 +1,7 @@
+extends:
+  - recommended
+
+rules:
+  # ReleasePush documents the Firebase push payload. It is not an HTTP body,
+  # so no path references it.
+  no-unused-components: off

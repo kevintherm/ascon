@@ -1,0 +1,889 @@
+openapi: 3.1.0
+info:
+  title: Ascon API
+  version: 0.1.0
+  description: |
+    Backend for the Ascon Android app.
+
+    Only metadata reaches this API: URLs, detection rules, series metadata,
+    progress numbers and page structure. Page images, downloaded chapters,
+    OCR text and translations never do.
+
+    Errors use `application/problem+json` as in RFC 9457. Rate-limited
+    calls answer 429 with a `Retry-After` header.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+
+servers:
+  - url: https://api.ascon.app/v1
+
+tags:
+  - name: devices
+    description: Anonymous device registration and followed series.
+  - name: rules
+    description: Detection rules, AI generation and rule health.
+  - name: metadata
+    description: Series search on AniList and MangaUpdates.
+  - name: sync
+    description: Library sync between a user's devices. Needs an account.
+  - name: releases
+    description: New chapter releases for followed series.
+
+security:
+  - deviceToken: []
+
+paths:
+  /devices:
+    post:
+      tags: [devices]
+      operationId: registerDevice
+      summary: Register an anonymous device
+      description: |
+        Called once on first launch. The token identifies the device for rule
+        calls and rate limits. It carries no personal data. Rate-limited by
+        IP address.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegistration"
+      responses:
+        "201":
+          description: Device registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /devices/me/follows:
+    put:
+      tags: [devices]
+      operationId: replaceFollows
+      summary: Replace the series this device wants release alerts for
+      description: |
+        Sends the whole list each time. The server polls release feeds for
+        the union of every device's list and sends alerts through Firebase
+        Cloud Messaging.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Follows"
+      responses:
+        "204":
+          description: List replaced.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /rules:
+    get:
+      tags: [rules]
+      operationId: lookupRule
+      summary: Find the rule for a site
+      description: |
+        Looks up by domain first. If no rule exists for the domain and a
+        fingerprint is given, returns the rule whose structure fingerprint is
+        closest, so a new mirror of a known site works at once.
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 253
+          example: glasslight.example
+        - name: fingerprint
+          in: query
+          required: false
+          description: 64-bit structure simhash as 16 lowercase hex digits.
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{16}$"
+      responses:
+        "200":
+          description: A rule was found.
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: How long the app may keep the rule before asking again.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleMatch"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: No rule for this domain or fingerprint.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /rule-candidates:
+    post:
+      tags: [rules]
+      operationId: requestRule
+      summary: Ask the server to generate a rule for a site
+      description: |
+        The last step of the lookup order, used only when no stored rule,
+        built-in rule or heuristic works. The app sends sanitized snapshots of
+        chapter pages, ideally two from the same series.
+
+        The server asks an LLM for a rule, then checks it with the Go
+        evaluator: titles must match across samples, chapter numbers must
+        parse and increase, and enough images must be found. Requests for a
+        domain already being generated join that run. Rate-limited per
+        device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateRequest"
+      responses:
+        "202":
+          description: Generation started or joined. Poll the candidate.
+          headers:
+            Location:
+              schema: { type: string, format: uri-reference }
+              description: The candidate's URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: A rule already exists for this domain. Look it up instead.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: The snapshots are larger than the limit.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /rule-candidates/{candidateId}:
+    get:
+      tags: [rules]
+      operationId: getCandidate
+      summary: Check on a rule generation
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The candidate's state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /rules/{domain}/reports:
+    post:
+      tags: [rules]
+      operationId: reportRule
+      summary: Report that a rule got a page wrong
+      description: |
+        Sent when the user corrects a detection in the fix-detection sheet.
+        One report never triggers regeneration on its own; several reports
+        from different devices are needed.
+      parameters:
+        - $ref: "#/components/parameters/Domain"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleReport"
+      responses:
+        "202":
+          description: Report recorded.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /rules/health:
+    post:
+      tags: [rules]
+      operationId: reportRuleHealth
+      summary: Send extraction counts for the rules this device used
+      description: |
+        Batched by a periodic job. Successful extractions raise a rule's
+        confidence; empty results and backward chapter jumps lower it. Only
+        counts are sent, never URLs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthBatch"
+      responses:
+        "202":
+          description: Counts recorded.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /metadata/search:
+    get:
+      tags: [metadata]
+      operationId: searchMetadata
+      summary: Search AniList and MangaUpdates for a series
+      description: |
+        Used to link a detected title to a canonical series. The app fuzzy
+        matches the detected title against every alternate title returned,
+        links above its threshold, and otherwise shows the fix-detection
+        sheet.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The detected title, already normalized by the app.
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 25, default: 10 }
+      responses:
+        "200":
+          description: Matches from both sources, best first.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SeriesMetadata"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "502":
+          description: Both upstream sources failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /sync/changes:
+    get:
+      tags: [sync]
+      operationId: pullChanges
+      summary: Pull changes made on the account's other devices
+      security:
+        - accountToken: []
+      parameters:
+        - name: since
+          in: query
+          description: Cursor from the last pull or push. Omit for everything.
+          schema: { type: string, maxLength: 128 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+      responses:
+        "200":
+          description: Changes after the cursor, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePage"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "410":
+          description: The cursor is too old. Pull again without `since`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [sync]
+      operationId: pushChanges
+      summary: Push local changes
+      description: |
+        Conflicts resolve per field: the value with the later `updatedAt`
+        wins, on the server and on every device. A tombstone deletes the
+        record unless a field was updated after it.
+      security:
+        - accountToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [changes]
+              properties:
+                changes:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    $ref: "#/components/schemas/Change"
+      responses:
+        "200":
+          description: All changes applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [cursor]
+                properties:
+                  cursor:
+                    type: string
+                    description: Cursor to use for the next pull.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /releases:
+    get:
+      tags: [releases]
+      operationId: listReleases
+      summary: List recent releases for some series
+      description: |
+        Catch-up for alerts missed while the device was offline. The live path
+        is the push message in `ReleasePush`.
+      parameters:
+        - name: series
+          in: query
+          required: true
+          description: Series refs such as `anilist:30013` or `mangaupdates:15180124327`.
+          style: form
+          explode: false
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 200
+            items:
+              type: string
+              pattern: "^(anilist|mangaupdates):[0-9]+$"
+        - name: since
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Releases after `since`, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [releases]
+                properties:
+                  releases:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Release"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    deviceToken:
+      type: http
+      scheme: bearer
+      description: Token from `registerDevice`. Anonymous.
+    accountToken:
+      type: http
+      scheme: bearer
+      description: |
+        Token for a signed-in account, needed only for sync. The sign-in flow
+        is not designed yet.
+
+  parameters:
+    Domain:
+      name: domain
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 253
+      example: glasslight.example
+
+  responses:
+    BadRequest:
+      description: The request is malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: The token is missing or not valid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Nothing with that id.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: Rate limit hit. Wait for `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    Problem:
+      description: RFC 9457 problem details.
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+
+    DeviceRegistration:
+      type: object
+      additionalProperties: false
+      required: [appVersion]
+      properties:
+        appVersion:
+          type: string
+          maxLength: 32
+          example: 0.1.0
+        webViewVersion:
+          type: string
+          maxLength: 64
+          description: Lets the server hold back rules that need newer WebView features.
+          example: 141.0.7390.122
+
+    Device:
+      type: object
+      additionalProperties: false
+      required: [deviceId, token]
+      properties:
+        deviceId: { type: string, format: uuid }
+        token:
+          type: string
+          description: Bearer token for later calls. Store it in encrypted preferences.
+
+    Follows:
+      type: object
+      additionalProperties: false
+      required: [fcmToken, series]
+      properties:
+        fcmToken:
+          type: string
+          maxLength: 4096
+          description: Firebase Cloud Messaging registration token.
+        series:
+          type: array
+          maxItems: 2000
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/SeriesRef"
+
+    SeriesRef:
+      description: A canonical series on AniList or MangaUpdates.
+      type: string
+      pattern: "^(anilist|mangaupdates):[0-9]+$"
+      example: anilist:30013
+
+    RuleMatch:
+      type: object
+      additionalProperties: false
+      required: [matchedBy, rule]
+      properties:
+        matchedBy:
+          type: string
+          enum: [domain, fingerprint]
+          description: |
+            `fingerprint` means the rule was made for another domain with the
+            same page structure. The app stores it under the requested domain.
+        rule:
+          $ref: "#/components/schemas/SignedRule"
+
+    SignedRule:
+      description: |
+        A rule signed with the server's Ed25519 key. The app verifies the
+        signature over the exact bytes of `payload`, decoded from base64url,
+        before parsing them as a rule. Signing bytes instead of parsed JSON
+        avoids needing a canonical JSON form.
+      type: object
+      additionalProperties: false
+      required: [payload, signature, keyId]
+      properties:
+        payload:
+          type: string
+          contentEncoding: base64url
+          contentMediaType: application/json
+          contentSchema:
+            $ref: "./rule.schema.json"
+          description: A rule matching contracts/rule.schema.json, as JSON bytes.
+        signature:
+          type: string
+          contentEncoding: base64url
+          description: Ed25519 signature of the decoded payload bytes.
+        keyId:
+          type: string
+          maxLength: 32
+          description: Which pinned public key signed it, so keys can rotate.
+          example: "2026-10"
+
+    CandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [domain, samples]
+      properties:
+        domain:
+          type: string
+          maxLength: 253
+        fingerprint:
+          type: string
+          pattern: "^[0-9a-f]{16}$"
+        samples:
+          type: array
+          minItems: 1
+          maxItems: 3
+          description: Chapter pages, ideally two from the same series.
+          items:
+            $ref: "#/components/schemas/PageSnapshot"
+
+    PageSnapshot:
+      description: |
+        A chapter page reduced by the app before upload. Scripts and styles
+        are removed, only `class`, `id`, `href`, `src` and `data-src`
+        attributes are kept, and text nodes are truncated. No images.
+      type: object
+      additionalProperties: false
+      required: [url, html]
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+        html:
+          type: string
+          maxLength: 262144
+          description: The sanitized markup, at most 256 KiB.
+
+    Candidate:
+      type: object
+      additionalProperties: false
+      required: [candidateId, domain, status]
+      properties:
+        candidateId: { type: string, format: uuid }
+        domain: { type: string }
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        rule:
+          $ref: "#/components/schemas/SignedRule"
+          description: Present when `status` is `accepted`.
+        reason:
+          type: string
+          description: Present when `status` is `rejected`. Says which check failed.
+        retryAfter:
+          type: integer
+          minimum: 1
+          description: Present while `pending`. Seconds to wait before polling again.
+
+    RuleReport:
+      type: object
+      additionalProperties: false
+      required: [version, problem, url]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+          description: Version of the rule that got it wrong.
+        problem:
+          type: string
+          enum: [wrong_title, wrong_chapter, no_images, wrong_images, not_a_chapter, other]
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          description: The page where it went wrong.
+        correction:
+          type: object
+          additionalProperties: false
+          description: What the user picked in the fix-detection sheet.
+          properties:
+            series: { $ref: "#/components/schemas/SeriesRef" }
+            chapter:
+              type: string
+              pattern: "^[0-9]+(\\.[0-9]+)?$"
+
+    HealthBatch:
+      type: object
+      additionalProperties: false
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required: [domain, version, successes, emptyResults, backwardJumps]
+            properties:
+              domain: { type: string, maxLength: 253 }
+              version: { type: integer, minimum: 1 }
+              successes: { type: integer, minimum: 0 }
+              emptyResults: { type: integer, minimum: 0 }
+              backwardJumps: { type: integer, minimum: 0 }
+
+    SeriesMetadata:
+      type: object
+      additionalProperties: false
+      required: [ref, title, altTitles]
+      properties:
+        ref: { $ref: "#/components/schemas/SeriesRef" }
+        title: { type: string }
+        altTitles:
+          type: array
+          items: { type: string }
+          description: Every other title the source lists, in any language.
+        format:
+          type: string
+          enum: [manga, manhwa, manhua, comic, novel, other]
+        status:
+          type: string
+          enum: [ongoing, completed, hiatus, cancelled, unknown]
+        year: { type: integer }
+        coverUrl:
+          type: string
+          format: uri
+          description: The source's own cover image URL. The server never stores the image.
+        otherRef:
+          $ref: "#/components/schemas/SeriesRef"
+          description: The same series on the other source, when the server knows it.
+
+    ChangePage:
+      type: object
+      additionalProperties: false
+      required: [changes, cursor, hasMore]
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Change"
+        cursor: { type: string }
+        hasMore: { type: boolean }
+
+    Change:
+      description: |
+        One record's changed fields. Each field carries its own `updatedAt`,
+        so two devices editing different fields of a record both keep their
+        edit.
+      oneOf:
+        - $ref: "#/components/schemas/SeriesChange"
+        - $ref: "#/components/schemas/SourceChange"
+        - $ref: "#/components/schemas/ProgressChange"
+        - $ref: "#/components/schemas/LibraryEntryChange"
+      discriminator:
+        propertyName: entity
+        mapping:
+          series: "#/components/schemas/SeriesChange"
+          source: "#/components/schemas/SourceChange"
+          progress: "#/components/schemas/ProgressChange"
+          libraryEntry: "#/components/schemas/LibraryEntryChange"
+
+    Tombstone:
+      type: object
+      additionalProperties: false
+      required: [updatedAt]
+      properties:
+        updatedAt: { type: string, format: date-time }
+
+    SeriesChange:
+      type: object
+      additionalProperties: false
+      required: [entity, id]
+      properties:
+        entity: { const: series }
+        id: { type: string, format: uuid }
+        deleted: { $ref: "#/components/schemas/Tombstone" }
+        fields:
+          type: object
+          additionalProperties: false
+          properties:
+            title: { $ref: "#/components/schemas/StringField" }
+            anilistId: { $ref: "#/components/schemas/NullableIntegerField" }
+            mangaUpdatesId: { $ref: "#/components/schemas/NullableIntegerField" }
+
+    SourceChange:
+      description: Links a series to one site where the user reads it.
+      type: object
+      additionalProperties: false
+      required: [entity, id]
+      properties:
+        entity: { const: source }
+        id: { type: string, format: uuid }
+        deleted: { $ref: "#/components/schemas/Tombstone" }
+        fields:
+          type: object
+          additionalProperties: false
+          properties:
+            seriesId: { $ref: "#/components/schemas/UuidField" }
+            seriesUrl: { $ref: "#/components/schemas/StringField" }
+            domain: { $ref: "#/components/schemas/StringField" }
+            lastChapterUrl: { $ref: "#/components/schemas/StringField" }
+
+    ProgressChange:
+      description: |
+        Reading progress for one series. Keyed by series and chapter number,
+        never by source, so switching sources keeps the place.
+      type: object
+      additionalProperties: false
+      required: [entity, id]
+      properties:
+        entity: { const: progress }
+        id: { type: string, format: uuid }
+        deleted: { $ref: "#/components/schemas/Tombstone" }
+        fields:
+          type: object
+          additionalProperties: false
+          properties:
+            seriesId: { $ref: "#/components/schemas/UuidField" }
+            chapter: { $ref: "#/components/schemas/ChapterField" }
+            pagePosition:
+              description: How far through the chapter, from 0 to 1.
+              $ref: "#/components/schemas/FractionField"
+            readAt: { $ref: "#/components/schemas/DateTimeField" }
+
+    LibraryEntryChange:
+      type: object
+      additionalProperties: false
+      required: [entity, id]
+      properties:
+        entity: { const: libraryEntry }
+        id: { type: string, format: uuid }
+        deleted: { $ref: "#/components/schemas/Tombstone" }
+        fields:
+          type: object
+          additionalProperties: false
+          properties:
+            seriesId: { $ref: "#/components/schemas/UuidField" }
+            status:
+              type: object
+              additionalProperties: false
+              required: [value, updatedAt]
+              properties:
+                value:
+                  type: string
+                  enum: [reading, planned, paused, completed, dropped]
+                updatedAt: { type: string, format: date-time }
+            hidden: { $ref: "#/components/schemas/BooleanField" }
+
+    StringField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: [string, "null"], maxLength: 2048 }
+        updatedAt: { type: string, format: date-time }
+
+    UuidField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: string, format: uuid }
+        updatedAt: { type: string, format: date-time }
+
+    NullableIntegerField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: [integer, "null"] }
+        updatedAt: { type: string, format: date-time }
+
+    BooleanField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+
+    FractionField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: number, minimum: 0, maximum: 1 }
+        updatedAt: { type: string, format: date-time }
+
+    DateTimeField:
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ChapterField:
+      description: A chapter number as a normalized decimal string, as parseChapterNumber gives.
+      type: object
+      additionalProperties: false
+      required: [value, updatedAt]
+      properties:
+        value:
+          type: string
+          pattern: "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"
+        updatedAt: { type: string, format: date-time }
+
+    Release:
+      type: object
+      additionalProperties: false
+      required: [series, chapter, publishedAt, feed]
+      properties:
+        series: { $ref: "#/components/schemas/SeriesRef" }
+        chapter:
+          type: string
+          pattern: "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"
+        title:
+          type: string
+          description: The chapter's own title, when the feed gives one.
+        group:
+          type: string
+          description: Scanlation or publishing group, when the feed gives one.
+        publishedAt: { type: string, format: date-time }
+        feed:
+          type: string
+          enum: [mangadex, mangaupdates]
+
+    ReleasePush:
+      description: |
+        Data payload of the Firebase Cloud Messaging message sent for a new
+        release. Not an HTTP body. FCM data values are strings, so it carries
+        only refs; the app shows the alert from its own library data.
+      type: object
+      additionalProperties: false
+      required: [kind, series, chapter]
+      properties:
+        kind: { const: release }
+        series: { $ref: "#/components/schemas/SeriesRef" }
+        chapter:
+          type: string
+          pattern: "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"

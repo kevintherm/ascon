@@ -4,6 +4,7 @@ Shared definitions that the Android app and the Go backend both implement. A cha
 
 | Path | What it is |
 |---|---|
+| `openapi.yaml` | The backend API. Lint with `npx @redocly/cli@2.53.3 lint openapi.yaml` |
 | `rule.schema.json` | JSON Schema for a detection rule |
 | `fixtures/conformance/` | Pages, rules and expected results that both evaluators must reproduce exactly |
 | `fixtures/chapter-numbers.json` | Chapter label parsing cases |
