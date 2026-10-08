@@ -22,7 +22,7 @@ tags:
   - name: devices
     description: Anonymous device registration and followed series.
   - name: rules
-    description: Detection rules, AI generation and rule health.
+    description: Detection rules, rule health, and AI generation for premium accounts.
   - name: metadata
     description: Series search on AniList and MangaUpdates.
   - name: sync
@@ -155,8 +155,12 @@ paths:
         The server asks an LLM for a rule, then checks it with the Go
         evaluator: titles must match across samples, chapter numbers must
         parse and increase, and enough images must be found. Requests for a
-        domain already being generated join that run. Rate-limited per
-        device.
+        domain already being generated join that run.
+
+        Premium only. The generated rule is shared with every user, free or
+        not. Rate-limited per account.
+      security:
+        - accountToken: []
       requestBody:
         required: true
         content:
@@ -176,6 +180,7 @@ paths:
                 $ref: "#/components/schemas/Candidate"
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PremiumRequired" }
         "409":
           description: A rule already exists for this domain. Look it up instead.
           content:
@@ -195,6 +200,8 @@ paths:
       tags: [rules]
       operationId: getCandidate
       summary: Check on a rule generation
+      security:
+        - accountToken: []
       parameters:
         - name: candidateId
           in: path
@@ -422,8 +429,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Token for a signed-in account, needed only for sync. The sign-in flow
-        is not designed yet.
+        Token for a signed-in account. Free accounts use it for sync. Premium
+        features also need an active subscription on the account. The
+        sign-in flow is not designed yet.
 
   parameters:
     Domain:
@@ -444,6 +452,12 @@ components:
             $ref: "#/components/schemas/Problem"
     Unauthorized:
       description: The token is missing or not valid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PremiumRequired:
+      description: The account has no active premium subscription.
       content:
         application/problem+json:
           schema:
