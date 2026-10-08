@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Ascon app icon</title>
+  <defs>
+    <linearGradient id="ground" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#2A2C33"/>
+      <stop offset="1" stop-color="#121317"/>
+    </linearGradient>
+    <pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="17" cy="17" r="5.5" fill="#FFFFFF" fill-opacity="0.14"/>
+    </pattern>
+    <linearGradient id="fade" x1="1" y1="0" x2="0.15" y2="0.85">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="screentone"><rect width="1024" height="1024" fill="url(#fade)"/></mask>
+    <linearGradient id="crossbar" gradientUnits="userSpaceOnUse" x1="34" y1="0" x2="56" y2="0">
+      <stop offset="0" stop-color="#F5A54A"/>
+      <stop offset="1" stop-color="#D9472B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#ground)"/>
+  <rect width="1024" height="1024" rx="232" fill="url(#dots)" mask="url(#screentone)"/>
+  <g transform="translate(192 192) scale(6.4)">
+    <path d="M24 84 L50 18 L76 84" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M39 63 H61" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="10" stroke-linecap="round"/>
+    <path d="M39 63 H51" stroke="url(#crossbar)" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>
