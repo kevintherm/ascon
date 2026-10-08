@@ -22,7 +22,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       - name: Lint and test
-        run: ./gradlew ktlintCheck detekt lint test assembleDebug
+        run: ./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true assembleDebug
 
   evaluator:
     runs-on: ubuntu-latest

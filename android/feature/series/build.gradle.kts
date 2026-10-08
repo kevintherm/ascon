@@ -1,12 +1,7 @@
 plugins {
-    id("ascon.android.library")
-    id("ascon.android.compose")
+    id("ascon.android.feature")
 }
 
 android {
     namespace = "com.ascon.feature.series"
-}
-
-dependencies {
-    implementation(project(":core"))
 }

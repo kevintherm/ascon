@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="series_back">Back</string>
+    <string name="series_more">More</string>
+    <string name="series_also">Also: %1$s</string>
+    <string name="series_linked_anilist">Linked to AniList</string>
+    <string name="series_continue">Continue Ch. %1$s</string>
+    <string name="series_continue_page">Page %1$d of %2$d</string>
+    <string name="series_start">Start Ch. %1$s</string>
+    <string name="series_download">Download chapters</string>
+    <string name="series_alerts">New chapter alerts</string>
+    <string name="series_reading_from">Reading from</string>
+    <string name="series_source_official">Official · %1$s</string>
+    <plurals name="series_chapter_count">
+        <item quantity="one">%d chapter</item>
+        <item quantity="other">%d chapters</item>
+    </plurals>
+    <string name="series_newest_first">Newest first</string>
+    <string name="series_oldest_first">Oldest first</string>
+    <string name="series_chapter">Chapter %1$s</string>
+    <string name="series_page_of">p. %1$d / %2$d</string>
+    <string name="series_via">via %1$s</string>
+    <string name="series_downloaded">Downloaded</string>
+    <string name="series_today">Today</string>
+    <string name="series_yesterday">Yesterday</string>
+    <string name="series_new">New</string>
+    <string name="series_read">Read</string>
+    <string name="series_not_found">This series is no longer in your library.</string>
+</resources>

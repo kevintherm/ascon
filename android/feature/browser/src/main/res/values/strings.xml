@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="browse_title">Browse</string>
+    <string name="browse_placeholder_title">The browser is next</string>
+    <string name="browse_placeholder_body">Open any site here and Ascon will track what you read. It arrives in the next build step.</string>
+</resources>

@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
     id("ascon.android.compose")
 }
 
@@ -42,6 +43,13 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // Navigation 3: the back stack is a plain list the app owns, which keeps tab logic testable.
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    // Routes are saved across process death through kotlinx.serialization.
+    implementation(libs.kotlinx.serialization.core)
 
     testImplementation(libs.junit)
 }

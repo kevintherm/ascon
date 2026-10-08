@@ -9,8 +9,16 @@ Start with [AGENTS.md](AGENTS.md) for architecture and decisions, and [design/](
 Android, from `android/`, needs JDK 17 or newer and Android SDK platform 37:
 
 ```
-./gradlew ktlintCheck detekt lint test assembleDebug
+./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true assembleDebug
 ```
+
+Compose screens have golden screenshots in each feature's `src/test/screenshots/`, rendered at the mockups' 390×844 by Robolectric. After an intended UI change, record new ones and review the images in the diff:
+
+```
+./gradlew recordRoborazziDebug
+```
+
+`./run.sh` builds the app and opens it on an emulator. The screens run on fake data in `core/data/fake` until Room and the backend client exist.
 
 Backend, from `backend/`:
 

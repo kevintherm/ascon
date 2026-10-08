@@ -1,3 +1,21 @@
 naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']
+  # Compose files are named after their screen, not after the Actions class they also hold.
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  # Composables read top to bottom like the layout they draw; splitting them only to meet
+  # a line count scatters one screen across many functions.
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  # Private composables are the building blocks of one screen and belong in its file.
+  TooManyFunctions:
+    ignorePrivate: true
+
+style:
+  MagicNumber:
+    # Named arguments such as sizes and offsets already say what the number is.
+    ignoreNamedArgument: true
+    ignorePropertyDeclaration: true

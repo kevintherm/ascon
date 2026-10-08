@@ -6,6 +6,7 @@ dependencies {
     compileOnly(libs.android.gradle.plugin)
     compileOnly(libs.kotlin.gradle.plugin)
     compileOnly(libs.compose.gradle.plugin)
+    compileOnly(libs.roborazzi.gradle.plugin)
 }
 
 gradlePlugin {
@@ -17,6 +18,10 @@ gradlePlugin {
         register("androidCompose") {
             id = "ascon.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
+        }
+        register("androidFeature") {
+            id = "ascon.android.feature"
+            implementationClass = "AndroidFeatureConventionPlugin"
         }
     }
 }

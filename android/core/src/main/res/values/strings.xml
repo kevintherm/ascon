@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="status_reading">Reading</string>
+    <string name="status_plan">Plan</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_done">Done</string>
+    <string name="status_chip">%1$s · %2$d</string>
+    <string name="chapter_short">Ch. %1$s</string>
+    <string name="chapter_range">Ch. %1$s–%2$s</string>
+</resources>

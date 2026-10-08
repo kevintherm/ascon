@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home -->
+    <string name="home_search_hint">Search or enter a site</string>
+    <string name="home_profile">Profile</string>
+    <string name="home_continue_reading">Continue reading</string>
+    <string name="home_continue_meta">Ch. %1$s · Page %2$d of %3$d · %4$s</string>
+    <string name="home_resume">Resume</string>
+    <string name="home_welcome_title">Read anywhere. Ascon keeps your place.</string>
+    <string name="home_welcome_body">Open any site and the series you read show up here by themselves.</string>
+    <string name="home_new_chapters">New chapters</string>
+    <string name="home_see_all">See all</string>
+    <string name="home_downloaded">downloaded</string>
+    <plurals name="home_sources">
+        <item quantity="one">%d source</item>
+        <item quantity="other">%d sources</item>
+    </plurals>
+    <string name="home_read_chapter">Read %1$s</string>
+    <string name="home_your_sites">Your sites</string>
+    <string name="home_edit">Edit</string>
+    <string name="home_add_site">Add site</string>
+
+    <!-- Library -->
+    <string name="library_title">Library</string>
+    <string name="library_search">Search library</string>
+    <string name="library_sort">Sort and view</string>
+    <string name="library_sorted_by_last_read">Sorted by last read</string>
+    <plurals name="library_series_count">
+        <item quantity="one">%d series</item>
+        <item quantity="other">%d series</item>
+    </plurals>
+    <string name="library_chapter_of">Ch. %1$s of %2$s</string>
+    <string name="library_not_started">Not started</string>
+    <plurals name="library_new_badge">
+        <item quantity="one">%d new chapter</item>
+        <item quantity="other">%d new chapters</item>
+    </plurals>
+    <string name="library_filter_empty">Nothing here yet</string>
+    <string name="library_empty_title">Your shelf is empty</string>
+    <string name="library_empty_body">Read on any site and Ascon adds the series here by itself.</string>
+    <string name="library_open_site">Open a site</string>
+    <string name="library_import">Import from AniList or Mihon</string>
+</resources>
