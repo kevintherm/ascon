@@ -1,5 +1,6 @@
 package com.ascon.app
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,14 +14,17 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -30,6 +34,7 @@ import com.ascon.core.designsystem.component.FloatingNavBarClearance
 import com.ascon.core.designsystem.component.NavItem
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconTheme
+import com.ascon.core.model.ReadingStatus
 import com.ascon.feature.browser.BrowseScreen
 import com.ascon.feature.library.home.HomeActions
 import com.ascon.feature.library.home.HomeRoute
@@ -47,17 +52,64 @@ import com.ascon.feature.settings.SettingsViewModel
 /** Extra room under scrolling content so its end clears the floating nav. */
 private val NavBarGap = 32.dp
 
-/** The whole app: one back stack, the screens, and the floating nav over the tabs. */
+/**
+ * The whole app. Tabs live in [TabHost], always composed at the bottom. The back stack
+ * holds [Route.Root] plus detail screens, which [NavDisplay] slides in over the tabs.
+ * The floating nav sits on top and hides while a detail screen is open.
+ */
 @Composable
 fun AsconApp(container: AppContainer) {
-    val backStack = rememberNavBackStack(Route.Home)
+    val backStack = rememberNavBackStack(Route.Root)
+    var tab by rememberSaveable { mutableStateOf(Tab.Home) }
+    val cover = remember { CoverState() }
+    val tabsShown = backStack.showsTabs()
     val bottomPadding = FloatingNavBarClearance + NavBarGap +
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val openTab: (Route.TopLevel) -> Unit = { backStack.openTab(it) }
+
+    // Tab view models live as long as the activity, like the tabs themselves.
+    val home = viewModel { HomeViewModel(container.library, container.accounts) }
+    val library = viewModel { LibraryViewModel(container.library, ReadingStatus.Reading) }
+    val settings = viewModel { SettingsViewModel(container.settings, container.accounts, container.clock) }
+
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
+    val openLibrary: (ReadingStatus) -> Unit = { status ->
+        library.selectFilter(status)
+        tab = Tab.Library
+    }
+
+    // Back from a tab other than Home goes to Home. Detail screens handle back in NavDisplay.
+    BackHandler(enabled = tabsShown && tab.back() != null) { tab.back()?.let { tab = it } }
 
     AsconTheme {
         Box(Modifier.fillMaxSize()) {
+            TabHost(selected = tab, visible = tabsShown, modifier = Modifier.coveredByDetail(cover)) { shown ->
+                when (shown) {
+                    Tab.Home -> HomeRoute(
+                        viewModel = home,
+                        actions = HomeActions(
+                            onSearch = { tab = Tab.Browse },
+                            onProfile = { tab = Tab.Settings },
+                            onOpenSeries = openSeries,
+                            onSeeAll = { openLibrary(ReadingStatus.Reading) },
+                            onStatus = openLibrary,
+                            onOpenSite = { tab = Tab.Browse },
+                            onAddSite = { tab = Tab.Browse }
+                        ),
+                        bottomPadding = bottomPadding
+                    )
+                    Tab.Library -> LibraryRoute(
+                        viewModel = library,
+                        actions = LibraryActions(onOpenSeries = openSeries, onOpenSite = { tab = Tab.Browse }),
+                        bottomPadding = bottomPadding
+                    )
+                    Tab.Browse -> BrowseScreen(bottomPadding)
+                    Tab.Settings -> SettingsRoute(
+                        viewModel = settings,
+                        actions = SettingsActions(),
+                        bottomPadding = bottomPadding
+                    )
+                }
+            }
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.pop() },
@@ -65,42 +117,11 @@ fun AsconApp(container: AppContainer) {
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator()
                 ),
+                transitionSpec = pushTransition,
+                popTransitionSpec = popTransition,
+                predictivePopTransitionSpec = predictivePopTransition,
                 entryProvider = entryProvider {
-                    entry<Route.Home> {
-                        HomeRoute(
-                            viewModel = viewModel { HomeViewModel(container.library, container.accounts) },
-                            actions = HomeActions(
-                                onSearch = { openTab(Route.Browse) },
-                                onProfile = { openTab(Route.Settings) },
-                                onOpenSeries = openSeries,
-                                onSeeAll = { openTab(Route.Library()) },
-                                onStatus = { openTab(Route.Library(it)) },
-                                onOpenSite = { openTab(Route.Browse) },
-                                onAddSite = { openTab(Route.Browse) }
-                            ),
-                            bottomPadding = bottomPadding
-                        )
-                    }
-                    entry<Route.Library> { key ->
-                        LibraryRoute(
-                            viewModel = viewModel { LibraryViewModel(container.library, key.status) },
-                            actions = LibraryActions(
-                                onOpenSeries = openSeries,
-                                onOpenSite = { openTab(Route.Browse) }
-                            ),
-                            bottomPadding = bottomPadding
-                        )
-                    }
-                    entry<Route.Browse> { BrowseScreen(bottomPadding) }
-                    entry<Route.Settings> {
-                        SettingsRoute(
-                            viewModel = viewModel {
-                                SettingsViewModel(container.settings, container.accounts, container.clock)
-                            },
-                            actions = SettingsActions(),
-                            bottomPadding = bottomPadding
-                        )
-                    }
+                    entry<Route.Root> { RootEntry(cover) }
                     entry<Route.Series> { key ->
                         SeriesRoute(
                             viewModel = viewModel { SeriesViewModel(container.library, key.id, container.clock) },
@@ -110,8 +131,9 @@ fun AsconApp(container: AppContainer) {
                 }
             )
             NavBar(
-                backStack = backStack,
-                onSelect = { openTab(it.route()) },
+                visible = tabsShown,
+                selected = tab,
+                onSelect = { tab = it },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -119,24 +141,23 @@ fun AsconApp(container: AppContainer) {
 }
 
 @Composable
-private fun NavBar(backStack: List<NavKey>, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
+private fun NavBar(visible: Boolean, selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     val items = listOf(
         NavItem(AsconIcons.Home, stringResource(R.string.nav_home)),
         NavItem(AsconIcons.Library, stringResource(R.string.nav_library)),
         NavItem(AsconIcons.Browse, stringResource(R.string.nav_browse)),
         NavItem(AsconIcons.Settings, stringResource(R.string.nav_settings))
     )
-    val tabs = remember { Tab.entries }
     AnimatedVisibility(
-        visible = backStack.showsNavBar(),
+        visible = visible,
         modifier = modifier,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically { it } + fadeOut()
     ) {
         FloatingNavBar(
             items = items,
-            selectedIndex = tabs.indexOf(backStack.currentTab()),
-            onSelect = { onSelect(tabs[it]) },
+            selectedIndex = selected.ordinal,
+            onSelect = { onSelect(Tab.entries[it]) },
             modifier = Modifier
                 .navigationBarsPadding()
                 .padding(start = 16.dp, end = 16.dp, bottom = 20.dp)

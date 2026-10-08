@@ -137,6 +137,7 @@ private fun LazyGridScope.header(state: LibraryUiState, onFilter: (ReadingStatus
             }
         }
     }
+    if (state.loading) return
     item(span = { GridItemSpan(maxLineSpan) }, contentType = "meta") {
         Row(Modifier.padding(horizontal = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(

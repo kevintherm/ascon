@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -18,13 +19,20 @@ import androidx.core.view.WindowCompat
 import com.ascon.core.designsystem.theme.AsconColors
 
 /**
+ * False for a screen that stays composed while hidden, such as a tab that is not
+ * selected. Only the visible screen may change window-wide state like bar colors.
+ */
+val LocalScreenVisible = compositionLocalOf { true }
+
+/**
  * Sets the status bar icon color for the screen on top. [darkIcons] for light grounds,
- * light icons over cover-tinted headers.
+ * light icons over cover-tinted headers. Hidden screens leave the bar alone, and a screen
+ * applies its choice again when it becomes visible.
  */
 @Composable
 fun StatusBarIcons(darkIcons: Boolean) {
     val view = LocalView.current
-    if (view.isInEditMode) return
+    if (view.isInEditMode || !LocalScreenVisible.current) return
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
         WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkIcons
