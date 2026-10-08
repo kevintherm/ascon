@@ -3,9 +3,9 @@ name: android
 on:
   push:
     branches: [main]
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "contracts/**", ".github/workflows/android.yml"]
   pull_request:
-    paths: ["android/**", ".github/workflows/android.yml"]
+    paths: ["android/**", "contracts/**", ".github/workflows/android.yml"]
 
 defaults:
   run:
@@ -23,3 +23,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Lint and test
         run: ./gradlew ktlintCheck detekt lint test assembleDebug
+
+  evaluator:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android/engine/detection
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android/engine/detection/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps --only-shell chromium
+      - name: Conformance in Chromium
+        run: npm test

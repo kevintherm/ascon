@@ -1,0 +1,13 @@
+{
+  "name": "ascon-detection-evaluator",
+  "private": true,
+  "description": "Runs evaluator.js against contracts/fixtures in Chromium, the engine behind Android System WebView.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/test/js/*.test.js",
+    "record-urls": "node src/test/js/record-urls.js"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
+}
