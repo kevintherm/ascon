@@ -157,13 +157,11 @@ paths:
         parse and increase, and enough images must be found. Requests for a
         domain already being generated join that run.
 
-        Uses one unit of AI detection quota, unless the request joins a
-        generation already running for the domain. Free users send their
-        device token and spend the device's quota. Premium users send their
-        account token and spend the account's larger quota. The generated
-        rule is shared with every user.
+        Needs an account, free or premium. Uses one unit of the account's
+        AI detection quota, unless the request joins a generation already
+        running for the domain. Premium accounts have a larger quota. The
+        generated rule is shared with every user.
       security:
-        - deviceToken: []
         - accountToken: []
       requestBody:
         required: true
@@ -214,11 +212,8 @@ paths:
       operationId: getQuota
       summary: Show how much AI detection quota is left
       description: |
-        For the screen that offers AI detection. With a device token it
-        reports the device's free quota; with an account token, the
-        account's.
+        The account's AI detection quota, for display in Settings.
       security:
-        - deviceToken: []
         - accountToken: []
       responses:
         "200":
@@ -235,7 +230,6 @@ paths:
       operationId: getCandidate
       summary: Check on a rule generation
       security:
-        - deviceToken: []
         - accountToken: []
       parameters:
         - name: candidateId
@@ -464,9 +458,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Token for a signed-in account. Free accounts use it for sync. With
-        an active subscription it also gives the premium AI detection quota
-        and translation. The sign-in flow is not designed yet.
+        Token for a signed-in account. Free accounts use it for sync and AI
+        detection. With an active subscription it also gives the larger AI
+        detection quota and translation. The sign-in flow is not designed yet.
 
   parameters:
     Domain:
