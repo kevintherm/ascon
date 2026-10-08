@@ -39,3 +39,17 @@ class NavigationTest {
         assertEquals(listOf(Route.Root, Route.Series("a")), s)
     }
 }
+
+class SlideDirectionTest {
+    @Test
+    fun `direction follows the tab order and holds until the next switch`() {
+        val direction = SlideDirection(Tab.Home)
+        assertEquals(1, direction.after(Tab.Settings))
+        // Recomposing with the same tab keeps the direction for the running slide.
+        assertEquals(1, direction.after(Tab.Settings))
+        assertEquals(-1, direction.after(Tab.Library))
+        assertEquals(-1, direction.after(Tab.Library))
+        assertEquals(1, direction.after(Tab.Browse))
+        assertEquals(-1, direction.after(Tab.Home))
+    }
+}

@@ -22,6 +22,25 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.zIndex
 import com.ascon.core.designsystem.component.LocalScreenVisible
 
+/**
+ * Which way the last tab switch went: +1 toward a tab on the right, -1 toward the left.
+ *
+ * It changes only when the selected tab changes and holds until the next switch, so the
+ * slide keeps its direction for its whole run, which starts a few frames after the switch.
+ */
+class SlideDirection(initial: Tab) {
+    private var current = initial
+    private var sign = 1
+
+    fun after(selected: Tab): Int {
+        if (selected != current) {
+            sign = if (selected.ordinal > current.ordinal) 1 else -1
+            current = selected
+        }
+        return sign
+    }
+}
+
 /** Frames to wait after a switch before the slide starts. See the comment where it is used. */
 private const val SETTLE_FRAMES = 2
 
@@ -50,10 +69,7 @@ fun TabHost(selected: Tab, visible: Boolean, modifier: Modifier = Modifier, cont
     var visitedMask by rememberSaveable { mutableIntStateOf(1 shl selected.ordinal) }
     visitedMask = visitedMask or (1 shl selected.ordinal)
 
-    // Which way the last switch went: +1 toward a tab on the right, -1 toward the left.
-    var previous by remember { mutableIntStateOf(selected.ordinal) }
-    val direction = if (selected.ordinal >= previous) 1 else -1
-    LaunchedEffect(selected) { previous = selected.ordinal }
+    val direction = remember { SlideDirection(selected) }.after(selected)
 
     // Only the tab shown when the host first appears starts fully visible. A tab built
     // later starts hidden, so its first visit slides in like every other switch.
