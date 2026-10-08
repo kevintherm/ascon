@@ -22,4 +22,5 @@ if ! "$ADB" devices | grep -qw "device$"; then
 fi
 
 ./gradlew installDebug
-"$ADB" shell am start -n com.ascon.app/.MainActivity
+# Launch like the launcher does, so a later tap on the icon resumes this task instead of stacking a new copy.
+"$ADB" shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n com.ascon.app/.MainActivity
