@@ -9,6 +9,12 @@ linters:
     - misspell
     - revive
     - unconvert
+  exclusions:
+    rules:
+      # Tests read fixture files by path on purpose.
+      - path: _test\.go
+        linters: [gosec]
+        text: G304
 
 formatters:
   enable:

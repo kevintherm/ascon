@@ -9,9 +9,16 @@ components:
   usecase:  { in: usecase/** }
   adapter:  { in: adapter/** }
 
+# Third-party packages. Only adapters may use them.
+vendors:
+  html:       { in: [golang.org/x/net/html, golang.org/x/net/idna] }
+  cascadia:   { in: github.com/andybalholm/cascadia }
+  jsonschema: { in: github.com/santhosh-tekuri/jsonschema/v6 }
+
 # domain has no entry under deps, so it may import no other component.
 deps:
   usecase:
     mayDependOn: [domain]
   adapter:
     mayDependOn: [domain, usecase]
+    canUse: [html, cascadia, jsonschema]
