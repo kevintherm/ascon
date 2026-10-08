@@ -60,6 +60,20 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
+  /devices/me:
+    delete:
+      tags: [devices]
+      operationId: deleteDevice
+      summary: Delete this device and everything stored for it
+      description: |
+        Removes the device, its push token and its follow list. The token
+        stops working. Rule reports and health counts already sent stay,
+        since they hold no personal data.
+      responses:
+        "204":
+          description: Device deleted.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /devices/me/follows:
     put:
       tags: [devices]
@@ -69,6 +83,9 @@ paths:
         Sends the whole list each time. The server polls release feeds for
         the union of every device's list and sends alerts through Firebase
         Cloud Messaging.
+
+        The token and list are personal data. The privacy policy must cover
+        them; see docs/adr/0001-release-alerts-per-device-list.md.
       requestBody:
         required: true
         content:

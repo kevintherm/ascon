@@ -207,3 +207,4 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 - Exact LLM provider and model for rule generation.
 - Hosting for the Go backend.
 - Paywall pricing for translation.
+- Privacy policy: not written yet. It must cover the push token and follow list the server stores for release alerts. See `docs/adr/0001-release-alerts-per-device-list.md`.
