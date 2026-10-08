@@ -290,3 +290,13 @@ func nonEmpty(s string) *string {
 	}
 	return &s
 }
+
+// HTML implements rule.Evaluator with Evaluate.
+type HTML struct{}
+
+var _ rule.Evaluator = HTML{}
+
+// Evaluate runs r against page.
+func (HTML) Evaluate(r rule.Rule, pageURL string, page []byte) (rule.Result, error) {
+	return Evaluate(r, pageURL, page)
+}

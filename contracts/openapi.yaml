@@ -371,8 +371,10 @@ paths:
       summary: Push local changes
       description: |
         Conflicts resolve per field: the value with the later `updatedAt`
-        wins, on the server and on every device. A tombstone deletes the
-        record unless a field was updated after it.
+        wins, on the server and on every device. On a tie the larger JSON
+        value wins. A timestamp in the future is clamped to the server's
+        clock. A tombstone deletes the record unless a field was updated
+        after it.
       security:
         - accountToken: []
       requestBody:
@@ -391,17 +393,22 @@ paths:
                     $ref: "#/components/schemas/Change"
       responses:
         "200":
-          description: All changes applied.
+          description: |
+            All changes merged. Keep using your own pull cursor: these changes
+            come back on the next pull, which is harmless because merging is
+            idempotent. A cursor returned here would skip other devices'
+            changes made since your last pull.
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: false
-                required: [cursor]
+                required: [applied]
                 properties:
-                  cursor:
-                    type: string
-                    description: Cursor to use for the next pull.
+                  applied:
+                    type: integer
+                    minimum: 0
+                    description: Fields and tombstones that changed on the server.
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 

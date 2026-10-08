@@ -1,24 +1,38 @@
 version: 3
-workdir: internal
+workdir: .
 
 allow:
   depOnAnyVendor: false
+  # Deep scan reports cmd/api handing adapters to use case constructors as
+  # use cases depending on adapters. That injection is the point of the
+  # domain interfaces, so only imports are checked.
+  deepScan: false
 
 components:
-  domain:   { in: domain/** }
-  usecase:  { in: usecase/** }
-  adapter:  { in: adapter/** }
+  domain:     { in: internal/domain/** }
+  usecase:    { in: internal/usecase/** }
+  adapter:    { in: internal/adapter/** }
+  migrations: { in: migrations }
+  cmd:        { in: cmd/** }
 
 # Third-party packages. Only adapters may use them.
 vendors:
   html:       { in: [golang.org/x/net/html, golang.org/x/net/idna] }
   cascadia:   { in: github.com/andybalholm/cascadia }
   jsonschema: { in: github.com/santhosh-tekuri/jsonschema/v6 }
+  sqlite:     { in: modernc.org/sqlite }
+  goose:      { in: github.com/pressly/goose/v3 }
 
-# domain has no entry under deps, so it may import no other component.
+# Dependencies point inward: adapter -> usecase -> domain.
 deps:
-  usecase:
+  domain:
     mayDependOn: [domain]
-  adapter:
+  usecase:
     mayDependOn: [domain, usecase]
-    canUse: [html, cascadia, jsonschema]
+  adapter:
+    mayDependOn: [domain, usecase, adapter, migrations]
+    canUse: [html, cascadia, jsonschema, sqlite, goose]
+  cmd:
+    # Wiring only: it may assemble anything.
+    anyProjectDeps: true
+    anyVendorDeps: true

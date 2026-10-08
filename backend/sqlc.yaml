@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: sqlite
+    schema: migrations
+    queries: internal/adapter/persistence/sqlite/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/adapter/persistence/sqlite/sqlcgen
+        emit_empty_slices: true
