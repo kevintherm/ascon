@@ -38,6 +38,7 @@ Ascon never hosts, mirrors or redistributes content.
 | Backend | Go, strict clean architecture |
 | Backend DB | SQLite via `modernc.org/sqlite`, WAL mode, busy timeout, single writer connection |
 | Backend tooling | stdlib `net/http` routing, sqlc, goose migrations, Litestream for backups, `go-arch-lint` |
+| Hosting | One small VPS, 2 GB RAM and 2 vCPU. One Go binary and one SQLite file, so keep memory use and background work modest |
 | iOS | Not now. Kotlin Multiplatform later for shared core if it proves worth it |
 
 Owner's background: strong in PHP/Laravel, Flutter and Vue; learning Go and JVM languages toward a Java career. Prefer idiomatic, explainable code over clever code.
@@ -188,6 +189,7 @@ AI detection means asking the server to generate a rule for a site that has none
 - Generated rules are shared with everyone, so users without an account benefit once any signed-in user has visited a site.
 - Never put a free feature behind sign-in, except sync and AI detection.
 - The account also carries billing and the premium entitlement.
+- Sign-in is OAuth, Google first. On Android use Credential Manager to get a Google ID token; the server verifies it and issues its own account token. Other providers come later, and email with a password is not planned.
 - Brand gradient marks premium in the UI.
 
 ## Design
@@ -222,8 +224,6 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 
 ## Open questions
 
-- Exact LLM provider and model for rule generation.
-- Hosting for the Go backend.
-- Paywall pricing for translation.
-- Sign-in method for accounts: not decided.
-- Privacy policy: not written yet. It must cover the push token and follow list the server stores for release alerts. See `docs/adr/0001-release-alerts-per-device-list.md`.
+- LLM for rule generation: shortlist is `deepseek-v4-flash` or `gpt-5.6-luna`, not chosen. Before choosing, check the provider's API terms against the hard rule that inputs are not retained. Keep it behind the `llm` adapter so it can be swapped.
+- Paywall pricing for translation: not decided.
+- Privacy policy: deferred until more decisions are made. Not written yet. It must cover the push token and follow list the server stores for release alerts. See `docs/adr/0001-release-alerts-per-device-list.md`.
