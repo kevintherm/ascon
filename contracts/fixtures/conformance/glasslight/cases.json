@@ -1,0 +1,43 @@
+[
+  {
+    "name": "chapter page with lazy images",
+    "url": "https://glasslight.example/manga/salt-and-ember/chapter-10-5/",
+    "html": "chapter.html",
+    "expected": {
+      "pageType": "chapter",
+      "series": "salt-and-ember",
+      "title": "Salt & Ember",
+      "chapterLabel": "Chapter 10.5",
+      "chapter": "10.5",
+      "images": [
+        "https://cdn.glasslight.example/manga/salt-and-ember/10-5/01.jpg",
+        "https://cdn.glasslight.example/manga/salt-and-ember/10-5/02.jpg",
+        "https://cdn.glasslight.example/manga/salt-and-ember/10-5/03.jpg"
+      ],
+      "next": "https://glasslight.example/manga/salt-and-ember/chapter-11/",
+      "previous": "https://glasslight.example/manga/salt-and-ember/chapter-10/"
+    }
+  },
+  {
+    "name": "series page chapter list",
+    "url": "https://glasslight.example/manga/salt-and-ember/",
+    "html": "series.html",
+    "expected": {
+      "pageType": "series",
+      "series": "salt-and-ember",
+      "title": "Salt & Ember",
+      "chapters": [
+        { "url": "https://glasslight.example/manga/salt-and-ember/chapter-11/", "label": "Chapter 11", "number": "11" },
+        { "url": "https://glasslight.example/manga/salt-and-ember/chapter-10-5/", "label": "Chapter 10.5", "number": "10.5" },
+        { "url": "https://glasslight.example/manga/salt-and-ember/chapter-10/", "label": "Chapter 10", "number": "10" },
+        { "url": "https://glasslight.example/manga/salt-and-ember/chapter-1/", "label": "Chapter 1 - Prologue", "number": "1" }
+      ]
+    }
+  },
+  {
+    "name": "page the rule does not cover",
+    "url": "https://glasslight.example/about/",
+    "html": "about.html",
+    "expected": { "pageType": "none" }
+  }
+]

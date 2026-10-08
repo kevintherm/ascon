@@ -1,0 +1,28 @@
+[
+  {
+    "name": "last chapter with srcset images",
+    "url": "https://ninthgate.example/ninth-gate-academy-chapter-12/",
+    "html": "chapter.html",
+    "expected": {
+      "pageType": "chapter",
+      "series": "ninth-gate-academy",
+      "title": "Ninth Gate Academy",
+      "chapterLabel": "Chapter 12",
+      "chapter": "12",
+      "images": [
+        "https://cdn.ninthgate.example/nga/12/01-1600.jpg",
+        "https://cdn.ninthgate.example/nga/12/02@3x.jpg",
+        "https://ninthgate.example/uploads/nga/12/03.jpg",
+        "https://cdn.ninthgate.example/nga/12/04.jpg"
+      ],
+      "next": null,
+      "previous": "https://ninthgate.example/ninth-gate-academy-chapter-11/"
+    }
+  },
+  {
+    "name": "series page with no seriesPage rule",
+    "url": "https://ninthgate.example/manga/ninth-gate-academy/",
+    "html": "chapter.html",
+    "expected": { "pageType": "none" }
+  }
+]

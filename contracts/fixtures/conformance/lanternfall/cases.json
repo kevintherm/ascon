@@ -1,0 +1,27 @@
+[
+  {
+    "name": "image URLs that need WHATWG normalization",
+    "url": "https://lanternfall.example/comic/ember-road/ep-7/",
+    "html": "episode.html",
+    "expected": {
+      "pageType": "chapter",
+      "series": "ember-road",
+      "title": "Ember Road",
+      "chapterLabel": "Ep. 7",
+      "chapter": "7",
+      "images": [
+        "https://lanternfall.example/comic/ember-road/ep-7/p01.webp",
+        "https://lanternfall.example/comic/ember-road/ep-7/p02.webp?",
+        "https://[2001:db8::1]/p03.webp",
+        "https://lanternfall.example/comic/ember-road/ep-7/p04%7Calt.webp",
+        "https://lanternfall.example/comic/ember-road/ep-7/%E7%94%BB%E5%83%8F05.webp",
+        "https://xn--bcher-kva.example/p06.webp",
+        "https://cdn.lanternfall.example:80/p07.webp",
+        "https://lanternfall.example/comic/ember-road/ep-7/p08.webp?size=large&q=a%20b",
+        "https://lanternfall.example/comic/ember-road/ep-7/p09%20(final).webp"
+      ],
+      "next": null,
+      "previous": null
+    }
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "name": "chapter with unusual image URLs",
+    "url": "https://moongarden.example/read/moon-garden/vol-3/ch-21?page=all",
+    "html": "chapter-21.html",
+    "expected": {
+      "pageType": "chapter",
+      "series": "moon-garden",
+      "title": "月の庭",
+      "chapterLabel": "Vol. 3 Ch. 21 – Night Market",
+      "chapter": "21",
+      "images": [
+        "https://cdn.moongarden.example/p/21/01.webp",
+        "https://cdn.moongarden.example/p/21/03.webp",
+        "https://cdn.moongarden.example/p/21/04%20final.webp",
+        "https://cdn.moongarden.example/p/21/05.webp",
+        "https://moongarden.example/read/moon-garden/vol-3/06.webp?v=2"
+      ],
+      "next": null,
+      "previous": "https://moongarden.example/read/moon-garden/vol-3/ch-20"
+    }
+  },
+  {
+    "name": "chapter number from the URL when the page has no label",
+    "url": "https://moongarden.example/read/moon-garden/vol-3/ch-22",
+    "html": "chapter-22.html",
+    "expected": {
+      "pageType": "chapter",
+      "series": "moon-garden",
+      "title": null,
+      "chapterLabel": null,
+      "chapter": "22",
+      "images": [],
+      "next": null,
+      "previous": null
+    }
+  },
+  {
+    "name": "series table with mixed labels",
+    "url": "https://moongarden.example/read/moon-garden/",
+    "html": "series.html",
+    "expected": {
+      "pageType": "series",
+      "series": "moon-garden",
+      "title": "月の庭 Moon Garden",
+      "chapters": [
+        { "url": "https://moongarden.example/read/moon-garden/vol-3/ch-21", "label": "Vol. 3 Ch. 21 – Night Market", "number": "21" },
+        { "url": "https://moongarden.example/read/moon-garden/vol-2/ch-20", "label": "第20話", "number": "20" },
+        { "url": "https://moongarden.example/read/moon-garden/vol-2/ch-19-5", "label": "Ch. 19.5 Extra", "number": "19.5" },
+        { "url": "https://moongarden.example/read/moon-garden/vol-1/special", "label": "Special", "number": null }
+      ]
+    }
+  }
+]

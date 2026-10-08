@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ascon.app/contracts/rule.schema.json",
+  "title": "Detection rule",
+  "description": "How to read series, chapter and images from one site. Rules are data only; fixed evaluator code interprets them. See contracts/README.md for the evaluation semantics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "domain", "version", "chapterPage"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this schema the rule was written against.",
+      "const": 1
+    },
+    "domain": {
+      "description": "Lowercase host the rule was made for, without a port. Subdomains are separate rules.",
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$",
+      "maxLength": 253
+    },
+    "version": {
+      "description": "Increases by one each time the rule for this domain is regenerated.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "confidence": {
+      "description": "Health score kept by the server. Successful extractions raise it, failures lower it.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "fingerprint": {
+      "description": "64-bit simhash of the page structure as 16 lowercase hex digits. Lets a mirror domain inherit this rule.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "chapterPage": { "$ref": "#/$defs/chapterPage" },
+    "seriesPage": { "$ref": "#/$defs/seriesPage" }
+  },
+  "$defs": {
+    "urlPattern": {
+      "description": "RE2 regular expression matched against the whole page URL. No lookaround, no backreferences, no inline flags. Named groups use (?<name>...).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "selector": {
+      "description": "CSS selector from the supported subset in contracts/README.md.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "attribute": {
+      "description": "Where the value comes from. \"text\" is the element's text content with whitespace collapsed. Any other value is an attribute name.",
+      "type": "string",
+      "pattern": "^(text|[a-z][a-z0-9_-]*)$",
+      "maxLength": 64
+    },
+    "extract": {
+      "description": "Reads one value from the first element the selector matches.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector"],
+      "properties": {
+        "selector": { "$ref": "#/$defs/selector" },
+        "attribute": { "$ref": "#/$defs/attribute", "default": "text" },
+        "pattern": {
+          "description": "Optional RE2 pattern applied to the value. It must have a named group \"value\", which becomes the result. No match gives no value.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "link": {
+      "description": "Reads a URL from the first element the selector matches and resolves it against the page URL.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector"],
+      "properties": {
+        "selector": { "$ref": "#/$defs/selector" },
+        "attribute": { "$ref": "#/$defs/attribute", "default": "href" }
+      }
+    },
+    "images": {
+      "description": "Reads one image URL from every element the selector matches, in document order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector"],
+      "properties": {
+        "selector": { "$ref": "#/$defs/selector" },
+        "attributes": {
+          "description": "Attributes tried in order; the first non-empty one wins. \"srcset\" picks its largest candidate. Lazy loaders usually need data-src before src.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/attribute" },
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "default": ["src"]
+        }
+      }
+    },
+    "chapterPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "images"],
+      "properties": {
+        "url": {
+          "allOf": [{ "$ref": "#/$defs/urlPattern" }],
+          "description": "Matches chapter page URLs. A group named \"series\" gives the series slug. A group named \"chapter\" gives the chapter when chapterLabel finds nothing."
+        },
+        "title": {
+          "allOf": [{ "$ref": "#/$defs/extract" }],
+          "description": "Series title as shown on the page."
+        },
+        "chapterLabel": {
+          "allOf": [{ "$ref": "#/$defs/extract" }],
+          "description": "Chapter label as shown on the page, for example \"Vol. 2 Ch. 15\"."
+        },
+        "images": { "$ref": "#/$defs/images" },
+        "next": { "$ref": "#/$defs/link" },
+        "previous": { "$ref": "#/$defs/link" }
+      }
+    },
+    "seriesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "chapterLinks"],
+      "properties": {
+        "url": {
+          "allOf": [{ "$ref": "#/$defs/urlPattern" }],
+          "description": "Matches series page URLs. A group named \"series\" gives the series slug."
+        },
+        "title": {
+          "allOf": [{ "$ref": "#/$defs/extract" }],
+          "description": "Series title as shown on the page."
+        },
+        "chapterLinks": {
+          "allOf": [{ "$ref": "#/$defs/selector" }],
+          "description": "Matches every chapter link in the chapter list. Each match gives its resolved href and its text as the label."
+        }
+      }
+    }
+  }
+}

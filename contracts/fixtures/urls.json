@@ -1,0 +1,265 @@
+{
+  "base": "https://site.example/read/s/ch-1?page=all",
+  "cases": [
+    {
+      "raw": "a b.jpg",
+      "url": "https://site.example/read/s/a%20b.jpg"
+    },
+    {
+      "raw": "a|b.jpg",
+      "url": "https://site.example/read/s/a%7Cb.jpg"
+    },
+    {
+      "raw": "a(b).jpg",
+      "url": "https://site.example/read/s/a(b).jpg"
+    },
+    {
+      "raw": "a'b.jpg",
+      "url": "https://site.example/read/s/a'b.jpg"
+    },
+    {
+      "raw": "a`b.jpg",
+      "url": "https://site.example/read/s/a%60b.jpg"
+    },
+    {
+      "raw": "a{b}.jpg",
+      "url": "https://site.example/read/s/a%7Bb%7D.jpg"
+    },
+    {
+      "raw": "a^b.jpg",
+      "url": "https://site.example/read/s/a%5Eb.jpg"
+    },
+    {
+      "raw": "a[b].jpg",
+      "url": "https://site.example/read/s/a[b].jpg"
+    },
+    {
+      "raw": "a<b>.jpg",
+      "url": "https://site.example/read/s/a%3Cb%3E.jpg"
+    },
+    {
+      "raw": "a\"b.jpg",
+      "url": "https://site.example/read/s/a%22b.jpg"
+    },
+    {
+      "raw": "p09 (final).webp",
+      "url": "https://site.example/read/s/p09%20(final).webp"
+    },
+    {
+      "raw": "画像.jpg",
+      "url": "https://site.example/read/s/%E7%94%BB%E5%83%8F.jpg"
+    },
+    {
+      "raw": "%e7%94%bb.jpg",
+      "url": "https://site.example/read/s/%e7%94%bb.jpg"
+    },
+    {
+      "raw": "%zz.jpg",
+      "url": null
+    },
+    {
+      "raw": "x.jpg#%zz",
+      "url": "https://site.example/read/s/x.jpg"
+    },
+    {
+      "raw": "a%2Fb.jpg",
+      "url": "https://site.example/read/s/a%2Fb.jpg"
+    },
+    {
+      "raw": "./x/../y.jpg",
+      "url": "https://site.example/read/s/y.jpg"
+    },
+    {
+      "raw": "/x/./y/../z.jpg",
+      "url": "https://site.example/x/z.jpg"
+    },
+    {
+      "raw": "..",
+      "url": "https://site.example/read/"
+    },
+    {
+      "raw": "?q=a b",
+      "url": "https://site.example/read/s/ch-1?q=a%20b"
+    },
+    {
+      "raw": "?q=a|b",
+      "url": "https://site.example/read/s/ch-1?q=a|b"
+    },
+    {
+      "raw": "?q=\"x\"",
+      "url": "https://site.example/read/s/ch-1?q=%22x%22"
+    },
+    {
+      "raw": "?q='x'",
+      "url": "https://site.example/read/s/ch-1?q=%27x%27"
+    },
+    {
+      "raw": "?q=<x>",
+      "url": "https://site.example/read/s/ch-1?q=%3Cx%3E"
+    },
+    {
+      "raw": "?q=画",
+      "url": "https://site.example/read/s/ch-1?q=%E7%94%BB"
+    },
+    {
+      "raw": "?q=%zz",
+      "url": "https://site.example/read/s/ch-1?q=%zz"
+    },
+    {
+      "raw": "?",
+      "url": "https://site.example/read/s/ch-1?"
+    },
+    {
+      "raw": "x.jpg?",
+      "url": "https://site.example/read/s/x.jpg?"
+    },
+    {
+      "raw": "x.jpg#",
+      "url": "https://site.example/read/s/x.jpg"
+    },
+    {
+      "raw": "#frag",
+      "url": "https://site.example/read/s/ch-1?page=all"
+    },
+    {
+      "raw": "//CDN.Example/x.jpg",
+      "url": "https://cdn.example/x.jpg"
+    },
+    {
+      "raw": "//cdn.example:80/x.jpg",
+      "url": "https://cdn.example:80/x.jpg"
+    },
+    {
+      "raw": "http://cdn.example:80/x",
+      "url": "http://cdn.example/x"
+    },
+    {
+      "raw": "https://cdn.example:443/x",
+      "url": "https://cdn.example/x"
+    },
+    {
+      "raw": "https://cdn.example:8443/x",
+      "url": "https://cdn.example:8443/x"
+    },
+    {
+      "raw": "https://bücher.example/x",
+      "url": "https://xn--bcher-kva.example/x"
+    },
+    {
+      "raw": "https://Bücher.example/a b",
+      "url": "https://xn--bcher-kva.example/a%20b"
+    },
+    {
+      "raw": "https://user:pw@cdn.example/x",
+      "url": "https://cdn.example/x"
+    },
+    {
+      "raw": "HTTP://CDN.EXAMPLE",
+      "url": "http://cdn.example/"
+    },
+    {
+      "raw": "https://cdn.example",
+      "url": "https://cdn.example/"
+    },
+    {
+      "raw": "https://cdn.example?x",
+      "url": "https://cdn.example/?x"
+    },
+    {
+      "raw": "https://cdn.example/a\\b.jpg",
+      "url": "https://cdn.example/a/b.jpg"
+    },
+    {
+      "raw": "..\\x\\y.jpg",
+      "url": "https://site.example/read/x/y.jpg"
+    },
+    {
+      "raw": "\\\\cdn.example\\x.jpg",
+      "url": "https://cdn.example/x.jpg"
+    },
+    {
+      "raw": "https:\\\\cdn.example\\x.jpg",
+      "url": "https://cdn.example/x.jpg"
+    },
+    {
+      "raw": "https:cdn.example/x",
+      "url": null
+    },
+    {
+      "raw": "https:/cdn.example/x",
+      "url": null
+    },
+    {
+      "raw": "https://cdn.example/x\ty.jpg",
+      "url": "https://cdn.example/xy.jpg"
+    },
+    {
+      "raw": "https://cdn.example/x\ny.jpg",
+      "url": "https://cdn.example/xy.jpg"
+    },
+    {
+      "raw": "https://cdn.example/%41.jpg",
+      "url": "https://cdn.example/%41.jpg"
+    },
+    {
+      "raw": "https://1.2.3.4/x",
+      "url": "https://1.2.3.4/x"
+    },
+    {
+      "raw": "https://[::1]/x",
+      "url": "https://[::1]/x"
+    },
+    {
+      "raw": "https://[2001:DB8::1]:443/x",
+      "url": "https://[2001:db8::1]/x"
+    },
+    {
+      "raw": "https://cdn.example./x",
+      "url": "https://cdn.example./x"
+    },
+    {
+      "raw": "javascript:alert(1)",
+      "url": null
+    },
+    {
+      "raw": "mailto:a@b.example",
+      "url": null
+    },
+    {
+      "raw": "ftp://cdn.example/x",
+      "url": null
+    },
+    {
+      "raw": "blob:https://site.example/1",
+      "url": null
+    },
+    {
+      "raw": "data:image/png;base64,AA==",
+      "url": null
+    },
+    {
+      "raw": "https://cdn.example/x;y=1",
+      "url": "https://cdn.example/x;y=1"
+    },
+    {
+      "raw": "https://cdn.example/~u/x.jpg",
+      "url": "https://cdn.example/~u/x.jpg"
+    },
+    {
+      "raw": "https://cdn.example/a#b#c",
+      "url": "https://cdn.example/a"
+    },
+    {
+      "raw": "https://cdn.example/a/../../b",
+      "url": "https://cdn.example/b"
+    },
+    {
+      "raw": "https://cdn.example/a/%2e%2e/b",
+      "url": "https://cdn.example/b"
+    },
+    {
+      "raw": "https://cdn.example/a/b/.",
+      "url": "https://cdn.example/a/b/"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "domain": "lanternfall.example",
+  "version": 2,
+  "chapterPage": {
+    "url": "https://lanternfall\\.example/comic/(?<series>[a-z0-9-]+)/ep-(?<chapter>[0-9]+)/?",
+    "title": { "selector": "nav.crumbs > a:last-child" },
+    "chapterLabel": { "selector": "h2.episode" },
+    "images": { "selector": "div.page img", "attributes": ["src"] }
+  }
+}

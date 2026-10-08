@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "domain": "ninthgate.example",
+  "version": 3,
+  "confidence": 0.75,
+  "fingerprint": "9f0c2a7e41b3d856",
+  "chapterPage": {
+    "url": "https://ninthgate\\.example/(?<series>[a-z0-9-]+?)-chapter-(?<chapter>[0-9]+(?:-[0-9]+)?)/?",
+    "title": { "selector": ".headpost .allc a" },
+    "chapterLabel": { "selector": "h1.entry-title", "pattern": "(?<value>Chapter [0-9.]+)$" },
+    "images": { "selector": "#readerarea img", "attributes": ["srcset", "src"] },
+    "next": { "selector": "a.ch-next-btn:not(.disabled)" },
+    "previous": { "selector": "a.ch-prev-btn:not(.disabled)" }
+  }
+}

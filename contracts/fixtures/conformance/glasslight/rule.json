@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "domain": "glasslight.example",
+  "version": 1,
+  "confidence": 0.9,
+  "chapterPage": {
+    "url": "https://glasslight\\.example/manga/(?<series>[a-z0-9-]+)/chapter-(?<chapter>[0-9]+(?:-[0-9]+)?)/?",
+    "title": { "selector": ".breadcrumb li:nth-child(2) a" },
+    "chapterLabel": { "selector": "#chapter-heading", "pattern": " - (?<value>Chapter .+)$" },
+    "images": { "selector": ".reading-content .page-break img", "attributes": ["data-src", "src"] },
+    "next": { "selector": ".nav-next a.next_page" },
+    "previous": { "selector": ".nav-previous a.prev_page" }
+  },
+  "seriesPage": {
+    "url": "https://glasslight\\.example/manga/(?<series>[a-z0-9-]+)/?",
+    "title": { "selector": ".post-title h1" },
+    "chapterLinks": "li.wp-manga-chapter > a"
+  }
+}
