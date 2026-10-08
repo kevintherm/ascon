@@ -1,0 +1,17 @@
+version: 3
+workdir: internal
+
+allow:
+  depOnAnyVendor: false
+
+components:
+  domain:   { in: domain/** }
+  usecase:  { in: usecase/** }
+  adapter:  { in: adapter/** }
+
+# domain has no entry under deps, so it may import no other component.
+deps:
+  usecase:
+    mayDependOn: [domain]
+  adapter:
+    mayDependOn: [domain, usecase]
