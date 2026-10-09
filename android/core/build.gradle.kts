@@ -24,6 +24,8 @@ room {
 dependencies {
     api(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.core.ktx)
+    // BackHandler, so back closes a sheet.
+    implementation(libs.androidx.activity.compose)
     // The library on the device.
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)

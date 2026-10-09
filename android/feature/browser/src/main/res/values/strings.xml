@@ -17,7 +17,18 @@
     <string name="browser_close">Close browser</string>
     <string name="browser_cancel_edit">Cancel</string>
     <string name="browser_address">Address, %1$s</string>
-    <string name="browser_more">More</string>
+    <string name="browser_menu">Menu</string>
+    <string name="browser_share_short">Share</string>
+    <string name="browser_menu_open_reader">Open in Reader</string>
+    <string name="browser_menu_series">Go to series</string>
+    <string name="browser_menu_other_browser">Open in another browser</string>
+    <string name="browser_menu_close">Back to Ascon</string>
+    <string name="browser_menu_chapter_short">Ch. %1$s</string>
+    <string name="browser_menu_chapter_of">Chapter %1$s · %2$s</string>
+    <plurals name="browser_blocked">
+        <item quantity="one">Protection, %1$d blocked</item>
+        <item quantity="other">Protection, %1$d blocked</item>
+    </plurals>
     <string name="browser_forward">Forward</string>
     <string name="browser_reload">Reload</string>
     <string name="browser_share">Share page</string>

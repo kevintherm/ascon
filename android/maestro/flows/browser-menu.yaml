@@ -1,0 +1,32 @@
+# Browser v2 menu: reopen the reader for the page's chapter, leave the browser in one
+# tap, and come back to the same page from the Browse nav item.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/aztec-turning-of-heaven/chapter-14/"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "Chapter 14 · progress saved"
+    timeout: 15000
+- tapOn: "Menu"
+- tapOn: "Open in Reader"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 5000
+- back
+- tapOn: "Menu"
+- assertVisible: "Chapter 14 · Aztec Turning of Heaven"
+- tapOn: "Back to Ascon"
+- extendedWaitUntil:
+    visible: "Continue reading"
+    timeout: 5000
+- tapOn: "Browse"
+- extendedWaitUntil:
+    visible: "Chapter 14 · progress saved"
+    timeout: 5000
+- assertNotVisible: "Chapter 14 · 10.0.2.2"

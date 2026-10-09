@@ -36,7 +36,11 @@ data class BrowserUiState(
     /** A chapter with pages, waiting for the reader to open. See [BrowserViewModel.readerOpened]. */
     val reader: ReaderChapter? = null,
     /** The page is a chapter the reader cannot take, so it is read as the site shows it. */
-    val readerUnavailable: Boolean = false
+    val readerUnavailable: Boolean = false,
+    /** The chapter on this page, with its pages, for opening the reader again. */
+    val readerChapter: ReaderChapter? = null,
+    /** Requests the ad blocker stopped on this page. */
+    val blocked: Int = 0
 ) {
     val host: String get() = displayHost(url)
 }
@@ -148,20 +152,11 @@ class BrowserViewModel(
                 cover = series?.cover,
                 saved = series != null && chapter != null
             )
-            // add() is false for a page the reader already showed, such as one reached with back.
-            val reader = if (detection.images.isNotEmpty() && readerOpenedFor.add(page)) {
-                ReaderChapter(
-                    page,
-                    card.title,
-                    chapter,
-                    series?.id,
-                    detection.images,
-                    detection.next,
-                    detection.previous
-                )
-            } else {
-                null
+            val available = detection.images.takeIf { it.isNotEmpty() }?.let { images ->
+                ReaderChapter(page, card.title, chapter, series?.id, images, detection.next, detection.previous)
             }
+            // add() is false for a page the reader already showed, such as one reached with back.
+            val reader = available?.takeIf { readerOpenedFor.add(page) }
             // The user may have moved on while the library was read.
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             _state.update {
@@ -172,6 +167,7 @@ class BrowserViewModel(
                     it.copy(
                         card = chapterCard,
                         reader = reader ?: it.reader,
+                        readerChapter = available ?: it.readerChapter,
                         readerUnavailable = unavailable
                     )
                 } else {
@@ -221,6 +217,18 @@ class BrowserViewModel(
         _state.update { it.copy(readerUnavailable = false) }
     }
 
+    /** Opens the reader again on this page's chapter, from the menu or the reader chip. */
+    fun openReader() {
+        _state.update { it.copy(reader = it.readerChapter) }
+    }
+
+    /** Called off the main thread for each request the ad blocker stops on [pageUrl]. */
+    override fun onRequestBlocked(pageUrl: String) {
+        _state.update {
+            if (it.url.withoutFragment() == pageUrl.withoutFragment()) it.copy(blocked = it.blocked + 1) else it
+        }
+    }
+
     fun readerOpened() {
         _state.update { it.copy(reader = null) }
     }
@@ -247,6 +255,8 @@ class BrowserViewModel(
                 url = url,
                 card = if (samePage) it.card else null,
                 reader = if (samePage) it.reader else null,
+                readerChapter = if (samePage) it.readerChapter else null,
+                blocked = if (samePage) it.blocked else 0,
                 readerUnavailable = samePage && it.readerUnavailable
             )
         }

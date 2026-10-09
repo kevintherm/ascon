@@ -5,15 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -38,20 +36,19 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import com.ascon.core.designsystem.component.RowDivider
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconRadius
@@ -78,6 +75,7 @@ internal fun BrowserBar(
     onEditingChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onSubmit: (String) -> Unit,
+    onReload: () -> Unit,
     onMore: () -> Unit
 ) {
     val shape = RoundedCornerShape(BarRadius)
@@ -101,8 +99,13 @@ internal fun BrowserBar(
                 stringResource(if (state.canGoBack) R.string.browser_back else R.string.browser_close),
                 onBack
             )
-            AddressPill(state, onClick = { onEditingChange(true) }, modifier = Modifier.weight(1f))
-            BarIcon(AsconIcons.More, stringResource(R.string.browser_more), onMore)
+            AddressPill(
+                state,
+                onEdit = { onEditingChange(true) },
+                onReload = onReload,
+                modifier = Modifier.weight(1f)
+            )
+            BarIcon(AsconIcons.More, stringResource(R.string.browser_menu), onMore)
         }
     }
 }
@@ -124,21 +127,26 @@ private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 }
 
 /**
- * The address in `ink2` with the host only. While a page loads, a lighter fill grows
- * across the pill from the left.
+ * The address pill in `ink2`: the shield with the page's blocked count, the host, which
+ * a tap turns into an address field, and reload. While a page loads, a lighter fill
+ * grows across the pill from the left.
  */
 @Composable
-private fun AddressPill(state: BrowserUiState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddressPill(
+    state: BrowserUiState,
+    onEdit: () -> Unit,
+    onReload: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val progress by animateFloatAsState(if (state.loading) state.progress / 100f else 1f, label = "load")
     val fillAlpha by animateFloatAsState(if (state.loading) 1f else 0f, label = "loadFill")
     val label = stringResource(R.string.browser_address, state.host)
+    val reloadLabel = stringResource(R.string.browser_reload)
     Box(
         modifier
             .height(ItemSize)
             .clip(RoundedCornerShape(ItemRadius))
-            .background(AsconColors.Ink2)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
+            .background(AsconColors.Ink2),
         contentAlignment = Alignment.CenterStart
     ) {
         Box(
@@ -148,14 +156,60 @@ private fun AddressPill(state: BrowserUiState, onClick: () -> Unit, modifier: Mo
                 .graphicsLayer { alpha = fillAlpha }
                 .background(AsconColors.OnDarkFill)
         )
-        Text(
-            state.host,
-            style = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight),
-            color = Color.White,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 14.dp)
-        )
+        Row(
+            Modifier.padding(start = 11.dp, end = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ShieldCount(state.blocked)
+            Text(
+                state.host,
+                style = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight),
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(ItemSize)
+                    .clickable(role = Role.Button, onClick = onEdit)
+                    .semantics { contentDescription = label }
+                    .wrapContentHeight(Alignment.CenterVertically)
+            )
+            Box(
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button, onClick = onReload)
+                    .semantics { contentDescription = reloadLabel },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    AsconIcons.Reload,
+                    contentDescription = null,
+                    tint = AsconColors.OnDarkMuted,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+/** Requests the ad blocker stopped on this page. The protection sheet will open from here. */
+@Composable
+private fun ShieldCount(count: Int) {
+    val label = pluralStringResource(R.plurals.browser_blocked, count, count)
+    Row(
+        Modifier
+            .height(26.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(AsconColors.OnDarkFill)
+            .padding(horizontal = 8.dp)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(AsconIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+        Text(count.toString(), style = AsconType.CaptionStrong.copy(fontWeight = FontWeight.Bold), color = Color.White)
     }
 }
 
@@ -184,61 +238,5 @@ private fun AddressEditor(url: String, onSubmit: (String) -> Unit, modifier: Mod
                 .fillMaxWidth()
                 .focusRequester(focus)
         )
-    }
-}
-
-/** Forward, reload and share, in a card above the bar's right end. */
-@Composable
-internal fun OverflowMenu(state: BrowserUiState, onDismiss: () -> Unit, commands: BrowserCommands) {
-    val shape = RoundedCornerShape(AsconRadius.Card)
-    Popup(
-        alignment = Alignment.BottomEnd,
-        onDismissRequest = onDismiss,
-        properties = PopupProperties(focusable = true)
-    ) {
-        Column(
-            Modifier
-                .navigationBarsPadding()
-                .padding(end = BarSide, bottom = BarBottom + BarHeight + 8.dp)
-                .widthIn(min = 200.dp)
-                .dropShadow(
-                    shape,
-                    Shadow(radius = 30.dp, color = AsconColors.ShadowFloating, offset = DpOffset(0.dp, 12.dp))
-                )
-                .clip(shape)
-                .background(AsconColors.Surface)
-        ) {
-            fun run(action: () -> Unit): () -> Unit = {
-                onDismiss()
-                action()
-            }
-            MenuRow(
-                AsconIcons.Forward,
-                stringResource(R.string.browser_forward),
-                state.canGoForward,
-                run(commands.onForward)
-            )
-            RowDivider()
-            MenuRow(AsconIcons.Reload, stringResource(R.string.browser_reload), true, run(commands.onReload))
-            RowDivider()
-            MenuRow(AsconIcons.Share, stringResource(R.string.browser_share), true, run(commands.onShare))
-        }
-    }
-}
-
-@Composable
-private fun MenuRow(icon: ImageVector, text: String, enabled: Boolean, onClick: () -> Unit) {
-    val color = if (enabled) AsconColors.Ink else AsconColors.TextSubtle
-    Row(
-        Modifier
-            .widthIn(min = 200.dp)
-            .height(52.dp)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-        Text(text, style = AsconType.RowTitleRead, color = color)
     }
 }

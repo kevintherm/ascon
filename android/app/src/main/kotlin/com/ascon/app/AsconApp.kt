@@ -83,6 +83,12 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     val library = viewModel { LibraryViewModel(container.library, ReadingStatus.Reading) }
     val settings = viewModel { SettingsViewModel(container.settings, container.accounts, container.clock) }
     val browse = viewModel { BrowseViewModel(container.library) }
+    // The browser is single-tab and outlives its screen: closing it keeps the page loaded,
+    // and the Browse nav item returns to it.
+    val browser = viewModel {
+        BrowserViewModel(container.library, container.clock, createSavedStateHandle(), startUrl.orEmpty())
+    }
+    val browserSession = viewModel { BrowserSessionHolder(container.webViews) }.session
 
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
     val openUrl: (String) -> Unit = { backStack.push(Route.Browser(it)) }
@@ -146,10 +152,9 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     }
                     entry<Route.Browser> { key ->
                         BrowserRoute(
-                            viewModel = viewModel {
-                                BrowserViewModel(container.library, container.clock, createSavedStateHandle(), key.url)
-                            },
-                            session = viewModel { BrowserSessionHolder(container.webViews) }.session,
+                            viewModel = browser,
+                            session = browserSession,
+                            openUrl = key.url,
                             actions = BrowserActions(
                                 onClose = { backStack.pop() },
                                 onOpenSeries = openSeries,
@@ -179,7 +184,13 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
             NavBar(
                 visible = tabsShown,
                 selected = tab,
-                onSelect = { tab = it },
+                onSelect = {
+                    if (it == Tab.Browse && !browserSession.isEmpty) {
+                        backStack.push(Route.Browser(browser.state.value.url))
+                    } else {
+                        tab = it
+                    }
+                },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

@@ -262,4 +262,39 @@ class BrowserViewModelTest {
         assertNull(vm.state.value.card)
         assertEquals(7, library.series("aztec-turning-of-heaven").first()?.progress?.page)
     }
+
+    @Test
+    fun `blocked requests are counted for the page that made them`() = runTest {
+        val vm = viewModel()
+        vm.onRequestBlocked(chapter14)
+        vm.onRequestBlocked(chapter14)
+        vm.onRequestBlocked("https://mangafire.to/old-page")
+        assertEquals(2, vm.state.value.blocked)
+
+        vm.onPageStarted("https://mangafire.to/read/aztec/chapter-15")
+        assertEquals(0, vm.state.value.blocked)
+    }
+
+    @Test
+    fun `a chapter the reader showed can be opened in it again`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp")))
+        val shown = vm.state.value.reader!!
+        vm.readerOpened()
+        assertNull(vm.state.value.reader)
+        assertEquals(shown, vm.state.value.readerChapter)
+
+        vm.openReader()
+        assertEquals(shown, vm.state.value.reader)
+    }
+
+    @Test
+    fun `leaving the page forgets its chapter`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp")))
+        vm.onPageStarted("https://mangafire.to/home")
+        assertNull(vm.state.value.readerChapter)
+        vm.openReader()
+        assertNull(vm.state.value.reader)
+    }
 }

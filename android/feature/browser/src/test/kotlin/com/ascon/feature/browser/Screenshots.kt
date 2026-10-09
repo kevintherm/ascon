@@ -1,10 +1,12 @@
 package com.ascon.feature.browser
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.designsystem.theme.AsconTheme
+import com.ascon.core.model.ReaderChapter
 import com.ascon.feature.browser.web.BlockedKind
 import com.ascon.feature.browser.web.LoadErrorKind
 import com.ascon.feature.browser.web.WebViewHealth
@@ -32,7 +34,7 @@ class Screenshots {
 
     @Test
     fun browserDetected() = capture("browser_detected") {
-        browser(BrowserUiState(url = url, card = PreviewCard))
+        browser(BrowserUiState(url = url, card = PreviewCard, blocked = 27))
     }
 
     @Test
@@ -56,6 +58,17 @@ class Screenshots {
     @Test
     fun browserReaderUnavailable() = capture("browser_reader_unavailable") {
         browser(BrowserUiState(url = url, card = PreviewCard.copy(page = 34, pageCount = 58), readerUnavailable = true))
+    }
+
+    @Test
+    fun browserMenu() = capture("browser_menu") {
+        val chapter =
+            ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)
+        val state = BrowserUiState(url = url, blocked = 27, readerChapter = chapter, canGoBack = true)
+        Box {
+            browser(state)
+            BrowserMenu(visible = true, state = state, commands = BrowserCommands(), onDismiss = {})
+        }
     }
 
     @Composable

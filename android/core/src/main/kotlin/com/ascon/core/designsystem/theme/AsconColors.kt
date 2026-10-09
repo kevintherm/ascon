@@ -13,6 +13,9 @@ object AsconColors {
     val Border = Color(0xFFD5D8DE)
     val BorderDashed = Color(0xFFC9CDD4)
 
+    /** Lines between rows in a group on the ground, such as in sheets. */
+    val DividerOnGround = Color(0xFFE3E5EA)
+
     // Ink and text
     val Ink = Color(0xFF15161A)
     val Ink2 = Color(0xFF26282E)

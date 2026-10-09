@@ -1,6 +1,7 @@
 package com.ascon.feature.browser
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -37,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.model.ReaderChapter
+import com.ascon.engine.detection.withoutFragment
 import com.ascon.feature.browser.web.BrowserSession
 import com.ascon.feature.browser.web.addressToUrl
 import kotlinx.coroutines.delay
@@ -52,19 +54,31 @@ data class BrowserActions(
     val onUrlLoaded: () -> Unit = {}
 )
 
-/** [loadUrl], when set, is loaded in this tab, for example the next chapter picked in the reader. */
+/**
+ * The browser screen over the one browser tab. [openUrl] is the page this screen was
+ * opened for: it loads once, unless the tab already shows it, as when the Browse tab
+ * returns to it. [loadUrl], when set, is loaded too, for example the next chapter picked
+ * in the reader.
+ */
 @Composable
 fun BrowserRoute(
     viewModel: BrowserViewModel,
     session: BrowserSession,
     actions: BrowserActions,
+    openUrl: String,
     loadUrl: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Events keep flowing while a series page covers the browser, so state stays current.
     SideEffect { session.events = viewModel }
-    LaunchedEffect(session) { if (session.isEmpty) session.load(state.url) }
+    var opened by rememberSaveable(openUrl) { mutableStateOf(false) }
+    LaunchedEffect(openUrl) {
+        if (!opened) {
+            opened = true
+            if (session.isEmpty || openUrl.withoutFragment() != state.url.withoutFragment()) session.load(openUrl)
+        }
+    }
     LaunchedEffect(loadUrl) {
         loadUrl?.let {
             session.load(it)
@@ -96,7 +110,13 @@ fun BrowserRoute(
             onOpenSeries = actions.onOpenSeries,
             onHideCard = viewModel::hideCard,
             onNoticeShown = viewModel::dismissNotice,
-            onDismissReaderUnavailable = viewModel::dismissReaderUnavailable
+            onDismissReaderUnavailable = viewModel::dismissReaderUnavailable,
+            onOpenReader = viewModel::openReader,
+            onOpenElsewhere = {
+                val view = Intent(Intent.ACTION_VIEW, Uri.parse(state.url)).addCategory(Intent.CATEGORY_BROWSABLE)
+                context.startActivity(Intent.createChooser(view, null))
+            },
+            onCloseBrowser = actions.onClose
         )
     ) { modifier ->
         key(session.generation) {
@@ -120,7 +140,12 @@ data class BrowserCommands(
     val onOpenSeries: (String) -> Unit = {},
     val onHideCard: () -> Unit = {},
     val onNoticeShown: (Long) -> Unit = {},
-    val onDismissReaderUnavailable: () -> Unit = {}
+    val onDismissReaderUnavailable: () -> Unit = {},
+    val onOpenReader: () -> Unit = {},
+    /** Hands the page to another browser app. */
+    val onOpenElsewhere: () -> Unit = {},
+    /** Leaves the browser. The page stays loaded for the Browse tab to return to. */
+    val onCloseBrowser: () -> Unit = {}
 )
 
 /**
@@ -201,15 +226,10 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
                     editing = false
                     addressToUrl(text)?.let(commands.onLoad)
                 },
+                onReload = commands.onReload,
                 onMore = { menuOpen = true }
             )
         }
-        if (menuOpen) {
-            OverflowMenu(
-                state = state,
-                onDismiss = { menuOpen = false },
-                commands = commands
-            )
-        }
+        BrowserMenu(visible = menuOpen, state = state, commands = commands, onDismiss = { menuOpen = false })
     }
 }

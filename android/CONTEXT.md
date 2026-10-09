@@ -153,6 +153,12 @@ val FloatingNavBarClearance
 fun Modifier.overlapAbove(amount: Dp): Modifier
 ```
 
+## core/src/main/kotlin/com/ascon/core/designsystem/component/Sheet.kt
+
+```kotlin
+@Composable fun BottomSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier, spacing: Dp = 16.dp, bottomPadding: Dp = 28.dp, content: @Composable ColumnScope.() -> Unit)
+```
+
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/SystemBars.kt
 
 ```kotlin
@@ -213,6 +219,8 @@ object AsconIcons
     val Forward
     val PreviousChapter
     val NextChapter
+    val Reader
+    val External
     val ReaderOff
     val Close
     val Reload
@@ -235,6 +243,7 @@ object AsconColors
     val SurfaceSunken
     val Border
     val BorderDashed
+    val DividerOnGround
     val Ink
     val Ink2
     val TextMuted

@@ -44,6 +44,9 @@ interface BrowserEvents {
     fun onBlocked(kind: BlockedKind, url: String)
 
     fun onDetection(detection: Detection)
+
+    /** The ad blocker stopped a request from [pageUrl]. Called off the main thread. */
+    fun onRequestBlocked(pageUrl: String)
 }
 
 /**
@@ -55,6 +58,7 @@ interface BrowserEvents {
  * attached and at the application otherwise, so a detached view never holds an activity.
  */
 class BrowserSession internal constructor(private val pool: WebViewPool, first: TabWebView) {
+    @Volatile
     var events: BrowserEvents? = null
 
     /** Changes when the WebView is replaced after its renderer died. */
@@ -158,7 +162,10 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
                 it.key.equals("Accept", ignoreCase = true)
             }?.value
             val type = RequestType.of(url, isMainFrame = false, accept = accept)
-            return if (pool.adblock.shouldBlock(url, pageUrl ?: url, type)) emptyResponse() else null
+            val page = pageUrl ?: url
+            val blocked = pool.adblock.shouldBlock(url, page, type)
+            if (blocked) events?.onRequestBlocked(page)
+            return if (blocked) emptyResponse() else null
         }
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
