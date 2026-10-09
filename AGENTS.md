@@ -73,7 +73,7 @@ docs/               ADRs and longer notes
 
 - Inject scripts with `WebViewCompat.addDocumentStartJavaScript` so they run before page scripts.
 - Bridge with `WebViewCompat.addWebMessageListener`, origin-restricted. Do not use `addJavascriptInterface`.
-- Strip the `X-Requested-With` header with `WebSettingsCompat.setRequestedWithHeaderOriginAllowList(emptySet())`. WebView 153 reports that switch unsupported and still sends `X-Requested-With: com.ascon.app`. Decided with the owner: solve it in step 7, where adblock already routes every request through `shouldInterceptRequest`.
+- Strip the `X-Requested-With` header with `WebSettingsCompat.setRequestedWithHeaderOriginAllowList(emptySet())`. WebView 153 reports that switch unsupported and still sends `X-Requested-With: com.ascon.app` on every request: pages, files, fetch calls and frames. Removing it would mean sending requests through OkHttp, which cannot carry POST bodies and looks unlike Chrome to Cloudflare. Decided with the owner: keep the header.
 - Navigation guard in `shouldOverrideUrlLoading`: block `intent://`, `market://` and other non-web schemes; block cross-domain navigations where `request.hasGesture()` is false; deny `onCreateWindow`; override `window.open`.
 - Click hijacking: a tap counts for a cross-domain navigation only when the navigation goes to the link the user tapped. The injected script reports the link under each tap. A site's click handler that sends the page elsewhere is blocked like a redirect.
 - Block APK and executable downloads in the download listener.
