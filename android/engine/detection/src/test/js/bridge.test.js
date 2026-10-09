@@ -299,3 +299,29 @@ test("neighbor links must belong to the same series", async () => {
   assert.equal(got.result.next, "https://inkwell.example/paper-moth/chapter-3.5/");
   assert.equal(got.result.previous, null);
 });
+
+test("a page that fills its slots lazily does not count as a whole chapter", async () => {
+  const slot = (i) =>
+    i < 3
+      ? `<div class="slide"><div class="zoom"><img src="/p/${i}.jpg"></div></div>`
+      : `<div class="slide"></div>`;
+  const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
+    <div class="swiper">${Array.from({ length: 12 }, (_, i) => slot(i)).join("")}</div>`;
+  const got = await detect("https://inkwell.example/title/1-cinderelle/chapter/6/", html, []);
+  assert.equal(got.result.pageType, "chapter");
+  assert.deepEqual(got.result.images, []);
+});
+
+test("the chapter number in the title wins over an id in the URL", async () => {
+  const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>`;
+  const got = await detect("https://inkwell.example/title/71638-cinderelle/chapter/8781470", html, []);
+  assert.equal(got.result.chapter, "6");
+  assert.equal(got.result.title, "Cinderelle");
+});
+
+test("the document title beats an og:title a single-page site never updated", async () => {
+  const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
+    <meta property="og:title" content="MangaFire - Read Manga Online Free">`;
+  const got = await detect("https://inkwell.example/title/1-cinderelle/chapter-6", html, []);
+  assert.equal(got.result.title, "Cinderelle");
+});

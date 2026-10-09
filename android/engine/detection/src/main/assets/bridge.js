@@ -62,6 +62,7 @@
   // ---- Heuristics -------------------------------------------------------
 
   var CHAPTER_IN_PATH = /(?:^|[\/_.-])(?:chapter|chap|ch|episode|ep)[-_./]?(\d+(?:[-.]\d+)?)(?=$|[\/_.-])/;
+  var CHAPTER_NUMBER_IN_TITLE = /\b(?:chapter|chap|ch|episode|ep)\b\.?\s*#?(\d+(?:\.\d+)?)/i;
   var CHAPTER_IN_TITLE = /[\s\-–—|:,]*\b(?:chapter|chap|ch|episode|ep)\b\.?\s*#?\d[\s\S]*$/i;
   var TITLE_SEPARATOR = /\s+[|–—-]\s+/;
   var READ_PREFIX = /^read\s+/i;
@@ -162,6 +163,19 @@
     return urls.filter(function (u) { return directoryOf(u) === top; });
   }
 
+  /**
+   * Children with neither an image nor text. A reader that fills page slots only near
+   * the page on screen has many; its images are then a few pages, not the chapter.
+   */
+  function emptySlots(holder) {
+    var n = 0;
+    for (var i = 0; i < holder.children.length; i++) {
+      var child = holder.children[i];
+      if (child.tagName !== "IMG" && !child.querySelector("img") && child.textContent.trim() === "") n++;
+    }
+    return n;
+  }
+
   /** Image URLs from the container that holds the most images, in document order. */
   function pageImages(base) {
     var groups = [];
@@ -178,7 +192,7 @@
       if (group.urls.indexOf(url) < 0) group.urls.push(url);
     }
     var best = groups.reduce(function (a, g) { return a && a.urls.length >= g.urls.length ? a : g; }, null);
-    if (!best || best.urls.length < MIN_PAGES) return [];
+    if (!best || best.urls.length < MIN_PAGES || emptySlots(best.holder) >= best.urls.length) return [];
     var pages = sameDirectory(best.urls);
     return pages.length < MIN_PAGES ? [] : pages;
   }
@@ -219,6 +233,19 @@
     return { next: next, previous: previous };
   }
 
+  // No series runs to this many chapters; a number this large in a URL is an id.
+  var MAX_CHAPTER = 5000;
+
+  /** "Cinderelle - Chapter 6" gives "6". */
+  function chapterInTitle() {
+    var titles = [document.title, metaContent('meta[property="og:title"]')];
+    for (var i = 0; i < titles.length; i++) {
+      var m = titles[i] && CHAPTER_NUMBER_IN_TITLE.exec(titles[i]);
+      if (m) return evaluator.parseChapterNumber(m[1]);
+    }
+    return null;
+  }
+
   function heuristic(url) {
     var here = chapterInUrl(url);
     if (!here) return { pageType: "none" };
@@ -226,9 +253,10 @@
     return {
       pageType: "chapter",
       series: null,
-      title: cleanTitle(jsonLdTitle() || metaContent('meta[property="og:title"]') || document.title),
+      title: cleanTitle(jsonLdTitle() || document.title || metaContent('meta[property="og:title"]')),
       chapterLabel: null,
-      chapter: evaluator.parseChapterNumber(here.raw),
+      // The title can lag behind a single-page site's URL, so it wins only over an id.
+      chapter: here.number >= MAX_CHAPTER ? chapterInTitle() : evaluator.parseChapterNumber(here.raw),
       images: pageImages(url),
       next: around.next,
       previous: around.previous
