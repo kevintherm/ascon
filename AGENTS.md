@@ -230,6 +230,10 @@ Found by the owner while testing step 6. Left for a later UI pass because they n
 4. There is no quick way to leave the browser and return to the app; back walks the page history first.
 5. The reader lacks features for viewing comics.
 6. The detection card stays until hidden. It should disappear by itself after a while.
+7. The series screen leaves an empty space where its main button goes once every chapter is read. No approved screen covers a caught-up series.
+8. Glass bars in the reader and over web content have the glass color but no background blur.
+9. The reader leaves out parts of screen 04: the Chapters and Translate buttons, the reader settings button, and the time left. The end-of-chapter screen, screen 05, is not built.
+10. The reader puts no gap between pages, because a gap breaks continuous strips. Screen 04 shows 4px. Decide which is right.
 
 ## Workflow
 
