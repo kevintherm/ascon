@@ -66,8 +66,13 @@ androidComponents.onVariants { variant ->
 
 dependencies {
     implementation(project(":core"))
+    implementation(libs.androidx.core.ktx)
     // UniFFI's Kotlin bindings call the Rust library through JNA.
     implementation(libs.jna) { artifact { type = "aar" } }
+    // Weekly filter list updates.
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.okhttp)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

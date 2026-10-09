@@ -12,6 +12,7 @@ import com.ascon.core.data.room.AsconDatabase
 import com.ascon.core.data.room.RoomLibraryRepository
 import com.ascon.core.model.AccountState
 import com.ascon.engine.adblock.Adblock
+import com.ascon.engine.adblock.FilterListUpdateWorker
 import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.InMemoryRuleCache
 import com.ascon.engine.detection.RuleLookup
@@ -58,7 +59,10 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     }
 
     /** Blocks nothing until its engine has loaded, which starts here off the main thread. */
-    private val adblock = Adblock(app).also { MainScope().launch(Dispatchers.IO) { it.start() } }
+    val adblock = Adblock(app).also {
+        MainScope().launch(Dispatchers.IO) { it.start() }
+        FilterListUpdateWorker.schedule(app)
+    }
 
     val webViews = WebViewPool(app, detection = { detection }, adblock = adblock)
 

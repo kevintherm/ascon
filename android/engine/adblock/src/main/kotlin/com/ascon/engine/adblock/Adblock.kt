@@ -1,6 +1,7 @@
 package com.ascon.engine.adblock
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import com.ascon.engine.adblock.rust.AdblockEngine
 import com.ascon.engine.adblock.rust.AdblockException
@@ -14,12 +15,16 @@ import java.security.MessageDigest
  *
  * Until [start] finishes, nothing is blocked.
  */
-class Adblock(private val context: Context) : RequestFilter {
+class Adblock(private val context: Context, val lists: FilterListStore = FilterListStore(context)) : RequestFilter {
     @Volatile
     private var engine: AdblockEngine? = null
 
-    /** Builds or loads the engine. Call once, off the main thread. */
-    fun start(lists: List<String> = bundledLists()) {
+    /**
+     * Builds or loads the engine from the enabled lists. Call off the main thread at start,
+     * and again after lists change. The old engine keeps working until the new one is ready.
+     */
+    @Synchronized
+    fun start(lists: List<String> = this.lists.enabledTexts()) {
         try {
             startEngine(lists)
         } catch (e: UnsatisfiedLinkError) {
@@ -28,10 +33,22 @@ class Adblock(private val context: Context) : RequestFilter {
         }
     }
 
+    /** Turns a list on or off and rebuilds the engine. Call off the main thread. */
+    fun setEnabled(list: FilterList, enabled: Boolean) {
+        lists.setEnabled(list, enabled)
+        start()
+    }
+
     private fun startEngine(lists: List<String>) {
-        val dir = File(context.noBackupFilesDir, "adblock").apply { mkdirs() }
+        val dir = File(context.noBackupFilesDir, "adblock/engine").apply { mkdirs() }
         val snapshot = File(dir, "engine-${hashOf(lists)}.dat")
-        engine = snapshot.takeIf { it.exists() }?.let(::load) ?: build(lists, snapshot)
+        val started = SystemClock.elapsedRealtime()
+        val loaded = snapshot.takeIf { it.exists() }?.let(::load)
+        engine = loaded ?: build(lists, snapshot)
+        Log.i(
+            TAG,
+            "Engine ${if (loaded != null) "loaded" else "built"} in ${SystemClock.elapsedRealtime() - started} ms"
+        )
         dir.listFiles()?.filter { it != snapshot }?.forEach { it.delete() }
     }
 
@@ -54,17 +71,8 @@ class Adblock(private val context: Context) : RequestFilter {
         return built
     }
 
-    /** The filter lists shipped in the app's assets under `adblock/`. */
-    private fun bundledLists(): List<String> {
-        val assets = context.assets
-        return assets.list(ASSET_DIR).orEmpty().sorted().map { name ->
-            assets.open("$ASSET_DIR/$name").bufferedReader().use { it.readText() }
-        }
-    }
-
     private companion object {
         const val TAG = "Adblock"
-        const val ASSET_DIR = "adblock"
 
         /** Enough of the hash to tell list versions apart. */
         const val HASH_BYTES = 8

@@ -21,6 +21,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-mod
 ~/.cargo/bin/cargo install cargo-ndk --locked
 ```
 
+EasyList and EasyPrivacy ship in `engine/adblock/src/main/assets/adblock`. `tools/update-filter-lists.sh` refreshes them; installed apps also download newer copies weekly.
+
 The Rust crate has its own checks, from `engine/adblock/rust`: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`.
 
 Compose screens have golden screenshots in each feature's `src/test/screenshots/`, rendered at the mockups' 390×844 by Robolectric. After an intended UI change, record new ones and review the images in the diff:

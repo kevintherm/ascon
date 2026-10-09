@@ -91,6 +91,8 @@ docs/               ADRs and longer notes
 - Main-frame navigations also go through the engine in `shouldOverrideUrlLoading`, tapped or not, so a link to a known ad or popunder domain is blocked. This covers hijacked links the tap rule lets through, including tapped `target=_blank` links, which load in the same tab.
 - Invisible links laid over the page are left to cosmetic filters, since tapping one really is a tap on that link.
 - Filter lists are modules with id, version and toggle: EasyList, EasyPrivacy, an Ascon manga-site list, per-site allowlist as generated exception rules. Toggling rebuilds the engine in the background.
+- Decided with the owner: EasyList and EasyPrivacy ship in the APK, so blocking works on first launch and offline, and a weekly WorkManager job on unmetered network downloads newer copies. A download replaces a copy only when it is a valid list with a higher `! Version:`. Refresh the shipped copies with `android/tools/update-filter-lists.sh` before a release.
+- EasyList and EasyPrivacy are dual licensed GPLv3 and CC BY-SA 3.0. The app must credit them, under CC BY-SA, on the open source licenses screen when it is built.
 
 ### Detection
 
