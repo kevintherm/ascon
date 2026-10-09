@@ -179,7 +179,8 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                                 onOpenChapter = { url ->
                                     browserLoad = url
                                     backStack.pop()
-                                }
+                                },
+                                onOpenSeries = openSeries
                             )
                         )
                     }

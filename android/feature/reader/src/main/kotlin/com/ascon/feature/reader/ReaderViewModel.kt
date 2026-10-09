@@ -3,6 +3,7 @@ package com.ascon.feature.reader
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
+import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import java.math.BigDecimal
 import java.net.URI
@@ -26,7 +27,12 @@ data class ReaderUiState(
     val barsVisible: Boolean = true,
     /** Chapter page URLs on the site. */
     val next: String?,
-    val previous: String?
+    val previous: String?,
+    /** Set when the series is in the library. */
+    val seriesId: String? = null,
+    val cover: Cover? = null,
+    /** The next chapter's number, when the library knows it or it follows a whole number. */
+    val nextChapter: BigDecimal? = null
 ) {
     val pageCount: Int get() = pages.size
 }
@@ -46,10 +52,31 @@ class ReaderViewModel(
             pages = chapter.pages,
             page = chapter.startPage.coerceIn(1, chapter.pages.size.coerceAtLeast(1)),
             next = chapter.next,
-            previous = chapter.previous
+            previous = chapter.previous,
+            seriesId = chapter.seriesId,
+            nextChapter = chapter.chapter?.let { nextAfter(it, emptyList()) }
         )
     )
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
+
+    init {
+        val seriesId = chapter.seriesId
+        val number = chapter.chapter
+        if (seriesId != null) {
+            viewModelScope.launch {
+                library.series(seriesId).collect { series ->
+                    _state.update {
+                        it.copy(
+                            cover = series?.cover,
+                            nextChapter = number?.let { n ->
+                                nextAfter(n, series?.chapters.orEmpty().map { c -> c.number })
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     private var shownPage = 0
 
@@ -78,6 +105,11 @@ class ReaderViewModel(
     }
 
     private companion object {
+        /** The first known chapter after [number], or the next whole number after a whole one. */
+        fun nextAfter(number: BigDecimal, known: List<BigDecimal>): BigDecimal? =
+            known.filter { it > number }.minOrNull()
+                ?: number.takeIf { it.stripTrailingZeros().scale() <= 0 }?.add(BigDecimal.ONE)
+
         fun hostOf(url: String): String = runCatching { URI(url).host }.getOrNull().orEmpty().removePrefix("www.")
     }
 }

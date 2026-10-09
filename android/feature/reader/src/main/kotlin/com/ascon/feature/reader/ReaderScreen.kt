@@ -46,7 +46,11 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 /** Where the reader sends the user. [onOpenChapter] gets a chapter page URL on the site. */
-data class ReaderActions(val onBack: () -> Unit = {}, val onOpenChapter: (String) -> Unit = {})
+data class ReaderActions(
+    val onBack: () -> Unit = {},
+    val onOpenChapter: (String) -> Unit = {},
+    val onOpenSeries: (String) -> Unit = {}
+)
 
 @Composable
 fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: ReaderActions) {
@@ -62,7 +66,8 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
             onNext = { state.next?.let(actions.onOpenChapter) },
             onPageShown = viewModel::onPageShown,
             onToggleBars = viewModel::toggleBars,
-            onNearEnd = viewModel::nearEnd
+            onNearEnd = viewModel::nearEnd,
+            onOpenSeries = actions.onOpenSeries
         )
     ) { index, url, modifier ->
         PageImage(index, url, referer = state.url, images = images, onSize = { sizes[index] = it }, modifier = modifier)
@@ -77,7 +82,8 @@ data class ReaderCommands(
     val onPageShown: (Int) -> Unit = {},
     val onToggleBars: () -> Unit = {},
     /** The end of the last page is less than half a screen away. */
-    val onNearEnd: () -> Unit = {}
+    val onNearEnd: () -> Unit = {},
+    val onOpenSeries: (String) -> Unit = {}
 )
 
 internal const val PAGES_TAG = "reader-pages"
@@ -98,7 +104,7 @@ fun ReaderScreen(
     val list = rememberLazyListState(initialFirstVisibleItemIndex = state.page - 1)
     val scope = rememberCoroutineScope()
     LaunchedEffect(list) {
-        snapshotFlow { list.pageOnScreen() }.collect { commands.onPageShown(it) }
+        snapshotFlow { list.pageOnScreen(state.pageCount) }.collect { commands.onPageShown(it) }
     }
     LaunchedEffect(list) {
         snapshotFlow { list.isNearEnd() }.distinctUntilChanged().filter { it }.collect { commands.onNearEnd() }
@@ -128,6 +134,7 @@ fun ReaderScreen(
                     }
                 }
             }
+            item(key = END_KEY) { ChapterEnd(state, commands.onNext, commands.onOpenSeries) }
         }
         AnimatedVisibility(
             visible = state.barsVisible,
@@ -172,8 +179,15 @@ private fun LazyListState.isNearEnd(): Boolean {
     return last.offset + last.size - info.viewportEndOffset < info.viewportSize.height / 2
 }
 
-/** The page at the top of the screen, or the last page once the list cannot scroll further. */
-private fun LazyListState.pageOnScreen(): Int {
-    val count = layoutInfo.totalItemsCount
-    return if (count > 0 && !canScrollForward) count - 1 else firstVisibleItemIndex
+/**
+ * The page at the top of the screen, or the last page once the list cannot scroll further.
+ * The chapter end after the pages counts as the last page.
+ */
+private fun LazyListState.pageOnScreen(pageCount: Int): Int {
+    val last = (pageCount - 1).coerceAtLeast(0)
+    // Before the first layout the list has no items and cannot scroll either.
+    val laidOut = layoutInfo.totalItemsCount > 0
+    return if (laidOut && pageCount > 0 && !canScrollForward) last else firstVisibleItemIndex.coerceAtMost(last)
 }
+
+private const val END_KEY = "end"

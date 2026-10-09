@@ -8,4 +8,18 @@
     <string name="reader_previous">Previous</string>
     <string name="reader_next">Next chapter</string>
     <string name="reader_progress">Reading progress</string>
+
+    <!-- Chapter end -->
+    <string name="reader_end_finished">Chapter %1$s finished</string>
+    <string name="reader_end_finished_unknown">Chapter finished</string>
+    <string name="reader_end_saved">Progress saved</string>
+    <string name="reader_end_up_next">Up next</string>
+    <string name="reader_end_chapter">Chapter %1$s</string>
+    <string name="reader_end_on">On %1$s</string>
+    <string name="reader_end_read_chapter">Read Chapter %1$s</string>
+    <string name="reader_end_caught_up">You\'re caught up</string>
+    <string name="reader_end_latest">Ch. %1$s is the latest</string>
+    <string name="reader_end_not_out">Chapter %1$s isn\'t out on %2$s yet.</string>
+    <string name="reader_end_no_next">%1$s has no next chapter yet.</string>
+    <string name="reader_end_back">Back to series</string>
 </resources>
