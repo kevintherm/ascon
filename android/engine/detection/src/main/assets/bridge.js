@@ -14,8 +14,9 @@
  *   page → app  {"type":"position","url":...,"page":n,"pageCount":m}
  *   page → app  {"type":"tap","url":...,"href":link|null}
  *
- * A position is sent for a chapter whose pages the reader cannot take, so the page is
- * read as it is. It is the page slot most on screen, counted from 1.
+ * A position is sent on every chapter page: the page slot most on screen, counted
+ * from 1. It saves progress on a chapter read as it is, and opens the reader at the
+ * same page when the user switches to it.
  *
  * A tap reports the link under the finger, or null, for the navigation guard: a tap
  * only lets the tab go to another site through the link that was tapped.
@@ -281,7 +282,7 @@
     };
   }
 
-  // ---- Position on a page read as it is ----------------------------------
+  // ---- Position on a chapter page ----------------------------------
 
   var tracked = null; // { holder, observer, ratios, page }
 
@@ -309,10 +310,10 @@
     tracked = state;
   }
 
-  /** Tracks the position on a chapter the reader cannot take; stops on any other page. */
+  /** Tracks the position on a chapter page; stops on any other page. */
   function followPosition(found) {
     var r = found.result;
-    var run = r.pageType === "chapter" && r.images.length === 0 ? imageRun(location.href) : null;
+    var run = r.pageType === "chapter" ? imageRun(location.href) : null;
     if (run) track(run.holder);
     else stopTracking();
   }

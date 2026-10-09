@@ -30,13 +30,15 @@ sealed interface Route : NavKey {
         val seriesId: String?,
         val pages: List<String>,
         val next: String?,
-        val previous: String?
+        val previous: String?,
+        val startPage: Int = 1
     ) : Route {
-        fun toChapter() = ReaderChapter(url, title, chapter?.let(::BigDecimal), seriesId, pages, next, previous)
+        fun toChapter() =
+            ReaderChapter(url, title, chapter?.let(::BigDecimal), seriesId, pages, next, previous, startPage)
 
         companion object {
             fun of(c: ReaderChapter) =
-                Reader(c.url, c.title, c.chapter?.toPlainString(), c.seriesId, c.pages, c.next, c.previous)
+                Reader(c.url, c.title, c.chapter?.toPlainString(), c.seriesId, c.pages, c.next, c.previous, c.startPage)
         }
     }
 }

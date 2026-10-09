@@ -349,17 +349,18 @@ test("a chapter the reader cannot take reports the page slot on screen", async (
   await page.close();
 });
 
-test("a chapter with pages for the reader reports no position", async () => {
+test("a chapter with pages for the reader reports the page on screen too", async () => {
   const page = await open(
     "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/203",
     fixture("heuristic/strip-a.html"),
   );
   await sendRules(page, []);
-  await results(page);
-  await page.waitForTimeout(300);
-  const sent = await page.evaluate(() => __sent.filter((m) => m.type === "position"));
+  const [found] = await results(page);
+  await page.waitForFunction(() => __sent.some((m) => m.type === "position"));
+  const [first] = await page.evaluate(() => __sent.filter((m) => m.type === "position"));
   await page.close();
-  assert.deepEqual(sent, []);
+  assert.equal(first.page, 1);
+  assert.equal(first.pageCount, found.result.images.length);
 });
 
 test("reports the link under each tap, or none", async () => {

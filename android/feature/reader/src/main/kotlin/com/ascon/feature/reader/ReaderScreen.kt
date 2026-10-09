@@ -74,7 +74,8 @@ fun ReaderScreen(
     page: @Composable (index: Int, url: String, modifier: Modifier) -> Unit
 ) {
     StatusBarIcons(darkIcons = false)
-    val list = rememberLazyListState()
+    // Opens at the page the chapter starts on, such as the one on screen in the browser.
+    val list = rememberLazyListState(initialFirstVisibleItemIndex = state.page - 1)
     val scope = rememberCoroutineScope()
     LaunchedEffect(list) {
         snapshotFlow { list.pageOnScreen() }.collect { commands.onPageShown(it) }

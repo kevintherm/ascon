@@ -44,6 +44,7 @@ class ReaderViewModel(
             chapter = chapter.chapter,
             host = hostOf(chapter.url),
             pages = chapter.pages,
+            page = chapter.startPage.coerceIn(1, chapter.pages.size.coerceAtLeast(1)),
             next = chapter.next,
             previous = chapter.previous
         )

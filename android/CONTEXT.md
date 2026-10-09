@@ -333,7 +333,7 @@ sealed interface AccountState
 ## core/src/main/kotlin/com/ascon/core/model/ReaderChapter.kt
 
 ```kotlin
-data class ReaderChapter(val url: String, val title: String?, val chapter: BigDecimal?, val seriesId: String?, val pages: List<String>, val next: String?, val previous: String?)
+data class ReaderChapter(val url: String, val title: String?, val chapter: BigDecimal?, val seriesId: String?, val pages: List<String>, val next: String?, val previous: String?, val startPage: Int = 1)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/Series.kt

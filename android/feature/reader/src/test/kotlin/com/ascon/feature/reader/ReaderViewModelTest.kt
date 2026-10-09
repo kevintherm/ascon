@@ -78,6 +78,12 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `starts at the chapter's start page`() {
+        val vm = ReaderViewModel(library, clock, chapter().copy(startPage = 7))
+        assertEquals(7, vm.state.value.page)
+    }
+
+    @Test
     fun `a tap shows or hides the bars`() {
         val vm = ReaderViewModel(library, clock, chapter())
         vm.toggleBars()

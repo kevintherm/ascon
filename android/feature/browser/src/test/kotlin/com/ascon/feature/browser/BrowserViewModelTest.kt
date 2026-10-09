@@ -302,6 +302,21 @@ class BrowserViewModelTest {
     }
 
     @Test
+    fun `the reader opens again at the page on screen`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(images = (1..20).map { "https://cdn.example/$it.webp" }))
+        vm.readerOpened()
+        vm.onDetection(Detection.ReadingPosition(chapter14, page = 11, pageCount = 20))
+        vm.openReader()
+        assertEquals(11, vm.state.value.reader?.startPage)
+
+        // A site with more slots than the reader has pages, such as one with a banner slot.
+        vm.onDetection(Detection.ReadingPosition(chapter14, page = 21, pageCount = 40))
+        vm.openReader()
+        assertEquals(11, vm.state.value.reader?.startPage)
+    }
+
+    @Test
     fun `leaving the page forgets its chapter`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp")))

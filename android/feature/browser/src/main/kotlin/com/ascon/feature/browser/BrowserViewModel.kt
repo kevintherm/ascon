@@ -236,9 +236,23 @@ class BrowserViewModel(
         _state.update { it.copy(readerUnavailable = false) }
     }
 
-    /** Opens the reader again on this page's chapter, from the menu or the reader chip. */
+    /**
+     * Opens the reader again on this page's chapter, from the menu, the card or the chip,
+     * at the page on screen. The site may count its pages differently, so it is scaled.
+     */
     fun openReader() {
-        _state.update { it.copy(reader = it.readerChapter) }
+        _state.update {
+            val chapter = it.readerChapter ?: return@update it
+            val card = it.card
+            val page = card?.page
+            val count = card?.pageCount
+            val start = if (page != null && count != null && count > 0) {
+                ((page - 1) * chapter.pages.size / count + 1).coerceIn(1, chapter.pages.size)
+            } else {
+                1
+            }
+            it.copy(reader = chapter.copy(startPage = start))
+        }
     }
 
     /** Called off the main thread for each request the ad blocker stops on [pageUrl]. */

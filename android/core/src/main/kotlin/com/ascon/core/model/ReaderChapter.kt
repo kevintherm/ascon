@@ -14,5 +14,7 @@ data class ReaderChapter(
     val seriesId: String?,
     val pages: List<String>,
     val next: String?,
-    val previous: String?
+    val previous: String?,
+    /** The page to open at, counted from 1. */
+    val startPage: Int = 1
 )
