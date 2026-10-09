@@ -37,9 +37,8 @@ class FilterListsTest {
     }
 
     @Test
-    fun `the modules are EasyList, EasyPrivacy and the Ascon list, all on by default`() {
+    fun `the modules are EasyList, EasyPrivacy and the Ascon list`() {
         assertEquals(listOf("easylist", "easyprivacy", "ascon"), FilterList.All.map { it.id })
-        assertTrue(FilterList.All.all { it.enabledByDefault })
         assertNull(FilterList.All.first { it.id == "ascon" }.updateUrl)
     }
 

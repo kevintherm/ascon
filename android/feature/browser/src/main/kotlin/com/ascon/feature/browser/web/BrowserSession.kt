@@ -99,13 +99,19 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
     /** True until the first page starts loading, and after a renderer crash replaced the view. */
     val isEmpty: Boolean get() = webView.url == null
 
-    fun load(url: String) = webView.loadUrl(url)
+    fun load(url: String) = navigate { webView.loadUrl(url) }
 
-    fun reload() = webView.reload()
+    fun reload() = navigate { webView.reload() }
 
-    fun goBack() = webView.goBack()
+    fun goBack() = navigate { webView.goBack() }
 
-    fun goForward() = webView.goForward()
+    fun goForward() = navigate { webView.goForward() }
+
+    /** Applies a changed popup setting before the next page loads. */
+    private fun navigate(action: () -> Unit) {
+        pool.applyPopupSetting(webView)
+        action()
+    }
 
     fun destroy() {
         events = null
@@ -147,8 +153,13 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
                 isMainFrame = request.isForMainFrame,
                 hasGesture = request.hasGesture(),
                 isRedirect = request.isRedirect,
-                tappedLink = lastTap?.takeIf { SystemClock.uptimeMillis() - it.at < TAP_WINDOW_MS }?.href
-            ) ?: return false
+                tappedLink = lastTap?.takeIf { SystemClock.uptimeMillis() - it.at < TAP_WINDOW_MS }?.href,
+                protection = pool.protection()
+            )
+            if (blocked == null) {
+                if (request.isForMainFrame && view is TabWebView) pool.applyPopupSetting(view)
+                return false
+            }
             if (request.isForMainFrame) {
                 val kind = when (blocked) {
                     BlockReason.Scheme -> BlockedKind.OtherApp
@@ -170,7 +181,7 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
             }?.value
             val type = RequestType.of(url, isMainFrame = false, accept = accept)
             val page = pageUrl ?: url
-            val blocked = pool.adblock.shouldBlock(url, page, type)
+            val blocked = pool.guard.blocksRequest(url, page, type, pool.protection())
             if (blocked) events?.onRequestBlocked(page)
             return if (blocked) emptyResponse() else null
         }

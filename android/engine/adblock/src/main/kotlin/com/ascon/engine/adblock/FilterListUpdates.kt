@@ -26,7 +26,7 @@ class FilterListUpdateWorker(context: Context, params: WorkerParameters) : Corou
         val adblock = (applicationContext as AdblockOwner).adblock
         val store = adblock.lists
         val updater = FilterListUpdater(current = store::text, fetch = ::download, save = store::save)
-        if (updater.update(FilterList.All.filter(store::isEnabled))) adblock.start()
+        if (updater.update(FilterList.All.filter { it.id !in adblock.disabled })) adblock.start()
         Result.success()
     }
 

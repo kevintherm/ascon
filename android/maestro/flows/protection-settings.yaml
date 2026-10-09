@@ -1,0 +1,23 @@
+# UI fix 12: the protection switches on the Settings screen are saved and the browser
+# follows them. Same test page as adblock.yaml.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Settings"
+- tapOn: "Block ads and trackers"
+- tapOn: "Block popups and redirects"
+# A new launch reads the saved settings.
+- launchApp:
+    arguments:
+      url: "http://10.0.2.2:8765/ads.html"
+- extendedWaitUntil:
+    visible: "page loaded"
+    timeout: 15000
+- assertVisible: "banner loaded"
+- assertVisible: "SITE BANNER"
+# With popups allowed, window.open loads in this tab.
+- tapOn: "Open window"
+- extendedWaitUntil:
+    visible: "opened in this tab"
+    timeout: 5000

@@ -10,7 +10,11 @@
 <div class="ad-slot">AD SLOT</div>
 <p>Page text stays</p>
 <p><a href="http://127.0.0.1:8765/ads/landing.html" style="font-size:32px">Ad link</a></p>
+<!-- With popups allowed, window.open loads the page in this tab. -->
+<p><button onclick="window.open('ads.html?opened')" style="font-size:32px">Open window</button></p>
+<p id="opened"></p>
 <script>
+  if (location.search === "?opened") document.getElementById("opened").textContent = "opened in this tab";
   for (const name of ["banner", "page"]) {
     const img = document.getElementById(name);
     const state = document.getElementById(name + "-state");

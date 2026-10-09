@@ -3,6 +3,7 @@ package com.ascon.feature.settings
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.data.fake.FakeAccountRepository
+import com.ascon.core.data.fake.FakeProtectionSettings
 import com.ascon.core.data.fake.FakeSettingsRepository
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.AccountState
@@ -34,13 +35,16 @@ class SettingsViewModelTest {
 
     @Test
     fun `toggles write through to settings`() = runTest {
-        val vm = SettingsViewModel(FakeSettingsRepository(), FakeAccountRepository(AccountState.SignedOut))
+        val protection = FakeProtectionSettings()
+        val vm = SettingsViewModel(FakeSettingsRepository(), protection, FakeAccountRepository(AccountState.SignedOut))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
 
-        assertTrue(vm.state.value.settings.blockAds)
+        assertTrue(vm.state.value.protection.adblockEnabled)
         vm.setBlockAds(false)
+        vm.setBlockPopups(false)
         vm.setKeepScreenOn(true)
-        assertFalse(vm.state.value.settings.blockAds)
+        assertFalse(vm.state.value.protection.adblockEnabled)
+        assertFalse(protection.settings.value.blockPopups)
         assertTrue(vm.state.value.settings.keepScreenOn)
         assertEquals(AccountState.SignedOut, vm.state.value.account)
     }

@@ -29,6 +29,8 @@ dependencies {
     // The library on the device.
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
+    // Protection settings, read by the browser on every request.
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

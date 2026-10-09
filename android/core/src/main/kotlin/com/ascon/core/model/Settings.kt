@@ -3,13 +3,7 @@ package com.ascon.core.model
 enum class ReadingMode { LongStrip, Paged }
 
 /** User settings shown on the settings screen. */
-data class Settings(
-    val blockAds: Boolean = true,
-    val blockPopups: Boolean = true,
-    val keepScreenOn: Boolean = false,
-    val readingMode: ReadingMode = ReadingMode.LongStrip,
-    val secureDnsProvider: String = "Cloudflare"
-)
+data class Settings(val keepScreenOn: Boolean = false, val readingMode: ReadingMode = ReadingMode.LongStrip)
 
 /** Numbers the settings screen reports but does not own. */
 data class SettingsSummary(

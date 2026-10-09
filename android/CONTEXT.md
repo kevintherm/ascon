@@ -13,12 +13,22 @@ interface LibraryRepository
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+interface ProtectionSettingsRepository
+    val settings: StateFlow<ProtectionSettings>
+    suspend fun load(): ProtectionSettings
+    suspend fun update(transform: (ProtectionSettings) -> ProtectionSettings)
 interface SettingsRepository
     val settings: Flow<Settings>
     val summary: Flow<SettingsSummary>
     suspend fun update(transform: (Settings) -> Settings)
 interface AccountRepository
     val account: Flow<AccountState>
+```
+
+## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreProtectionSettings.kt
+
+```kotlin
+class DataStoreProtectionSettings(private val store: DataStore<Preferences>, scope: CoroutineScope) :
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeLibrary.kt
@@ -41,6 +51,15 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+```
+
+## core/src/main/kotlin/com/ascon/core/data/fake/FakeProtectionSettings.kt
+
+```kotlin
+class FakeProtectionSettings(initial: ProtectionSettings = ProtectionSettings()) : ProtectionSettingsRepository
+    override val settings: StateFlow<ProtectionSettings>
+    override suspend fun load(): ProtectionSettings
+    override suspend fun update(transform: (ProtectionSettings) -> ProtectionSettings)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeSettingsRepository.kt
@@ -330,6 +349,14 @@ sealed interface AccountState
     data class SignedIn(val displayName: String, val premium: Boolean, val lastSyncedAt: Instant?) : AccountState
 ```
 
+## core/src/main/kotlin/com/ascon/core/model/ProtectionSettings.kt
+
+```kotlin
+enum class SecureDns(val label: String)
+data class ProtectionSettings(val adblockEnabled: Boolean = true, val blockPopups: Boolean = true, val disabledFilterLists: Set<String> = emptySet(), val trustedSites: Set<String> = emptySet(), val secureDns: SecureDns = SecureDns.Cloudflare)
+    fun trusts(site: String?): Boolean
+```
+
 ## core/src/main/kotlin/com/ascon/core/model/ReaderChapter.kt
 
 ```kotlin
@@ -358,7 +385,7 @@ fun BigDecimal.toChapterLabel(): String
 
 ```kotlin
 enum class ReadingMode
-data class Settings(val blockAds: Boolean = true, val blockPopups: Boolean = true, val keepScreenOn: Boolean = false, val readingMode: ReadingMode = ReadingMode.LongStrip, val secureDnsProvider: String = "Cloudflare")
+data class Settings(val keepScreenOn: Boolean = false, val readingMode: ReadingMode = ReadingMode.LongStrip)
 data class SettingsSummary(val blockedThisWeek: Int, val activeFilterLists: Int, val hiddenSeriesLocked: Boolean, val downloadsBytes: Long)
 ```
 

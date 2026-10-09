@@ -25,26 +25,27 @@ class Adblock(private val context: Context, val lists: FilterListStore = FilterL
     private var engine: AdblockEngine? = null
     private val firstStart = CountDownLatch(1)
 
+    /** Ids of the filter lists the user turned off. */
+    @Volatile
+    var disabled: Set<String> = emptySet()
+        private set
+
     /**
-     * Builds or loads the engine from the enabled lists. Call off the main thread at start,
-     * and again after lists change. The old engine keeps working until the new one is ready.
+     * Builds or loads the engine from all lists but the [disabled] ones. Call off the main
+     * thread at start, and again after lists change. The old engine keeps working until
+     * the new one is ready.
      */
     @Synchronized
-    fun start(lists: List<String> = this.lists.enabledTexts()) {
+    fun start(disabled: Set<String> = this.disabled) {
+        this.disabled = disabled
         try {
-            startEngine(lists)
+            startEngine(lists.enabledTexts(disabled))
         } catch (e: UnsatisfiedLinkError) {
             // No engine for this device's ABI. Browsing works, unblocked.
             Log.e(TAG, "Engine not loaded", e)
         } finally {
             firstStart.countDown()
         }
-    }
-
-    /** Turns a list on or off and rebuilds the engine. Call off the main thread. */
-    fun setEnabled(list: FilterList, enabled: Boolean) {
-        lists.setEnabled(list, enabled)
-        start()
     }
 
     private fun startEngine(lists: List<String>) {

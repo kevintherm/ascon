@@ -215,14 +215,14 @@ private fun Protection(state: SettingsUiState, actions: SettingsActions) {
                     NumberFormat.getIntegerInstance().format(it.blockedThisWeek)
                 )
             },
-            checked = state.settings.blockAds,
+            checked = state.protection.adblockEnabled,
             onCheckedChange = actions.onBlockAds
         )
         RowDivider()
         SwitchRow(
             title = stringResource(R.string.settings_block_popups),
             subtitle = stringResource(R.string.settings_block_popups_body),
-            checked = state.settings.blockPopups,
+            checked = state.protection.blockPopups,
             onCheckedChange = actions.onBlockPopups
         )
         RowDivider()
@@ -236,7 +236,7 @@ private fun Protection(state: SettingsUiState, actions: SettingsActions) {
         RowDivider()
         ListRow(
             title = stringResource(R.string.settings_secure_dns),
-            value = state.settings.secureDnsProvider,
+            value = state.protection.secureDns.label,
             onClick = actions.onSecureDns
         )
     }

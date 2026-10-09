@@ -4,7 +4,7 @@ package com.ascon.engine.adblock
  * A filter list the user can turn on or off. A copy ships in the app's assets as
  * `adblock/<id>.txt`; a list with an [updateUrl] is refreshed from it weekly.
  */
-data class FilterList(val id: String, val title: String, val updateUrl: String?, val enabledByDefault: Boolean = true) {
+data class FilterList(val id: String, val title: String, val updateUrl: String?) {
     companion object {
         val EasyList = FilterList("easylist", "EasyList", "https://easylist.to/easylist/easylist.txt")
         val EasyPrivacy = FilterList("easyprivacy", "EasyPrivacy", "https://easylist.to/easylist/easyprivacy.txt")

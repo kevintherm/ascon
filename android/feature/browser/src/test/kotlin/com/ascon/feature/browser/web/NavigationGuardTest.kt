@@ -1,9 +1,12 @@
 package com.ascon.feature.browser.web
 
+import com.ascon.core.model.ProtectionSettings
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.adblock.RequestType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigationGuardTest {
@@ -20,8 +23,50 @@ class NavigationGuardTest {
         isMainFrame: Boolean = true,
         hasGesture: Boolean = false,
         isRedirect: Boolean = false,
-        tappedLink: String? = null
-    ) = guard.check(from, to, isMainFrame, hasGesture, isRedirect, tappedLink)
+        tappedLink: String? = null,
+        protection: ProtectionSettings = ProtectionSettings()
+    ) = guard.check(from, to, isMainFrame, hasGesture, isRedirect, tappedLink, protection)
+
+    @Test
+    fun `app links are blocked whatever the settings say`() {
+        val off = ProtectionSettings(adblockEnabled = false, blockPopups = false, trustedSites = setOf("mangafire.to"))
+        assertEquals(BlockReason.Scheme, check("intent://scan/#Intent;end", hasGesture = true, protection = off))
+        assertEquals(BlockReason.Scheme, check("market://details?id=x", protection = off))
+    }
+
+    @Test
+    fun `a trusted site skips the other rules`() {
+        val trusted = ProtectionSettings(trustedSites = setOf("mangafire.to"))
+        assertNull(check("https://ads.example/landing", protection = trusted))
+        assertNull(check("https://popunder.example/", hasGesture = true, protection = trusted))
+        assertFalse(guard.blocksRequest("https://popunder.example/x.js", page, RequestType.Document, trusted))
+        assertFalse(guard.filtersPage(page, trusted))
+        assertTrue(guard.filtersPage("https://other.example/", trusted))
+    }
+
+    @Test
+    fun `with ad blocking off the ad filter is not asked`() {
+        val off = ProtectionSettings(adblockEnabled = false)
+        assertNull(
+            check(
+                "https://popunder.example/",
+                hasGesture = true,
+                tappedLink = "https://popunder.example/",
+                protection = off
+            )
+        )
+        assertEquals(BlockReason.NoGesture, check("https://popunder.example/", protection = off))
+        assertFalse(guard.blocksRequest("https://popunder.example/x", page, RequestType.Document, off))
+        assertTrue(guard.blocksRequest("https://popunder.example/x", page, RequestType.Document, ProtectionSettings()))
+    }
+
+    @Test
+    fun `with popups allowed a page may send the tab to another site`() {
+        val allowed = ProtectionSettings(blockPopups = false)
+        assertNull(check("https://ads.example/landing", protection = allowed))
+        assertNull(check("https://ads.example/landing", hasGesture = true, tappedLink = page, protection = allowed))
+        assertEquals(BlockReason.Ad, check("https://popunder.example/", protection = allowed))
+    }
 
     @Test
     fun `blocks schemes that leave the browser`() {

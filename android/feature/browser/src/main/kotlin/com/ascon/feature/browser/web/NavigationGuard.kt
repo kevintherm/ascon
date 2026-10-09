@@ -1,5 +1,6 @@
 package com.ascon.feature.browser.web
 
+import com.ascon.core.model.ProtectionSettings
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.adblock.RequestType
 import java.net.URI
@@ -26,8 +27,16 @@ fun interface SiteKey {
 }
 
 /**
- * The browser's navigation rules from AGENTS.md, as plain code so they can be tested
- * without a WebView.
+ * The browser's navigation and request rules from AGENTS.md, as plain code so they can be
+ * tested without a WebView. The user's [ProtectionSettings] apply in this order:
+ *
+ * 1. Other schemes, such as app links, are always blocked.
+ * 2. A trusted site skips every other rule.
+ * 3. With ad blocking off, the ad filter is not asked.
+ * 4. With popups and redirects allowed, a page may send the tab to another site without
+ *    a tap, and a click handler may send it somewhere other than the tapped link.
+ *
+ * The rules, with everything on:
  *
  * - The main frame only goes to http and https pages.
  * - A page cannot send the main frame to another site on its own. It needs a user
@@ -51,18 +60,31 @@ class NavigationGuard(private val sites: SiteKey, private val ads: RequestFilter
         isMainFrame: Boolean,
         hasGesture: Boolean,
         isRedirect: Boolean,
-        tappedLink: String? = null
+        tappedLink: String? = null,
+        protection: ProtectionSettings = ProtectionSettings()
     ): BlockReason? {
         val scheme = schemeOf(to) ?: return BlockReason.Scheme
         val allowed = if (isMainFrame) WEB_SCHEMES else FRAME_SCHEMES
         return when {
             scheme !in allowed -> BlockReason.Scheme
-            !isMainFrame -> null
-            ads.shouldBlock(to, from ?: to, RequestType.Document) -> BlockReason.Ad
-            isRedirect || from == null -> null
+            !isMainFrame || protection.trustsPage(from ?: to) -> null
+            protection.adblockEnabled && ads.shouldBlock(to, from ?: to, RequestType.Document) -> BlockReason.Ad
+            isRedirect || from == null || !protection.blockPopups -> null
             else -> crossSite(from, to, hasGesture, tappedLink)
         }
     }
+
+    /** True to stop a request [pageUrl] makes for [url]. Main-frame pages go through [check]. */
+    fun blocksRequest(url: String, pageUrl: String, type: RequestType, protection: ProtectionSettings): Boolean =
+        filtersPage(pageUrl, protection) && ads.shouldBlock(url, pageUrl, type)
+
+    /** True when the filter lists apply to [pageUrl], for its requests and its hidden elements. */
+    fun filtersPage(pageUrl: String, protection: ProtectionSettings): Boolean =
+        protection.adblockEnabled && !protection.trustsPage(pageUrl)
+
+    // Most users trust no site, so most requests skip the public suffix lookup.
+    private fun ProtectionSettings.trustsPage(url: String): Boolean =
+        trustedSites.isNotEmpty() && trusts(siteOfUrl(url))
 
     /** The main frame moving from [from] to [to], which is not a redirect. */
     private fun crossSite(from: String, to: String, hasGesture: Boolean, tappedLink: String?): BlockReason? {

@@ -81,7 +81,8 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     // Tab view models live as long as the activity, like the tabs themselves.
     val home = viewModel { HomeViewModel(container.library, container.accounts) }
     val library = viewModel { LibraryViewModel(container.library, ReadingStatus.Reading) }
-    val settings = viewModel { SettingsViewModel(container.settings, container.accounts, container.clock) }
+    val settings =
+        viewModel { SettingsViewModel(container.settings, container.protection, container.accounts, container.clock) }
     val browse = viewModel { BrowseViewModel(container.library) }
     // The browser is single-tab and outlives its screen: closing it keeps the page loaded,
     // and the Browse nav item returns to it.

@@ -18,7 +18,13 @@ import kotlinx.coroutines.withContext
  * for the page's own hide rules, then sends the class and id names it sees for generic
  * rules. Replies are worked out off the main thread and posted from [scope], the main one.
  */
-class CosmeticFilter(private val adblock: Adblock, private val script: String, private val scope: CoroutineScope) {
+class CosmeticFilter(
+    private val adblock: Adblock,
+    private val script: String,
+    private val scope: CoroutineScope,
+    /** False for a page that hides nothing, because blocking is off or the site is trusted. */
+    private val filters: (pageUrl: String) -> Boolean = { true }
+) {
     @SuppressLint("RequiresFeature") // Checked first.
     fun install(webView: WebView): Boolean {
         if (!isSupported()) return false
@@ -39,7 +45,7 @@ class CosmeticFilter(private val adblock: Adblock, private val script: String, p
     private fun onMessage(text: String, sourceOrigin: String, reply: JavaScriptReplyProxy) {
         val message = CosmeticProtocol.decode(text) ?: return
         // A page may only ask about itself.
-        if (originOf(message.url) != sourceOrigin.trimEnd('/').lowercase()) return
+        if (originOf(message.url) != sourceOrigin.trimEnd('/').lowercase() || !filters(message.url)) return
         scope.launch {
             val answer = withContext(Dispatchers.Default) { answer(message) } ?: return@launch
             reply.postMessage(CosmeticProtocol.encode(answer))

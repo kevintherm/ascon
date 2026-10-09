@@ -6,9 +6,11 @@ import android.content.MutableContextWrapper
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
+import androidx.webkit.ScriptHandler
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.ascon.core.model.ProtectionSettings
 import com.ascon.engine.adblock.CosmeticFilter
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.detection.Detection
@@ -19,6 +21,10 @@ import com.ascon.engine.detection.DetectionHost
 class TabWebView internal constructor(val wrapper: MutableContextWrapper) : WebView(wrapper) {
     internal var onDetection: ((Detection) -> Unit)? = null
     internal var onTap: ((String?) -> Unit)? = null
+
+    /** The script that sets what `window.open` does, and whether it blocks popups. */
+    internal var windowOpen: ScriptHandler? = null
+    internal var popupsBlocked: Boolean? = null
 }
 
 /**
@@ -35,7 +41,9 @@ class WebViewPool(
     internal val adblock: RequestFilter = RequestFilter.AllowAll,
     /** Hides the page elements the filter lists name, or null to hide nothing. */
     private val cosmetics: () -> CosmeticFilter? = { null },
-    internal val guard: NavigationGuard = NavigationGuard(OkHttpSiteKey, adblock)
+    internal val guard: NavigationGuard = NavigationGuard(OkHttpSiteKey, adblock),
+    /** Read on WebView threads for every request, so it must not wait. */
+    internal val protection: () -> ProtectionSettings = { ProtectionSettings() }
 ) {
     private var warm: TabWebView? = null
 
@@ -74,12 +82,27 @@ class WebViewPool(
             displayZoomControls = false
         }
         hideAppFromSites(view)
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            WebViewCompat.addDocumentStartJavaScript(view, NO_WINDOW_OPEN, setOf("*"))
-        }
+        applyPopupSetting(view)
         cosmetics()?.install(view)
         detection().install(view, onDetection = { view.onDetection?.invoke(it) }, onTap = { view.onTap?.invoke(it) })
         return view
+    }
+
+    /**
+     * Sets what `window.open` does on [view]'s next page: nothing while popups are
+     * blocked, a same-tab navigation while they are allowed. Call before each navigation
+     * the app starts or lets through, so a changed setting applies to the next page.
+     */
+    @SuppressLint("RequiresFeature") // Checked first.
+    internal fun applyPopupSetting(view: TabWebView) {
+        val block = protection().blockPopups
+        if (view.popupsBlocked == block || !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            return
+        }
+        view.windowOpen?.remove()
+        view.windowOpen =
+            WebViewCompat.addDocumentStartJavaScript(view, if (block) NO_WINDOW_OPEN else SAME_TAB_OPEN, setOf("*"))
+        view.popupsBlocked = block
     }
 
     /**
@@ -104,6 +127,25 @@ class WebViewPool(
         const val NO_WINDOW_OPEN = """(function () {
   try {
     Object.defineProperty(window, "open", { value: function () { return null; }, writable: false, configurable: false });
+  } catch (e) {}
+})();"""
+
+        /**
+         * With popups allowed, window.open loads the page in this tab instead, and the
+         * navigation guard lets it through. A frame may only do so when the browser lets
+         * it navigate the tab.
+         */
+        const val SAME_TAB_OPEN = """(function () {
+  function open(url) {
+    if (url) {
+      try {
+        window.top.location.assign(new URL(String(url), location.href).href);
+      } catch (e) {}
+    }
+    return null;
+  }
+  try {
+    Object.defineProperty(window, "open", { value: open, writable: false, configurable: false });
   } catch (e) {}
 })();"""
     }

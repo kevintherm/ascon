@@ -18,8 +18,8 @@
     <string name="settings_protection">Protection</string>
     <string name="settings_block_ads">Block ads and trackers</string>
     <string name="settings_blocked_this_week">%1$s blocked this week</string>
-    <string name="settings_block_popups">Block popups and app links</string>
-    <string name="settings_block_popups_body">Stops redirects, APK downloads and intent links</string>
+    <string name="settings_block_popups">Block popups and redirects</string>
+    <string name="settings_block_popups_body">App links and APK downloads are always blocked</string>
     <string name="settings_filter_lists">Filter lists</string>
     <plurals name="settings_filter_lists_active">
         <item quantity="one">%d active</item>
