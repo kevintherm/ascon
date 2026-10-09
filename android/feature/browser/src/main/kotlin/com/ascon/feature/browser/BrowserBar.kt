@@ -70,7 +70,7 @@ internal val ItemSize = 48.dp
 /** The items are 48 tall in a 68 bar, so the gap is 10 and their radius is 24. */
 private val ItemRadius = AsconRadius.nested(BarRadius, BarPadding)
 
-/** Space under the page for the bar, so the end of a page is never hidden behind it. */
+/** Space added after a page's end, above the navigation bar, so the bar never hides the end. */
 internal val BarClearance = BarHeight + BarBottom + 8.dp
 
 @Composable
@@ -156,9 +156,6 @@ private val BarShadow = Color(0x66000000)
 /** The collapsed bar, per BrowserV2Scrolling. */
 internal val StripHeight = 36.dp
 internal const val COLLAPSE_MS = 200
-
-/** Space under the page for the collapsed strip. */
-internal val StripClearance = StripHeight + BarBottom + 8.dp
 
 /** The bar shrunk while scrolling: shield count, host and chapter. A tap expands it. */
 @Composable

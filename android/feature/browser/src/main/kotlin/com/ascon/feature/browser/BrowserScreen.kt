@@ -15,11 +15,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -45,6 +45,7 @@ import com.ascon.core.model.ReaderChapter
 import com.ascon.engine.detection.withoutFragment
 import com.ascon.feature.browser.web.BrowserSession
 import com.ascon.feature.browser.web.addressToUrl
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /** How long a notice about something blocked stays up. */
@@ -89,6 +90,8 @@ fun BrowserRoute(
             actions.onUrlLoaded()
         }
     }
+    val endSpace = BarClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    LaunchedEffect(endSpace) { session.setPageEndSpace(endSpace.value.roundToInt()) }
     LaunchedEffect(state.reader) {
         state.reader?.let {
             viewModel.readerOpened()
@@ -180,26 +183,19 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
             .background(AsconColors.BrowserGround)
             .imePadding()
     ) {
-        Column(Modifier.fillMaxSize()) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .statusBarsPadding()
-            ) {
-                page(Modifier.fillMaxSize())
-                state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
-                ReaderUnavailableBanner(
-                    visible = state.readerUnavailable && state.error == null,
-                    onDismiss = commands.onDismissReaderUnavailable,
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp)
-                )
-            }
-            Spacer(
-                Modifier
-                    .navigationBarsPadding()
-                    // Steps with the bar instead of following its animation, so the page resizes once.
-                    .height(if (state.barCollapsed && !editing) StripClearance else BarClearance)
+        // The page runs to the bottom edge and the bar floats over it. The session adds
+        // space after each page's end, so the bar never hides it.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            page(Modifier.fillMaxSize())
+            state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
+            ReaderUnavailableBanner(
+                visible = state.readerUnavailable && state.error == null,
+                onDismiss = commands.onDismissReaderUnavailable,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp)
             )
         }
         BottomControls(

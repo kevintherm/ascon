@@ -107,6 +107,14 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
 
     fun goForward() = navigate { webView.goForward() }
 
+    /** Space in CSS pixels after the end of each page, for the bar floating over it. */
+    private var endSpace = 0
+
+    fun setPageEndSpace(px: Int) {
+        endSpace = px
+        pool.applyEndSpace(webView, px)
+    }
+
     /** Applies a changed popup setting before the next page loads. */
     private fun navigate(action: () -> Unit) {
         pool.applyPopupSetting(webView)
@@ -141,6 +149,7 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         detach(old)
         old.destroy()
         webView = pool.create().also(::setUp)
+        pool.applyEndSpace(webView, endSpace)
         generation++
     }
 

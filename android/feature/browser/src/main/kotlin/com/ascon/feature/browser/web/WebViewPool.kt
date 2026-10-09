@@ -25,6 +25,10 @@ class TabWebView internal constructor(val wrapper: MutableContextWrapper) : WebV
     /** The script that sets what `window.open` does, and whether it blocks popups. */
     internal var windowOpen: ScriptHandler? = null
     internal var popupsBlocked: Boolean? = null
+
+    /** The script that adds space after the page's end, and how much. */
+    internal var endSpaceScript: ScriptHandler? = null
+    internal var endSpace = 0
 }
 
 /**
@@ -106,6 +110,20 @@ class WebViewPool(
     }
 
     /**
+     * Adds [px] CSS pixels of empty space after the end of [view]'s pages, the current
+     * one and every later one, so the floating bar never hides the end of a page.
+     */
+    @SuppressLint("RequiresFeature") // Checked first.
+    internal fun applyEndSpace(view: TabWebView, px: Int) {
+        if (view.endSpace == px || !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return
+        val script = END_SPACE.replace("END_PX", px.toString())
+        view.endSpaceScript?.remove()
+        view.endSpaceScript = WebViewCompat.addDocumentStartJavaScript(view, script, setOf("*"))
+        view.endSpace = px
+        view.evaluateJavascript(script, null)
+    }
+
+    /**
      * Stops WebView from sending `X-Requested-With: com.ascon.app` with every request,
      * which tells sites which app is browsing. androidx.webkit 1.17 marks the switch
      * deprecated and restricted. WebView 153 reports it unsupported and still sends the
@@ -127,6 +145,24 @@ class WebViewPool(
         const val NO_WINDOW_OPEN = """(function () {
   try {
     Object.defineProperty(window, "open", { value: function () { return null; }, writable: false, configurable: false });
+  } catch (e) {}
+})();"""
+
+        /**
+         * Space after the page, in the main frame only. It is a box after the body in a
+         * sheet the page cannot see in its DOM, so it moves nothing on the page. Running
+         * it again changes the height.
+         */
+        const val END_SPACE = """(function () {
+  if (window.top !== window) return;
+  try {
+    var rule = "html::after{content:'';display:block;height:END_PXpx}";
+    var sheet = window.__asconEndSpace;
+    if (sheet) { sheet.replaceSync(rule); return; }
+    sheet = new CSSStyleSheet();
+    sheet.replaceSync(rule);
+    document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
+    Object.defineProperty(window, "__asconEndSpace", { value: sheet });
   } catch (e) {}
 })();"""
 
