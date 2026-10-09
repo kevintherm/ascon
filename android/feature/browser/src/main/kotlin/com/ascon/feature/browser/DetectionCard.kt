@@ -3,6 +3,7 @@ package com.ascon.feature.browser
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,16 +59,22 @@ private val CardPadding = 14.dp
 /** Buttons sit 14 inside a radius-28 card, so their radius is 14. */
 private val CardButtonShape = RoundedCornerShape(AsconRadius.nested(AsconRadius.Sheet, CardPadding))
 
+private val CardButtonHeight = 48.dp
+
+/** A swipe down this far puts the card away early. */
+private val SwipeAway = 40.dp
+
 private val CardTitle = AsconType.SectionTitle.copy(fontSize = 16.sp)
 
-/** How long the card stays before it docks. A series not saved yet gets longer. */
+/** How long the card stays before it goes. A series not saved yet gets longer. */
 private const val COUNTDOWN_MS = 5_000f
 private const val COUNTDOWN_UNSAVED_MS = 8_000f
 
 /**
  * The card that says what Ascon detected on the page, per BrowserV2Detected. A line
- * along its bottom counts down, then [onDock] docks it into the reader chip. Touching the
- * card pauses the countdown; the chevron docks it at once.
+ * along its bottom counts down, then [onDock] puts it away into the toolbar's Reader
+ * button. Touching the card pauses the countdown; the chevron or a swipe down puts it
+ * away at once.
  */
 @Composable
 internal fun DetectionCardView(
@@ -106,6 +113,13 @@ internal fun DetectionCardView(
                         touched = event.changes.any { it.pressed }
                     }
                 }
+            }
+            .pointerInput(Unit) {
+                var dragged = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { dragged = 0f },
+                    onDragEnd = { if (dragged > SwipeAway.toPx()) onDock() }
+                ) { _, amount -> dragged += amount }
             }
     ) {
         Column(Modifier.padding(CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -212,7 +226,7 @@ private fun chapterLine(card: DetectionCard): String {
 private fun CardButton(text: String, colors: PillColors, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier
-            .height(ItemSize)
+            .height(CardButtonHeight)
             .clip(CardButtonShape)
             .background(colors.container)
             .then(colors.border?.let { Modifier.border(it, CardButtonShape) } ?: Modifier)
@@ -235,7 +249,7 @@ private fun CardButton(text: String, colors: PillColors, modifier: Modifier = Mo
     }
 }
 
-/** A glass pill above the bar, for a few seconds. */
+/** A glass pill over the page's bottom, for a few seconds. */
 @Composable
 internal fun NoticePill(text: String) {
     val shape = CircleShape

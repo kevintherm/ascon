@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +35,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.ascon.core.designsystem.component.FloatingNavBar
 import com.ascon.core.designsystem.component.FloatingNavBarClearance
 import com.ascon.core.designsystem.component.NavItem
+import com.ascon.core.designsystem.component.Snackbar
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.ReadingStatus
@@ -59,6 +61,7 @@ import com.ascon.feature.series.SeriesViewModel
 import com.ascon.feature.settings.SettingsActions
 import com.ascon.feature.settings.SettingsRoute
 import com.ascon.feature.settings.SettingsViewModel
+import kotlinx.coroutines.delay
 
 /** Extra room under scrolling content so its end clears the floating nav. */
 private val NavBarGap = 32.dp
@@ -93,8 +96,16 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     val protection = viewModel { ProtectionViewModel(container.protection) }
     val browserSession = viewModel { BrowserSessionHolder(container.webViews) }.session
 
+    val closed = rememberClosedBrowser {
+        browserSession.clear()
+        browser.sessionEnded()
+    }
+
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
-    val openUrl: (String) -> Unit = { backStack.push(Route.Browser(it)) }
+    val openUrl: (String) -> Unit = {
+        closed.discard()
+        backStack.push(Route.Browser(it))
+    }
     // A chapter picked in the reader, for the browser tab under it to load.
     var browserLoad by rememberSaveable { mutableStateOf<String?>(null) }
     val openLibrary: (ReadingStatus) -> Unit = { status ->
@@ -161,6 +172,10 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                             openUrl = key.url,
                             actions = BrowserActions(
                                 onClose = { backStack.pop() },
+                                onEndSession = {
+                                    closed.url = browser.state.value.url
+                                    backStack.pop()
+                                },
                                 onOpenSeries = openSeries,
                                 onOpenReader = { backStack.push(Route.Reader.of(it)) },
                                 onUrlLoaded = { browserLoad = null }
@@ -190,7 +205,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                 visible = tabsShown,
                 selected = tab,
                 onSelect = {
-                    if (it == Tab.Browse && !browserSession.isEmpty) {
+                    if (it == Tab.Browse && !browserSession.isEmpty && closed.url == null) {
                         backStack.push(Route.Browser(browser.state.value.url))
                     } else {
                         tab = it
@@ -198,7 +213,68 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
+            ClosedSnackbar(
+                visible = closed.url != null,
+                above = if (tabsShown) FloatingNavBarClearance else 0.dp,
+                onUndo = {
+                    closed.url?.let { url ->
+                        closed.url = null
+                        backStack.push(Route.Browser(url))
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
+    }
+}
+
+/** How long Browser closed · Undo stays up before the page is discarded. */
+private const val UNDO_CLOSE_MS = 5_000L
+
+/**
+ * The page Close left, while Undo can still bring it back. Close leaves the browser at
+ * once, and [discard] runs only once Undo has had its 5 s, or when another page opens.
+ */
+private class ClosedBrowser(private val onDiscard: () -> Unit) {
+    var url by mutableStateOf<String?>(null)
+
+    fun discard() {
+        if (url != null) {
+            url = null
+            onDiscard()
+        }
+    }
+}
+
+@Composable
+private fun rememberClosedBrowser(onDiscard: () -> Unit): ClosedBrowser {
+    val closed = remember { ClosedBrowser(onDiscard) }
+    LaunchedEffect(closed.url) {
+        if (closed.url != null) {
+            delay(UNDO_CLOSE_MS)
+            closed.discard()
+        }
+    }
+    return closed
+}
+
+/** Browser closed · Undo, over the screen that opened the browser and above the nav. */
+@Composable
+private fun ClosedSnackbar(visible: Boolean, above: Dp, onUndo: () -> Unit, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = fadeOut()
+    ) {
+        Snackbar(
+            text = stringResource(R.string.browser_closed),
+            action = stringResource(R.string.browser_closed_undo),
+            onAction = onUndo,
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(bottom = above + 16.dp)
+        )
     }
 }
 

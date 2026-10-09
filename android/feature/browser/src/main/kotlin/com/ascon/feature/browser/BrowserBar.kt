@@ -1,22 +1,25 @@
 package com.ascon.feature.browser
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -32,13 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -46,176 +47,112 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
-import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.toChapterLabel
 
-// Browser bar from design/tokens.md: 68 tall, radius 34, 10 side padding, 48 items.
-internal val BarHeight = 68.dp
-private val BarRadius = 34.dp
-private val BarPadding = 10.dp
-internal val BarSide = 12.dp
-internal val BarBottom = 18.dp
-internal val ItemSize = 48.dp
+// The toolbar from BrowserV2Docked: 64 tall, 8 by 12 padding, items 44 tall with radius 12.
+private val ToolbarPadding = 12.dp
+internal val ItemSize = 44.dp
+private val ItemRadius = 12.dp
+private val IconWidth = 40.dp
+private val ToolbarBorder = Color(0x0FFFFFFF)
+private val ShieldFill = Color(0x1AFFFFFF)
 
-/** The items are 48 tall in a 68 bar, so the gap is 10 and their radius is 24. */
-private val ItemRadius = AsconRadius.nested(BarRadius, BarPadding)
+/** How long the toolbar takes to slide out of view or back. */
+internal const val SLIDE_MS = 200
 
-/** Space added after a page's end, above the navigation bar, so the bar never hides the end. */
-internal val BarClearance = BarHeight + BarBottom + 8.dp
+/** The Reader button grows by this much when the detection card goes into it. */
+private const val PULSE_SCALE = 1.12f
 
+/**
+ * The toolbar docked at the top: Back, the address box, the Reader button on a chapter
+ * page, and the menu. On a chapter read as the site shows it, the Reader button becomes
+ * the page being tracked and a notice row sits under the toolbar on the first load.
+ * While a page loads, a line runs along the bottom edge.
+ */
 @Composable
-internal fun BrowserBar(
+internal fun BrowserToolbar(
     state: BrowserUiState,
     editing: Boolean,
-    onEditingChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onSubmit: (String) -> Unit,
-    onReload: () -> Unit,
-    onMore: () -> Unit,
-    collapsed: Boolean = false,
-    onExpand: () -> Unit = {},
-    onShield: () -> Unit = {}
+    commands: ToolbarCommands,
+    pulse: Int,
+    modifier: Modifier = Modifier
 ) {
-    // Only the height animates, per notes.md. The ends stay round: radius 34 at 68, 18 at 36.
-    val height by animateDpAsState(if (collapsed) StripHeight else BarHeight, tween(COLLAPSE_MS), label = "bar")
-    val shape = RoundedCornerShape(percent = 50)
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(height)
-            .then(
-                if (collapsed) {
-                    Modifier
-                } else {
-                    Modifier.dropShadow(
-                        shape,
-                        Shadow(radius = 30.dp, color = BarShadow, offset = DpOffset(0.dp, 12.dp))
-                    )
-                }
-            )
-            .clip(shape)
-            .background(if (collapsed) AsconColors.Glass else AsconColors.Ink)
-            .then(if (collapsed) Modifier.border(1.dp, AsconColors.GlassBorder, shape) else Modifier)
-    ) {
-        if (collapsed) {
-            CollapsedStrip(state, onExpand)
-        } else {
-            BarItems(state, editing, onEditingChange, onBack, onSubmit, onReload, onMore, onShield)
-        }
-    }
-}
-
-@Composable
-private fun BarItems(
-    state: BrowserUiState,
-    editing: Boolean,
-    onEditingChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onSubmit: (String) -> Unit,
-    onReload: () -> Unit,
-    onMore: () -> Unit,
-    onShield: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = BarPadding),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (editing) {
-            BarIcon(AsconIcons.Close, stringResource(R.string.browser_cancel_edit)) { onEditingChange(false) }
-            AddressEditor(state.url, onSubmit, Modifier.weight(1f))
-        } else {
-            BarIcon(
-                AsconIcons.Back,
-                stringResource(if (state.canGoBack) R.string.browser_back else R.string.browser_close),
-                onBack
-            )
-            AddressPill(
-                state,
-                onEdit = { onEditingChange(true) },
-                onReload = onReload,
-                onShield = onShield,
-                modifier = Modifier.weight(1f)
-            )
-            BarIcon(AsconIcons.More, stringResource(R.string.browser_menu), onMore)
-        }
-    }
-}
-
-private val BarShadow = Color(0x66000000)
-
-/** The collapsed bar, per BrowserV2Scrolling. */
-internal val StripHeight = 36.dp
-internal const val COLLAPSE_MS = 200
-
-/** The bar shrunk while scrolling: shield count, host and chapter. A tap expands it. */
-@Composable
-private fun CollapsedStrip(state: BrowserUiState, onExpand: () -> Unit) {
-    val label = stringResource(R.string.browser_show_controls)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .clickable(role = Role.Button, onClick = onExpand)
-            .semantics { contentDescription = label }
-            .padding(start = 6.dp, end = 14.dp)
-    ) {
+    Column(modifier.fillMaxWidth().background(AsconColors.Ink)) {
         Row(
             Modifier
-                .align(Alignment.CenterStart)
-                .height(24.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(StripChipFill)
-                .padding(horizontal = 7.dp),
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(horizontal = ToolbarPadding, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(AsconIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-            Text(
-                state.blocked.total.toString(),
-                style = AsconType.CaptionStrong.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
+            if (editing) {
+                ToolbarIcon(AsconIcons.Close, stringResource(R.string.browser_cancel_edit), commands.onCancelEdit)
+                AddressEditor(state.url, commands.onSubmit, Modifier.weight(1f))
+            } else {
+                ToolbarIcon(AsconIcons.Back, stringResource(R.string.browser_back), commands.onBack)
+                AddressBox(state, commands.onEdit, commands.onShield, Modifier.weight(1f))
+                ReaderSlot(state, commands.onOpenReader, pulse)
+                ToolbarIcon(AsconIcons.More, stringResource(R.string.browser_menu), commands.onMore)
+            }
         }
-        Text(
-            state.host,
-            style = AsconType.MetaStrong,
-            color = StripHost,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.Center)
-        )
-        state.card?.chapter?.let {
-            Text(
-                stringResource(R.string.browser_menu_chapter_short, it.toChapterLabel()),
-                style = AsconType.ButtonSmall,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
+        AnimatedVisibility(
+            visible = state.readerUnavailable && state.error == null && !editing,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            ReaderUnavailableRow(commands.onDismissReaderUnavailable)
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(ToolbarBorder)) {
+            LoadLine(state)
         }
     }
 }
 
-private val StripChipFill = Color(0x1FFFFFFF)
-private val StripHost = Color(0xD9FFFFFF)
+/** What the toolbar asks of the screen. */
+internal class ToolbarCommands(
+    val onBack: () -> Unit,
+    val onEdit: () -> Unit,
+    val onCancelEdit: () -> Unit,
+    val onSubmit: (String) -> Unit,
+    val onShield: () -> Unit,
+    val onOpenReader: () -> Unit,
+    val onMore: () -> Unit,
+    val onDismissReaderUnavailable: () -> Unit
+)
 
+/** A 2 px accent line along the toolbar's bottom edge while the page loads. */
 @Composable
-private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun LoadLine(state: BrowserUiState) {
+    val progress by animateFloatAsState(if (state.loading) state.progress / 100f else 1f, label = "load")
+    val alpha by animateFloatAsState(if (state.loading) 1f else 0f, label = "loadLine")
     Box(
         Modifier
-            .size(ItemSize)
-            .clip(CircleShape)
+            .fillMaxWidth(progress)
+            .height(2.dp)
+            .graphicsLayer { this.alpha = alpha }
+            .background(AsconColors.Accent)
+    )
+}
+
+@Composable
+private fun ToolbarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .width(IconWidth)
+            .height(ItemSize)
+            .clip(RoundedCornerShape(ItemRadius))
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
@@ -224,72 +161,30 @@ private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
     }
 }
 
-/**
- * The address pill in `ink2`: the shield with the page's blocked count, the host, which
- * a tap turns into an address field, and reload. While a page loads, a lighter fill
- * grows across the pill from the left.
- */
+/** The shield with the page's blocked count, and the host, which a tap turns into an address field. */
 @Composable
-private fun AddressPill(
-    state: BrowserUiState,
-    onEdit: () -> Unit,
-    onReload: () -> Unit,
-    onShield: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val progress by animateFloatAsState(if (state.loading) state.progress / 100f else 1f, label = "load")
-    val fillAlpha by animateFloatAsState(if (state.loading) 1f else 0f, label = "loadFill")
+private fun AddressBox(state: BrowserUiState, onEdit: () -> Unit, onShield: () -> Unit, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.browser_address, state.host)
-    val reloadLabel = stringResource(R.string.browser_reload)
-    Box(
+    Row(
         modifier
             .height(ItemSize)
             .clip(RoundedCornerShape(ItemRadius))
-            .background(AsconColors.Ink2),
-        contentAlignment = Alignment.CenterStart
+            .background(AsconColors.Ink2)
+            .clickable(role = Role.Button, onClick = onEdit)
+            .semantics { contentDescription = label }
+            .padding(start = 11.dp, end = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(progress)
-                .graphicsLayer { alpha = fillAlpha }
-                .background(AsconColors.OnDarkFill)
+        ShieldCount(state.blocked.total, onShield)
+        Text(
+            state.host,
+            style = AsconType.Button.copy(fontWeight = FontWeight.SemiBold),
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
-        Row(
-            Modifier.padding(start = 11.dp, end = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ShieldCount(state.blocked.total, onShield)
-            Text(
-                state.host,
-                style = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight),
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(ItemSize)
-                    .clickable(role = Role.Button, onClick = onEdit)
-                    .semantics { contentDescription = label }
-                    .wrapContentHeight(Alignment.CenterVertically)
-            )
-            Box(
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button, onClick = onReload)
-                    .semantics { contentDescription = reloadLabel },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    AsconIcons.Reload,
-                    contentDescription = null,
-                    tint = AsconColors.OnDarkMuted,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
     }
 }
 
@@ -300,8 +195,8 @@ private fun ShieldCount(count: Int, onClick: () -> Unit) {
     Row(
         Modifier
             .height(26.dp)
-            .clip(RoundedCornerShape(13.dp))
-            .background(AsconColors.OnDarkFill)
+            .clip(RoundedCornerShape(6.dp))
+            .background(ShieldFill)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 8.dp)
             .semantics(mergeDescendants = true) { contentDescription = label },
@@ -311,6 +206,124 @@ private fun ShieldCount(count: Int, onClick: () -> Unit) {
         Icon(AsconIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
         Text(count.toString(), style = AsconType.CaptionStrong.copy(fontWeight = FontWeight.Bold), color = Color.White)
     }
+}
+
+/**
+ * The Reader button on a chapter the reader can take. It pulses once each time [pulse]
+ * changes, as the detection card goes into it. On a chapter read as the site shows it,
+ * a neutral chip with the page being tracked stands in its place.
+ */
+@Composable
+private fun ReaderSlot(state: BrowserUiState, onOpenReader: () -> Unit, pulse: Int) {
+    val card = state.card
+    val page = card?.page
+    when {
+        state.readerChapter != null -> {
+            val scale = remember { Animatable(1f) }
+            LaunchedEffect(pulse) {
+                if (pulse > 0) {
+                    scale.animateTo(PULSE_SCALE, tween(SLIDE_MS))
+                    scale.animateTo(1f, tween(SLIDE_MS))
+                }
+            }
+            ToolbarChip(
+                AsconIcons.Reader,
+                stringResource(R.string.browser_reader),
+                AsconColors.Accent,
+                AsconType.ButtonSmall.copy(fontWeight = FontWeight.Bold),
+                Modifier
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                    }
+                    .clickable(role = Role.Button, onClick = onOpenReader)
+            )
+        }
+        card != null && page != null -> {
+            val label = card.chapter?.let {
+                stringResource(R.string.browser_tracking, it.toChapterLabel(), page)
+            } ?: stringResource(R.string.browser_tracking_page, page)
+            ToolbarChip(
+                AsconIcons.Check,
+                stringResource(R.string.browser_tracking_short, page),
+                AsconColors.Ink2,
+                AsconType.CaptionStrong.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                Modifier.semantics(mergeDescendants = true) { contentDescription = label }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ToolbarChip(icon: ImageVector, text: String, fill: Color, style: TextStyle, modifier: Modifier = Modifier) {
+    Row(
+        Modifier
+            .height(ItemSize)
+            .then(modifier)
+            .clip(RoundedCornerShape(ItemRadius))
+            .background(fill)
+            .padding(start = 10.dp, end = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Text(text, style = style, color = Color.White, maxLines = 1)
+    }
+}
+
+/** Under the toolbar on the first load of a chapter read as the site shows it, per BrowserV2Fallback. */
+@Composable
+private fun ReaderUnavailableRow(onDismiss: () -> Unit) {
+    Row(
+        Modifier
+            .padding(start = ToolbarPadding, end = ToolbarPadding, bottom = 10.dp)
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(AsconColors.OnDarkFill)
+            .padding(start = 14.dp, end = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(AsconIcons.ReaderOff, contentDescription = null, tint = NoticeIcon, modifier = Modifier.size(18.dp))
+        Text(
+            stringResource(R.string.reader_unavailable),
+            style = AsconType.Meta.copy(lineHeight = 18.sp),
+            color = NoticeText,
+            modifier = Modifier.weight(1f).padding(vertical = 8.dp)
+        )
+        val dismiss = stringResource(R.string.reader_unavailable_dismiss)
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button, onClick = onDismiss)
+                .semantics { contentDescription = dismiss },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(AsconIcons.Close, contentDescription = null, tint = NoticeIcon, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+private val NoticeIcon = Color(0xBFFFFFFF)
+private val NoticeText = Color(0xD9FFFFFF)
+
+/**
+ * Along the top edge while the toolbar is out of view, on a chapter page: how far
+ * through the chapter the page on screen is, in the brand gradient. It takes no touches.
+ */
+@Composable
+internal fun ReadingLine(card: DetectionCard?, modifier: Modifier = Modifier) {
+    val page = card?.page ?: return
+    val count = card.pageCount?.takeIf { it > 0 } ?: return
+    Box(
+        modifier
+            .fillMaxWidth(page.toFloat() / count)
+            .height(2.dp)
+            .clip(RoundedCornerShape(topEnd = 1.dp, bottomEnd = 1.dp))
+            .background(AsconColors.BrandGradient)
+    )
 }
 
 @Composable
@@ -330,7 +343,7 @@ private fun AddressEditor(url: String, onSubmit: (String) -> Unit, modifier: Mod
             value = value,
             onValueChange = { value = it },
             singleLine = true,
-            textStyle = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight, color = Color.White),
+            textStyle = AsconType.Button.copy(fontWeight = FontWeight.SemiBold, color = Color.White),
             cursorBrush = SolidColor(Color.White),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
             keyboardActions = KeyboardActions(onGo = { onSubmit(value.text) }),

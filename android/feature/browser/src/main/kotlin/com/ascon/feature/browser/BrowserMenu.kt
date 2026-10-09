@@ -1,6 +1,8 @@
 package com.ascon.feature.browser
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +22,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,13 +46,12 @@ private val GroupRadius = 20.dp
 private val RowHeight = 56.dp
 private val RowIcon = 32.dp
 private val RowIconRadius = 10.dp
-private val CloseRadius = 16.dp
-private val CloseIconFill = Color(0x1FFFFFFF)
+private val FooterRadius = 16.dp
 
 /**
  * The browser menu, a sheet over the page: the site, page actions, the chapter's
- * actions when one is detected, and Back to Ascon at the bottom, which leaves the
- * browser and keeps the page loaded.
+ * actions when one is detected, and at the bottom Back to Ascon, which leaves the
+ * browser and keeps the page loaded, and Close, which discards it.
  */
 @Composable
 internal fun BrowserMenu(
@@ -77,6 +82,7 @@ internal fun BrowserMenu(
                 state.canGoForward,
                 run(commands.onForward)
             )
+            Tile(AsconIcons.Reload, stringResource(R.string.browser_reload), true, run(commands.onReload))
             Tile(AsconIcons.Share, stringResource(R.string.browser_share_short), true, run(commands.onShare))
         }
         val reader = state.readerChapter
@@ -119,7 +125,10 @@ internal fun BrowserMenu(
                 run(commands.onOpenElsewhere)
             )
         }
-        CloseRow(run(commands.onCloseBrowser))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BackToAscon(run(commands.onCloseBrowser))
+            CloseButton(run(commands.onEndSession))
+        }
     }
 }
 
@@ -262,13 +271,14 @@ private fun MenuRow(
     }
 }
 
+/** Leaves the browser and keeps the page, with the app icon. 1.4 times as wide as Close. */
 @Composable
-private fun CloseRow(onClick: () -> Unit) {
+private fun RowScope.BackToAscon(onClick: () -> Unit) {
     Row(
         Modifier
-            .fillMaxWidth()
+            .weight(BACK_WEIGHT)
             .heightIn(min = RowHeight)
-            .clip(RoundedCornerShape(CloseRadius))
+            .clip(RoundedCornerShape(FooterRadius))
             .background(AsconColors.Ink)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(start = 12.dp, end = 16.dp),
@@ -278,12 +288,43 @@ private fun CloseRow(onClick: () -> Unit) {
         Box(
             Modifier
                 .size(RowIcon)
-                .clip(RoundedCornerShape(RowIconRadius))
-                .background(CloseIconFill),
+                .clip(RoundedCornerShape(8.dp))
+                .background(AppIconFill)
+                .border(1.dp, AppIconBorder, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(AsconIcons.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Image(rememberVectorPainter(AsconIcons.MarkWhite), contentDescription = null, Modifier.size(22.dp))
         }
-        Text(stringResource(R.string.browser_menu_close), style = AsconType.RowTitle, color = Color.White)
+        Text(
+            stringResource(R.string.browser_menu_back_to_ascon),
+            style = AsconType.RowTitle,
+            color = Color.White,
+            maxLines = 1
+        )
     }
 }
+
+@Composable
+private fun RowScope.CloseButton(onClick: () -> Unit) {
+    val label = stringResource(R.string.browser_menu_close_label)
+    Row(
+        Modifier
+            .weight(1f)
+            .heightIn(min = RowHeight)
+            .clip(RoundedCornerShape(FooterRadius))
+            .background(AsconColors.Ground)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(AsconIcons.Close, contentDescription = null, tint = AsconColors.Ink, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.browser_menu_close), style = AsconType.RowTitleRead, color = AsconColors.Ink)
+    }
+}
+
+private const val BACK_WEIGHT = 1.4f
+
+/** The app icon's tile, a dark ink gradient as on the launcher. */
+private val AppIconFill = Brush.linearGradient(listOf(Color(0xFF2A2C33), Color(0xFF121317)))
+private val AppIconBorder = Color(0x24FFFFFF)

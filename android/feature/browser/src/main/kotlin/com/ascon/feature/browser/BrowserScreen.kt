@@ -4,24 +4,20 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -29,13 +25,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -46,7 +47,6 @@ import com.ascon.core.model.ReaderChapter
 import com.ascon.engine.detection.withoutFragment
 import com.ascon.feature.browser.web.BrowserSession
 import com.ascon.feature.browser.web.addressToUrl
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /** How long Undo stays up after "Site looks broken?" turned protection off. */
@@ -56,7 +56,10 @@ private const val UNDO_MS = 5000L
 private const val NOTICE_MS = 3000L
 
 data class BrowserActions(
+    /** Back to Ascon: leaves the browser and keeps the page loaded for the Browse tab. */
     val onClose: () -> Unit = {},
+    /** Close: leaves the browser and ends the session, so its page and history are discarded. */
+    val onEndSession: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
     val onOpenReader: (ReaderChapter) -> Unit = {},
     /** Called once [BrowserRoute]'s `loadUrl` is loaded, so the app can clear it. */
@@ -96,8 +99,6 @@ fun BrowserRoute(
             actions.onUrlLoaded()
         }
     }
-    val endSpace = BarClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    LaunchedEffect(endSpace) { session.setPageEndSpace(endSpace.value.roundToInt()) }
     LaunchedEffect(state.url) { protectionViewModel.onPage(state.url) }
     // A change from the protection sheet loads the page again, so hidden elements follow it.
     LaunchedEffect(protection.reload) {
@@ -117,7 +118,7 @@ fun BrowserRoute(
         state = state,
         protection = protection,
         commands = BrowserCommands(
-            onBack = { if (state.canGoBack) session.goBack() else actions.onClose() },
+            onBack = session::goBack,
             onForward = session::goForward,
             onReload = session::reload,
             onLoad = session::load,
@@ -131,7 +132,6 @@ fun BrowserRoute(
             },
             onOpenSeries = actions.onOpenSeries,
             onDockCard = viewModel::dockCard,
-            onExpandBar = viewModel::expandBar,
             onNoticeShown = viewModel::dismissNotice,
             onDismissReaderUnavailable = viewModel::dismissReaderUnavailable,
             onOpenReader = viewModel::openReader,
@@ -140,6 +140,7 @@ fun BrowserRoute(
                 context.startActivity(Intent.createChooser(view, null))
             },
             onCloseBrowser = actions.onClose,
+            onEndSession = actions.onEndSession,
             onSetAdblock = protectionViewModel::setAdblock,
             onSetBlockPopups = protectionViewModel::setBlockPopups,
             onSetTrusted = protectionViewModel::setTrusted,
@@ -160,6 +161,7 @@ fun BrowserRoute(
 
 /** What the screen asks of the WebView and the view model. */
 data class BrowserCommands(
+    /** Goes back in the page's history. On the first page the screen asks to close instead. */
     val onBack: () -> Unit = {},
     val onForward: () -> Unit = {},
     val onReload: () -> Unit = {},
@@ -168,7 +170,6 @@ data class BrowserCommands(
     val onShare: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
     val onDockCard: () -> Unit = {},
-    val onExpandBar: () -> Unit = {},
     val onNoticeShown: (Long) -> Unit = {},
     val onDismissReaderUnavailable: () -> Unit = {},
     val onOpenReader: () -> Unit = {},
@@ -176,6 +177,8 @@ data class BrowserCommands(
     val onOpenElsewhere: () -> Unit = {},
     /** Leaves the browser. The page stays loaded for the Browse tab to return to. */
     val onCloseBrowser: () -> Unit = {},
+    /** Leaves the browser and discards the page and its history. */
+    val onEndSession: () -> Unit = {},
     val onSetAdblock: (Boolean) -> Unit = {},
     val onSetBlockPopups: (Boolean) -> Unit = {},
     val onSetTrusted: (Boolean) -> Unit = {},
@@ -186,8 +189,10 @@ data class BrowserCommands(
 )
 
 /**
- * The browser: the page, the ink bar at the bottom, and the detection card and notices
- * floating over the page. [page] draws the WebView; previews and tests pass a stand-in.
+ * The browser: the toolbar docked at the top, the page under it, and the detection card
+ * and notices over the page's bottom. Scrolling down slides the toolbar away, and the
+ * page takes its place once the slide ends. [page] draws the WebView; previews and tests
+ * pass a stand-in.
  */
 @Composable
 fun BrowserScreen(
@@ -200,10 +205,10 @@ fun BrowserScreen(
     var editing by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var shieldOpen by remember { mutableStateOf(false) }
+    var confirmClose by remember { mutableStateOf(false) }
+    val back = { if (state.canGoBack) commands.onBack() else confirmClose = true }
 
-    BackHandler(enabled = editing || state.canGoBack) {
-        if (editing) editing = false else commands.onBack()
-    }
+    BackHandler { if (editing) editing = false else back() }
     protection.undo?.let { undo ->
         LaunchedEffect(undo.id) {
             delay(UNDO_MS)
@@ -216,74 +221,102 @@ fun BrowserScreen(
             commands.onNoticeShown(notice.id)
         }
     }
+    // The Reader button pulses once where the card went.
+    var pulse by remember { mutableIntStateOf(0) }
+    LaunchedEffect(state.cardDocked) { if (state.cardDocked && state.card != null) pulse++ }
 
-    Box(
+    val hidden = state.toolbarHidden && !editing
+    val slide = remember { Animatable(0f) }
+    var pageUnder by remember { mutableStateOf(false) }
+    LaunchedEffect(hidden) {
+        // The page resizes once, after the toolbar is gone or before it comes back, never mid-slide.
+        if (hidden) {
+            slide.animateTo(1f, tween(SLIDE_MS))
+            pageUnder = true
+        } else {
+            pageUnder = false
+            slide.animateTo(0f, tween(SLIDE_MS))
+        }
+    }
+    var toolbarHeight by remember { mutableIntStateOf(0) }
+
+    Column(
         Modifier
             .fillMaxSize()
             .background(AsconColors.BrowserGround)
             .imePadding()
+            .navigationBarsPadding()
     ) {
-        // The page runs to the bottom edge and the bar floats over it. The session adds
-        // space after each page's end, so the bar never hides it.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            page(Modifier.fillMaxSize())
-            state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
-            ReaderUnavailableBanner(
-                visible = state.readerUnavailable && state.error == null,
-                onDismiss = commands.onDismissReaderUnavailable,
-                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp)
-            )
-        }
-        BottomControls(
-            state = state,
-            commands = commands,
-            editing = editing,
-            onEditingChange = { editing = it },
-            onMore = { menuOpen = true },
-            protection = protection,
-            onShield = { shieldOpen = true },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-        BrowserMenu(
-            visible = menuOpen,
-            state = state,
-            commands = commands,
-            onDismiss = { menuOpen = false },
-            onProtection = {
-                menuOpen = false
-                shieldOpen = true
+        Box(Modifier.fillMaxWidth().background(AsconColors.Ink).statusBarsPadding())
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+            val top = if (pageUnder) 0.dp else with(LocalDensity.current) { toolbarHeight.toDp() }
+            Box(Modifier.fillMaxSize().padding(top = top)) {
+                page(Modifier.fillMaxSize())
+                state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
             }
-        )
-        ProtectionSheet(
-            visible = shieldOpen,
-            blocked = state.blocked,
-            protection = protection,
-            commands = commands,
-            onDismiss = { shieldOpen = false }
-        )
+            BrowserToolbar(
+                state = state,
+                editing = editing,
+                commands = ToolbarCommands(
+                    onBack = back,
+                    onEdit = { editing = true },
+                    onCancelEdit = { editing = false },
+                    onSubmit = { text ->
+                        editing = false
+                        addressToUrl(text)?.let(commands.onLoad)
+                    },
+                    onShield = { shieldOpen = true },
+                    onOpenReader = commands.onOpenReader,
+                    onMore = { menuOpen = true },
+                    onDismissReaderUnavailable = commands.onDismissReaderUnavailable
+                ),
+                pulse = pulse,
+                modifier = Modifier
+                    .onSizeChanged { toolbarHeight = it.height }
+                    .graphicsLayer { translationY = -slide.value * size.height }
+            )
+            if (pageUnder) ReadingLine(state.card)
+            BottomOverlays(state, commands, protection, editing, Modifier.align(Alignment.BottomCenter))
+        }
     }
+    BrowserMenu(
+        visible = menuOpen,
+        state = state,
+        commands = commands,
+        onDismiss = { menuOpen = false },
+        onProtection = {
+            menuOpen = false
+            shieldOpen = true
+        }
+    )
+    ProtectionSheet(
+        visible = shieldOpen,
+        blocked = state.blocked,
+        protection = protection,
+        commands = commands,
+        onDismiss = { shieldOpen = false }
+    )
+    CloseSheet(
+        visible = confirmClose,
+        onDismiss = { confirmClose = false },
+        onClose = {
+            confirmClose = false
+            commands.onEndSession()
+        }
+    )
 }
 
-/** The notice, the detection card or reader chip, and the bar, stacked above the bottom edge. */
+/** The notices and the detection card, the only things over the page, above its bottom edge. */
 @Composable
-private fun BottomControls(
+private fun BottomOverlays(
     state: BrowserUiState,
     commands: BrowserCommands,
-    editing: Boolean,
-    onEditingChange: (Boolean) -> Unit,
-    onMore: () -> Unit,
     protection: ProtectionUiState,
-    onShield: () -> Unit,
+    editing: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier
-            .navigationBarsPadding()
-            .padding(start = BarSide, end = BarSide, bottom = BarBottom),
+        modifier.padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -303,46 +336,20 @@ private fun BottomControls(
                 UndoPill(stringResource(R.string.protection_off_for, it.site), commands.onUndoTrust)
             }
         }
-        val readerAvailable = state.readerChapter != null
         AnimatedVisibility(
             visible = state.card != null && !state.cardDocked && !editing,
             enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 }
+            exit = fadeOut() + slideOutVertically { it }
         ) {
             state.card?.let {
                 DetectionCardView(
                     it,
-                    readerAvailable,
+                    state.readerChapter != null,
                     commands.onOpenReader,
                     commands.onOpenSeries,
                     commands.onDockCard
                 )
             }
         }
-        AnimatedVisibility(
-            visible = state.card != null && state.cardDocked && !state.barCollapsed && !editing,
-            enter = fadeIn() + expandVertically(tween(COLLAPSE_MS)),
-            exit = fadeOut() + shrinkVertically(tween(COLLAPSE_MS))
-        ) {
-            state.card?.let {
-                // The chip sits 10 above the bar where the card sits 12, per BrowserV2Docked.
-                ReaderChip(it, readerAvailable, commands.onOpenReader, Modifier.offset(y = 2.dp))
-            }
-        }
-        BrowserBar(
-            state = state,
-            editing = editing,
-            onEditingChange = onEditingChange,
-            onBack = commands.onBack,
-            onSubmit = { text ->
-                onEditingChange(false)
-                addressToUrl(text)?.let(commands.onLoad)
-            },
-            onReload = commands.onReload,
-            onMore = onMore,
-            collapsed = state.barCollapsed && !editing,
-            onExpand = commands.onExpandBar,
-            onShield = onShield
-        )
     }
 }

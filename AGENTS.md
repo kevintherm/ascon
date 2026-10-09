@@ -247,9 +247,9 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 12. Done: protection settings are saved with DataStore in `core/data/datastore` and shared by Settings and the browser. `NavigationGuard` applies them to navigations, requests and hidden elements, and the filter lists the user turns off are a protection setting.
 13. The filter lists screen is not built. Designed: FilterLists, notes.md. It also lists trusted sites, and changes list updates to every 4 days on Wi-Fi, fetched with ETag.
 14. There is no open source licenses screen. Designed: Licenses, notes.md: an About group at the bottom of Settings, libraries listed at build time by the AboutLibraries Gradle plugin, and EasyList and EasyPrivacy first with their CC BY-SA credit.
-15. The browser toolbar is docked at the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay, and the Reader button in the toolbar takes its place.
-16. The menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
-17. Every bottom sheet can be dragged down to close.
+15. Done: the browser toolbar is docked at the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay, and the Reader button in the toolbar takes its place.
+16. Done: the menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
+17. Done: every bottom sheet can be dragged down to close.
 
 ## Workflow
 

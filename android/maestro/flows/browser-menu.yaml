@@ -1,5 +1,6 @@
 # Browser v2 menu: reopen the reader for the page's chapter, leave the browser in one
-# tap, and come back to the same page from the Browse nav item.
+# tap, and come back to the same page from the Browse nav item. Close discards the page,
+# with Undo, and Back on the first page asks first.
 appId: com.ascon.app
 ---
 - launchApp:
@@ -30,3 +31,23 @@ appId: com.ascon.app
     visible: "Chapter 14( · progress saved)?"
     timeout: 5000
 - assertNotVisible: "Chapter 14 · 10.0.2.2"
+- tapOn: "Menu"
+- tapOn: "Close browser and discard this page"
+- extendedWaitUntil:
+    visible: "Browser closed"
+    timeout: 3000
+- tapOn: "Undo"
+- extendedWaitUntil:
+    visible: "Address, 10.0.2.2"
+    timeout: 5000
+- back
+- assertVisible: "Close the browser?"
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Browser closed"
+    timeout: 3000
+- extendedWaitUntil:
+    notVisible: "Browser closed"
+    timeout: 8000
+- tapOn: "Browse"
+- assertVisible: "Your sites"

@@ -178,6 +178,12 @@ fun Modifier.overlapAbove(amount: Dp): Modifier
 @Composable fun BottomSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier, spacing: Dp = 16.dp, bottomPadding: Dp = 28.dp, content: @Composable ColumnScope.() -> Unit)
 ```
 
+## core/src/main/kotlin/com/ascon/core/designsystem/component/Snackbar.kt
+
+```kotlin
+@Composable fun Snackbar(text: String, action: String, onAction: () -> Unit, modifier: Modifier = Modifier)
+```
+
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/SystemBars.kt
 
 ```kotlin

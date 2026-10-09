@@ -7,17 +7,18 @@ appId: com.ascon.app
     arguments:
       url: "http://10.0.2.2:8765/swiper/aztec-turning-of-heaven/chapter-16/"
 - extendedWaitUntil:
-    visible: "Reader mode isn't available here"
+    visible: "Reader mode isn't available on this site.*"
     timeout: 15000
-- assertVisible: "(Chapter 16 · page 1 of 12 saved|1 / 12)"
+- assertVisible: "(Chapter 16 · page 1 of 12 saved|Tracking chapter 16, page 1)"
 - swipe:
     direction: UP
 - swipe:
     direction: UP
-# Scrolling collapsed the bar into a strip; a tap brings back the chip with the page.
-- tapOn: "Show browser controls"
+# Scrolling down slid the toolbar away; scrolling back up shows it with the page tracked.
+- swipe:
+    direction: DOWN
 - extendedWaitUntil:
-    visible: "(Chapter 16 · page [2-9] of 12 saved|[2-9] / 12)"
+    visible: "(Chapter 16 · page [2-9] of 12 saved|Tracking chapter 16, page [2-9])"
     timeout: 5000
 - tapOn: "Dismiss"
-- assertNotVisible: "Reader mode isn't available here"
+- assertNotVisible: "Reader mode isn't available on this site.*"

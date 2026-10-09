@@ -42,10 +42,10 @@ data class BrowserUiState(
     val readerChapter: ReaderChapter? = null,
     /** What protection stopped on this page. */
     val blocked: BlockedCounts = BlockedCounts(),
-    /** The card has docked into the reader chip above the bar. It shows again when the chapter changes. */
+    /** The card has gone, into the toolbar's Reader button. It shows again when the chapter changes. */
     val cardDocked: Boolean = false,
-    /** Scrolling down shrank the bar and chip into a thin strip. Scrolling up, a tap or the page end expands it. */
-    val barCollapsed: Boolean = false
+    /** Scrolling down slid the toolbar out of view. Scrolling up, or the top or end of the page, brings it back. */
+    val toolbarHidden: Boolean = false
 ) {
     val host: String get() = displayHost(url)
 }
@@ -110,7 +110,7 @@ class BrowserViewModel(
     private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
     private var scrollY = 0
 
-    /** Where the page last scrolled up to, or the bar was expanded. 24 px down from it collapses the bar. */
+    /** Where the page last scrolled up to. 24 px down from it hides the toolbar. */
     private var expandedAt = 0
 
     /** Where the page was scrolled to when the card appeared. One screen past it docks the card. */
@@ -253,7 +253,7 @@ class BrowserViewModel(
     }
 
     /**
-     * Opens the reader again on this page's chapter, from the menu, the card or the chip,
+     * Opens the reader again on this page's chapter, from the menu, the card or the toolbar,
      * at the page on screen. The site may count its pages differently, so it is scaled.
      */
     fun openReader() {
@@ -288,12 +288,7 @@ class BrowserViewModel(
         _state.update { it.copy(reader = null) }
     }
 
-    fun expandBar() {
-        expandedAt = scrollY
-        _state.update { it.copy(barCollapsed = false) }
-    }
-
-    /** Docks the card into the reader chip: after its countdown, from its chevron, or by scrolling. */
+    /** Puts the card away into the Reader button: after its countdown, from its chevron, or by scrolling. */
     fun dockCard() {
         _state.update { if (it.card != null) it.copy(cardDocked = true) else it }
     }
@@ -302,14 +297,27 @@ class BrowserViewModel(
         val up = scrollY < this.scrollY
         this.scrollY = scrollY
         if (up || atEnd) expandedAt = scrollY
-        val collapsed = !up && !atEnd && (state.value.barCollapsed || scrollY - expandedAt > COLLAPSE_AFTER_PX)
-        if (collapsed != state.value.barCollapsed) _state.update { it.copy(barCollapsed = collapsed) }
+        val hidden = !up && !atEnd && (state.value.toolbarHidden || scrollY - expandedAt > HIDE_AFTER_PX)
+        if (hidden != state.value.toolbarHidden) _state.update { it.copy(toolbarHidden = hidden) }
         val card = state.value.card
         if (card != null && !state.value.cardDocked && scrollY - cardScrollStart >= viewportHeight) dockCard()
     }
 
     fun dismissNotice(id: Long) {
         _state.update { if (it.notice?.id == id) it.copy(notice = null) else it }
+    }
+
+    /** The session ended with Close: the next page starts a new one, as on a fresh launch. */
+    fun sessionEnded() {
+        recordedUrl = null
+        readerOpenedFor.clear()
+        bannerDismissedFor.clear()
+        chapterCard = null
+        earlyPosition = null
+        scrollY = 0
+        expandedAt = 0
+        saved[KEY_URL] = ""
+        _state.value = BrowserUiState(url = "")
     }
 
     /** Clears an error before the page is loaded again. */
@@ -329,7 +337,7 @@ class BrowserViewModel(
                 url = url,
                 card = if (samePage) it.card else null,
                 cardDocked = samePage && it.cardDocked,
-                barCollapsed = samePage && it.barCollapsed,
+                toolbarHidden = samePage && it.toolbarHidden,
                 reader = if (samePage) it.reader else null,
                 readerChapter = if (samePage) it.readerChapter else null,
                 blocked = if (samePage) it.blocked else BlockedCounts(),
@@ -341,7 +349,7 @@ class BrowserViewModel(
     private companion object {
         const val KEY_URL = "url"
 
-        /** How far down the page scrolls before the bar collapses, per notes.md. */
-        const val COLLAPSE_AFTER_PX = 24
+        /** How far down the page scrolls before the toolbar hides, per notes.md. */
+        const val HIDE_AFTER_PX = 24
     }
 }

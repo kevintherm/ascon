@@ -335,39 +335,42 @@ class BrowserViewModelTest {
         onScrolled(y, viewportHeight = 800, atEnd = atEnd)
 
     @Test
-    fun `scrolling down past 24 px collapses the bar and scrolling up expands it`() = runTest {
+    fun `scrolling down past 24 px hides the toolbar and scrolling up shows it`() = runTest {
         val vm = viewModel()
         vm.scrollTo(20)
-        assertFalse(vm.state.value.barCollapsed)
+        assertFalse(vm.state.value.toolbarHidden)
         vm.scrollTo(30)
-        assertTrue(vm.state.value.barCollapsed)
+        assertTrue(vm.state.value.toolbarHidden)
         vm.scrollTo(500)
         vm.scrollTo(480)
-        assertFalse(vm.state.value.barCollapsed)
+        assertFalse(vm.state.value.toolbarHidden)
         vm.scrollTo(500)
-        assertFalse(vm.state.value.barCollapsed)
+        assertFalse(vm.state.value.toolbarHidden)
         vm.scrollTo(510)
-        assertTrue(vm.state.value.barCollapsed)
+        assertTrue(vm.state.value.toolbarHidden)
     }
 
     @Test
-    fun `the end of the page, a tap or a new page expands the bar`() = runTest {
+    fun `the end of the page or a new page shows the toolbar`() = runTest {
         val vm = viewModel()
         vm.scrollTo(400)
         vm.scrollTo(900, atEnd = true)
-        assertFalse(vm.state.value.barCollapsed)
+        assertFalse(vm.state.value.toolbarHidden)
 
         vm.scrollTo(100)
         vm.scrollTo(200)
-        assertTrue(vm.state.value.barCollapsed)
-        vm.expandBar()
-        assertFalse(vm.state.value.barCollapsed)
-        vm.scrollTo(220)
-        assertFalse(vm.state.value.barCollapsed)
-        vm.scrollTo(300)
-        assertTrue(vm.state.value.barCollapsed)
+        assertTrue(vm.state.value.toolbarHidden)
 
         vm.onPageStarted("https://mangafire.to/read/aztec/chapter-15")
-        assertFalse(vm.state.value.barCollapsed)
+        assertFalse(vm.state.value.toolbarHidden)
+    }
+
+    @Test
+    fun `ending the session starts the next page afresh`() = runTest {
+        val vm = viewModel()
+        vm.onRequestBlocked(vm.state.value.url, BlockCategory.Ad)
+        vm.sessionEnded()
+
+        assertEquals(BrowserUiState(url = ""), vm.state.value)
     }
 }

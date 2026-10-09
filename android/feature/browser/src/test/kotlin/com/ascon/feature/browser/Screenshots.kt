@@ -86,9 +86,9 @@ class Screenshots {
         browser(
             BrowserUiState(
                 url = url,
-                card = PreviewCard,
                 cardDocked = true,
-                barCollapsed = true,
+                toolbarHidden = true,
+                card = PreviewCard.copy(page = 26, pageCount = 58),
                 blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2)
             )
         )
@@ -108,6 +108,14 @@ class Screenshots {
         Box {
             browser(state)
             BrowserMenu(visible = true, state = state, commands = BrowserCommands(), onDismiss = {})
+        }
+    }
+
+    @Test
+    fun browserCloseConfirm() = capture("browser_close_confirm") {
+        Box {
+            browser(BrowserUiState(url = url))
+            CloseSheet(visible = true, onDismiss = {}, onClose = {})
         }
     }
 

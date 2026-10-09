@@ -14,16 +14,24 @@
 
     <!-- Browser bar -->
     <string name="browser_back">Back</string>
-    <string name="browser_close">Close browser</string>
     <string name="browser_cancel_edit">Cancel</string>
     <string name="browser_address">Address, %1$s</string>
     <string name="browser_menu">Menu</string>
-    <string name="browser_show_controls">Show browser controls</string>
+    <string name="browser_reader">Reader</string>
+    <string name="browser_tracking_short">p. %1$d</string>
+    <string name="browser_tracking">Tracking chapter %1$s, page %2$d</string>
+    <string name="browser_tracking_page">Tracking page %1$d</string>
     <string name="browser_share_short">Share</string>
     <string name="browser_menu_open_reader">Open in Reader</string>
     <string name="browser_menu_series">Go to series</string>
     <string name="browser_menu_other_browser">Open in another browser</string>
-    <string name="browser_menu_close">Back to Ascon</string>
+    <string name="browser_menu_back_to_ascon">Back to Ascon</string>
+    <string name="browser_menu_close">Close</string>
+    <string name="browser_menu_close_label">Close browser and discard this page</string>
+    <string name="browser_close_title">Close the browser?</string>
+    <string name="browser_close_body">This page and its history are cleared. Your reading progress is already saved.</string>
+    <string name="browser_close_cancel">Keep browsing</string>
+    <string name="browser_close_confirm">Close</string>
     <string name="browser_menu_protection">Protection</string>
     <string name="browser_menu_chapter_short">Ch. %1$s</string>
     <string name="browser_menu_chapter_of">Chapter %1$s · %2$s</string>
@@ -63,16 +71,12 @@
     <string name="detection_chapter_not_in_library">Chapter %1$s · not in your library</string>
     <string name="detection_chapter_page_saved">Chapter %1$s · page %2$d of %3$d saved</string>
     <string name="detection_chapter_page">Chapter %1$s · page %2$d of %3$d</string>
-    <string name="reader_unavailable_title">Reader mode isn\'t available here</string>
-    <string name="reader_unavailable_body">Ascon couldn\'t get this chapter\'s pages, so you\'re reading the page as it is. Your progress still saves.</string>
+    <string name="reader_unavailable">Reader mode isn\'t available on this site. Your progress still saves.</string>
     <string name="reader_unavailable_dismiss">Dismiss</string>
     <string name="detection_no_chapter">Chapter number not found</string>
     <string name="detection_open_series">Open series</string>
     <string name="detection_open_reader">Open in Reader</string>
-    <string name="detection_dock">Dock</string>
-    <string name="reader_chip_chapter">Chapter %1$s</string>
-    <string name="reader_chip_open">Reader</string>
-    <string name="reader_chip_page">%1$d / %2$d</string>
+    <string name="detection_dock">Hide</string>
 
     <!-- Load errors -->
     <string name="error_not_found_title">Can\'t find %1$s</string>
