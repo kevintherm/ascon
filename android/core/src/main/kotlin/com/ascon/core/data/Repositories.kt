@@ -9,12 +9,19 @@ import java.math.BigDecimal
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
-/** The library on this device. Room backs it later; for now [fake.FakeLibraryRepository]. */
+/** The library on this device. Room backs it on the device; previews and tests use [fake.FakeLibraryRepository]. */
 interface LibraryRepository {
     val series: Flow<List<Series>>
     val sites: Flow<List<Site>>
 
     fun series(id: String): Flow<Series?>
+
+    /**
+     * The series [title] belongs to, matched by title. A title the library does not have
+     * becomes a new series. Either way [host] becomes one of its sources, with a chapter
+     * range that takes in [chapter].
+     */
+    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
 
     /** Makes [sourceId] the source the user reads [seriesId] from. */
     suspend fun selectSource(seriesId: String, sourceId: String)

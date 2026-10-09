@@ -83,12 +83,25 @@ class BrowserViewModelTest {
     }
 
     @Test
-    fun `an unknown series shows the card without saving`() = runTest {
+    fun `an unknown series is added to the library with the site as its source`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter(title = "Moonlit Ferry"))
         val card = vm.state.value.card!!
-        assertNull(card.seriesId)
-        assertFalse(card.saved)
+        assertTrue(card.saved)
+        val series = library.series(card.seriesId!!).first()!!
+        assertEquals("Moonlit Ferry", series.title)
+        assertEquals("mangafire.to", series.progress?.sourceId)
+        assertEquals(BigDecimal(14), series.progress?.chapter)
+    }
+
+    @Test
+    fun `a chapter without a number adds nothing`() = runTest {
+        val vm = viewModel()
+        val before = library.series.value.size
+        vm.onDetection(chapter(title = "Moonlit Ferry", number = null))
+        assertFalse(vm.state.value.card!!.saved)
+        assertNull(vm.state.value.card!!.seriesId)
+        assertEquals(before, library.series.value.size)
     }
 
     @Test
@@ -223,10 +236,18 @@ class BrowserViewModelTest {
     }
 
     @Test
-    fun `a position for another page or before detection is ignored`() = runTest {
+    fun `a position before detection waits for the card`() = runTest {
         val vm = viewModel()
         vm.onDetection(Detection.ReadingPosition(chapter14, page = 3, pageCount = 56))
         assertNull(vm.state.value.card)
+        vm.onDetection(chapter())
+        assertEquals(3, vm.state.value.card?.page)
+        assertEquals(3, library.series("aztec-turning-of-heaven").first()?.progress?.page)
+    }
+
+    @Test
+    fun `a position for another page is ignored`() = runTest {
+        val vm = viewModel()
         vm.onDetection(chapter())
         vm.onDetection(Detection.ReadingPosition("https://mangafire.to/read/aztec/chapter-15", 3, 56))
         assertNull(vm.state.value.card?.page)

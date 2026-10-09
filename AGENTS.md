@@ -125,6 +125,8 @@ docs/               ADRs and longer notes
 - **Progress is keyed by series and chapter number, not by source.** Switching sources keeps the place.
 - Matching: normalize the detected title, search AniList and MangaUpdates through the backend, fuzzy-match against all alternate titles, auto-link above a threshold, otherwise show the fix-detection sheet.
 - Chapter parsing handles decimals like 10.5, volume prefixes, extras and split chapters.
+- Decided with the owner: until the backend's metadata search exists, a detected chapter with a number adds its series to the library by itself, matched to existing series by exact title key only. The site becomes one of the series' sources. Debug builds seed the sample library into an empty database; release builds start empty.
+- On the device the library lives in Room, in `core/data/room`. Rules for how reading changes a series are plain functions in `core/data/LibraryChanges.kt`, shared by Room and the fake. Schemas are exported to `core/schemas`; every schema change after version 1 needs a migration and a test against the previous schema.
 
 ### Reader mode
 

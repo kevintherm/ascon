@@ -1,12 +1,15 @@
 package com.ascon.app
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.SettingsRepository
 import com.ascon.core.data.fake.FakeAccountRepository
-import com.ascon.core.data.fake.FakeLibraryRepository
+import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeSettingsRepository
+import com.ascon.core.data.room.AsconDatabase
+import com.ascon.core.data.room.RoomLibraryRepository
 import com.ascon.core.model.AccountState
 import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.InMemoryRuleCache
@@ -19,12 +22,18 @@ import kotlinx.coroutines.MainScope
 
 /**
  * Manual dependency injection: one instance of each repository for the whole app.
- * Fakes until Room, the backend client and sign-in exist.
+ * Settings and the account are fakes until DataStore, the backend client and sign-in exist.
  */
 class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone()) {
     private val app = context.applicationContext
 
-    val library: LibraryRepository = FakeLibraryRepository()
+    private val debuggable = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    // Debug builds start with the sample library, so every screen has something to show.
+    val library: LibraryRepository = RoomLibraryRepository(
+        AsconDatabase.open(app),
+        seed = if (debuggable) RoomLibraryRepository.Seed(FakeLibrary.series(clock), FakeLibrary.sites) else null
+    )
     val settings: SettingsRepository = FakeSettingsRepository()
     val accounts: AccountRepository = FakeAccountRepository(
         AccountState.SignedIn(

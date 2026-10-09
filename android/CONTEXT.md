@@ -9,6 +9,7 @@ interface LibraryRepository
     val series: Flow<List<Series>>
     val sites: Flow<List<Site>>
     fun series(id: String): Flow<Series?>
+    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
@@ -36,6 +37,7 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override val series: StateFlow<List<Series>>
     override val sites: Flow<List<Site>>
     override fun series(id: String): Flow<Series?>
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
@@ -47,6 +49,28 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
 class FakeSettingsRepository(initial: Settings = Settings(), summary: SettingsSummary = FakeLibrary.settingsSummary) :
 class FakeAccountRepository(initial: AccountState) : AccountRepository
     override val account: Flow<AccountState>
+```
+
+## core/src/main/kotlin/com/ascon/core/data/room/AsconDatabase.kt
+
+```kotlin
+abstract class AsconDatabase : RoomDatabase()
+    companion object
+        fun open(context: Context, name: String = "ascon.db"): AsconDatabase
+```
+
+## core/src/main/kotlin/com/ascon/core/data/room/RoomLibraryRepository.kt
+
+```kotlin
+class RoomLibraryRepository(database: AsconDatabase, private val seed: Seed? = null, private val newId: () -> String = { UUID.randomUUID().toString() }) : LibraryRepository
+    class Seed(val series: List<Series>, val sites: List<Site>)
+    override val series: Flow<List<Series>>
+    override val sites: Flow<List<Site>>
+    override fun series(id: String): Flow<Series?>
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
+    override suspend fun selectSource(seriesId: String, sourceId: String)
+    override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
+    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Basics.kt

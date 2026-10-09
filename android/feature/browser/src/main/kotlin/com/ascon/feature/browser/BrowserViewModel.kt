@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
+import com.ascon.core.model.Series
 import com.ascon.core.model.matchSeries
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.withoutFragment
@@ -85,6 +86,9 @@ class BrowserViewModel(
 
     /** The chapter on screen, kept when its card is hidden so its page is still saved. */
     private var chapterCard: DetectionCard? = null
+
+    /** A page on screen reported before its chapter's card exists, applied once it does. */
+    private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
     private var hiddenUrl: String? = null
     private var noticeCount = 0L
 
@@ -129,8 +133,8 @@ class BrowserViewModel(
 
     private fun onChapter(page: String, detection: Detection.ChapterPage) {
         viewModelScope.launch {
-            val series = detection.title?.let { matchSeries(library.series.first(), it) }
             val chapter = detection.chapter
+            val series = seriesOf(page, detection.title, chapter)
             val record = series != null && chapter != null && recordedUrl != page
             if (record) {
                 recordedUrl = page
@@ -174,12 +178,31 @@ class BrowserViewModel(
                     it
                 }
             }
+            earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->
+                earlyPosition = null
+                onPosition(page, position)
+            }
         }
+    }
+
+    /**
+     * The library series a chapter belongs to. A numbered chapter adds its series and site
+     * to the library; without a number there is nothing to save, so only a match counts.
+     */
+    private suspend fun seriesOf(page: String, title: String?, chapter: BigDecimal?): Series? = when {
+        title == null -> null
+        chapter == null -> matchSeries(library.series.first(), title)
+        else -> library.seriesFor(title, displayHost(page), chapter)
     }
 
     /** Saves the page on screen of a chapter read as the site shows it, and shows it on the card. */
     private fun onPosition(page: String, position: Detection.ReadingPosition) {
-        val old = chapterCard?.takeIf { it.url == page } ?: return
+        val old = chapterCard?.takeIf { it.url == page }
+        if (old == null) {
+            // The library may still be finding the series; the card shows it when ready.
+            earlyPosition = page to position
+            return
+        }
         if (old.page == position.page && old.pageCount == position.pageCount) return
         val card = old.copy(page = position.page, pageCount = position.pageCount)
         chapterCard = card

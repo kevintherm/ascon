@@ -1,0 +1,30 @@
+# Room: a chapter of a series the library lacks adds the series, and the library
+# survives the app being stopped. Debug builds start from the sample library.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/moonlit-ferry/chapter-7/"
+- extendedWaitUntil:
+    visible: "Chapter 7 · 10.0.2.2"
+    timeout: 15000
+- assertVisible: "Moonlit Ferry"
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- assertVisible: "3 / 3"
+- back
+- extendedWaitUntil:
+    visible: "Chapter 7 · progress saved"
+    timeout: 15000
+- stopApp
+- launchApp
+- tapOn: "Library"
+- assertVisible: "Moonlit Ferry"
+- tapOn: "Moonlit Ferry"
+- assertVisible: "10.0.2.2"
+- takeScreenshot: build/library-after-restart
