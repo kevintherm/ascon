@@ -33,7 +33,9 @@ data class BrowserUiState(
     val card: DetectionCard? = null,
     val notice: Notice? = null,
     /** A chapter with pages, waiting for the reader to open. See [BrowserViewModel.readerOpened]. */
-    val reader: ReaderChapter? = null
+    val reader: ReaderChapter? = null,
+    /** The page is a chapter the reader cannot take, so it is read as the site shows it. */
+    val readerUnavailable: Boolean = false
 ) {
     val host: String get() = displayHost(url)
 }
@@ -49,7 +51,10 @@ data class DetectionCard(
     val seriesId: String?,
     val cover: Cover?,
     /** True once progress for this chapter is recorded. */
-    val saved: Boolean
+    val saved: Boolean,
+    /** The page on screen, counted from 1, when the chapter is read as the site shows it. */
+    val page: Int? = null,
+    val pageCount: Int? = null
 )
 
 /** A short message about something the browser blocked. [id] tells repeats apart. */
@@ -76,6 +81,10 @@ class BrowserViewModel(
 
     private var recordedUrl: String? = null
     private val readerOpenedFor = mutableSetOf<String>()
+    private val bannerDismissedFor = mutableSetOf<String>()
+
+    /** The chapter on screen, kept when its card is hidden so its page is still saved. */
+    private var chapterCard: DetectionCard? = null
     private var hiddenUrl: String? = null
     private var noticeCount = 0L
 
@@ -109,11 +118,16 @@ class BrowserViewModel(
 
     override fun onDetection(detection: Detection) {
         val page = detection.url.withoutFragment()
-        if (page != state.value.url.withoutFragment() || page == hiddenUrl) return
-        if (detection !is Detection.ChapterPage) {
-            _state.update { it.copy(card = null) }
-            return
+        if (page != state.value.url.withoutFragment()) return
+        when {
+            detection is Detection.ReadingPosition -> onPosition(page, detection)
+            page == hiddenUrl -> Unit
+            detection is Detection.ChapterPage -> onChapter(page, detection)
+            else -> _state.update { it.copy(card = null, readerUnavailable = false) }
         }
+    }
+
+    private fun onChapter(page: String, detection: Detection.ChapterPage) {
         viewModelScope.launch {
             val series = detection.title?.let { matchSeries(library.series.first(), it) }
             val chapter = detection.chapter
@@ -145,10 +159,43 @@ class BrowserViewModel(
                 null
             }
             // The user may have moved on while the library was read.
+            val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             _state.update {
-                if (it.url.withoutFragment() == page) it.copy(card = card, reader = reader ?: it.reader) else it
+                if (it.url.withoutFragment() == page) {
+                    // A repeat result keeps the page the card already shows.
+                    val kept = chapterCard?.takeIf { old -> old.url == page && old.chapter == card.chapter }
+                    chapterCard = card.copy(page = kept?.page, pageCount = kept?.pageCount)
+                    it.copy(
+                        card = chapterCard,
+                        reader = reader ?: it.reader,
+                        readerUnavailable = unavailable
+                    )
+                } else {
+                    it
+                }
             }
         }
+    }
+
+    /** Saves the page on screen of a chapter read as the site shows it, and shows it on the card. */
+    private fun onPosition(page: String, position: Detection.ReadingPosition) {
+        val old = chapterCard?.takeIf { it.url == page } ?: return
+        if (old.page == position.page && old.pageCount == position.pageCount) return
+        val card = old.copy(page = position.page, pageCount = position.pageCount)
+        chapterCard = card
+        _state.update { if (it.card?.url == page) it.copy(card = card) else it }
+        val seriesId = card.seriesId
+        val chapter = card.chapter
+        if (seriesId != null && chapter != null) {
+            viewModelScope.launch {
+                library.recordPageRead(seriesId, chapter, position.page, position.pageCount, clock.instant())
+            }
+        }
+    }
+
+    fun dismissReaderUnavailable() {
+        bannerDismissedFor += state.value.url.withoutFragment()
+        _state.update { it.copy(readerUnavailable = false) }
     }
 
     fun readerOpened() {
@@ -173,7 +220,12 @@ class BrowserViewModel(
         saved[KEY_URL] = url
         _state.update {
             val samePage = it.url.withoutFragment() == url.withoutFragment()
-            it.copy(url = url, card = if (samePage) it.card else null, reader = if (samePage) it.reader else null)
+            it.copy(
+                url = url,
+                card = if (samePage) it.card else null,
+                reader = if (samePage) it.reader else null,
+                readerUnavailable = samePage && it.readerUnavailable
+            )
         }
     }
 

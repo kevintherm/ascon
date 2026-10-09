@@ -53,6 +53,11 @@ class Screenshots {
         browser(BrowserUiState(url = url, notice = Notice(BlockedKind.Redirect, "ads.example", 1)))
     }
 
+    @Test
+    fun browserReaderUnavailable() = capture("browser_reader_unavailable") {
+        browser(BrowserUiState(url = url, card = PreviewCard.copy(page = 34, pageCount = 58), readerUnavailable = true))
+    }
+
     @Composable
     private fun browser(state: BrowserUiState) {
         BrowserScreen(state, BrowserCommands()) { FakePage(it) }

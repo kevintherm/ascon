@@ -29,6 +29,11 @@
     <string name="detection_unknown_title">Unknown series</string>
     <string name="detection_chapter_saved">Chapter %1$s · progress saved</string>
     <string name="detection_chapter_not_in_library">Chapter %1$s · not in your library</string>
+    <string name="detection_chapter_page_saved">Chapter %1$s · page %2$d of %3$d saved</string>
+    <string name="detection_chapter_page">Chapter %1$s · page %2$d of %3$d</string>
+    <string name="reader_unavailable_title">Reader mode isn\'t available here</string>
+    <string name="reader_unavailable_body">Ascon couldn\'t get this chapter\'s pages, so you\'re reading the page as it is. Your progress still saves.</string>
+    <string name="reader_unavailable_dismiss">Dismiss</string>
     <string name="detection_no_chapter">Chapter number not found</string>
     <string name="detection_open_series">Open series</string>
     <string name="detection_hide">Hide</string>

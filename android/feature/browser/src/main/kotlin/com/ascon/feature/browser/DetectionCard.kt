@@ -118,7 +118,12 @@ internal fun DetectionCardView(card: DetectionCard, onOpenSeries: (String) -> Un
 @Composable
 private fun chapterLine(card: DetectionCard): String {
     val chapter = card.chapter?.toChapterLabel() ?: return stringResource(R.string.detection_no_chapter)
-    return if (card.saved) {
+    val page = card.page
+    val pageCount = card.pageCount
+    return if (page != null && pageCount != null) {
+        val line = if (card.saved) R.string.detection_chapter_page_saved else R.string.detection_chapter_page
+        stringResource(line, chapter, page, pageCount)
+    } else if (card.saved) {
         stringResource(R.string.detection_chapter_saved, chapter)
     } else {
         stringResource(R.string.detection_chapter_not_in_library, chapter)

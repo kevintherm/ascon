@@ -189,6 +189,7 @@ object AsconIcons
     val Forward
     val PreviousChapter
     val NextChapter
+    val ReaderOff
     val Close
     val Reload
     val Share
@@ -358,6 +359,7 @@ sealed interface Detection
     val url: String
     data class ChapterPage(override val url: String, val source: DetectionSource, val seriesSlug: String?, val title: String?, val chapterLabel: String?, val chapter: BigDecimal?, val images: List<String>, val next: String?, val previous: String?) : Detection
     data class SeriesPage(override val url: String, val source: DetectionSource, val seriesSlug: String?, val title: String?, val chapters: List<ChapterLink>) : Detection
+    data class ReadingPosition(override val url: String, val page: Int, val pageCount: Int) : Detection
     data class None(override val url: String) : Detection
 data class ChapterLink(val url: String, val label: String?, val number: BigDecimal?)
 ```

@@ -188,4 +188,57 @@ class BrowserViewModelTest {
         vm.onDetection(chapter())
         assertNull(vm.state.value.reader)
     }
+
+    @Test
+    fun `a chapter without pages shows the banner until dismissed`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        assertTrue(vm.state.value.readerUnavailable)
+
+        vm.dismissReaderUnavailable()
+        assertFalse(vm.state.value.readerUnavailable)
+        vm.onDetection(chapter())
+        assertFalse(vm.state.value.readerUnavailable)
+    }
+
+    @Test
+    fun `a chapter with pages has no banner`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp")))
+        assertFalse(vm.state.value.readerUnavailable)
+    }
+
+    @Test
+    fun `the page on screen is saved and shown on the card`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        vm.onDetection(Detection.ReadingPosition(chapter14, page = 3, pageCount = 56))
+
+        assertEquals(3, vm.state.value.card?.page)
+        assertEquals(56, vm.state.value.card?.pageCount)
+        val progress = library.series("aztec-turning-of-heaven").first()?.progress
+        assertEquals(BigDecimal(14), progress?.chapter)
+        assertEquals(3, progress?.page)
+        assertEquals(56, progress?.pageCount)
+    }
+
+    @Test
+    fun `a position for another page or before detection is ignored`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(Detection.ReadingPosition(chapter14, page = 3, pageCount = 56))
+        assertNull(vm.state.value.card)
+        vm.onDetection(chapter())
+        vm.onDetection(Detection.ReadingPosition("https://mangafire.to/read/aztec/chapter-15", 3, 56))
+        assertNull(vm.state.value.card?.page)
+    }
+
+    @Test
+    fun `a hidden card still saves the page`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        vm.hideCard()
+        vm.onDetection(Detection.ReadingPosition(chapter14, page = 7, pageCount = 56))
+        assertNull(vm.state.value.card)
+        assertEquals(7, library.series("aztec-turning-of-heaven").first()?.progress?.page)
+    }
 }

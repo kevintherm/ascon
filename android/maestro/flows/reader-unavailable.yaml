@@ -1,0 +1,21 @@
+# Step 6: a chapter the reader cannot take is read as the site shows it, and the page on
+# screen is still saved. The page is maestro/site/swiper/, which fills few of its slots.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/swiper/aztec-turning-of-heaven/chapter-16/"
+- extendedWaitUntil:
+    visible: "Reader mode isn't available here"
+    timeout: 15000
+- assertVisible: "Chapter 16 · page 1 of 12 saved"
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- extendedWaitUntil:
+    visible: "Chapter 16 · page [2-9] of 12 saved"
+    timeout: 5000
+- tapOn: "Dismiss"
+- assertNotVisible: "Reader mode isn't available here"

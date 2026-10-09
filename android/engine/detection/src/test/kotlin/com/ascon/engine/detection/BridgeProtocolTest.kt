@@ -122,4 +122,25 @@ class RuleLookupTest {
         assertEquals(builtIn, candidates.drop(1))
         assertEquals(builtIn, lookup.candidatesFor("other.example"))
     }
+
+    private val chapterUrl = "https://lumen.example/glass-orchard-chapter-3/"
+
+    @Test
+    fun `reads a reading position`() {
+        val message = BridgeProtocol.decode("""{"type":"position","url":"$chapterUrl","page":4,"pageCount":56}""")
+        assertEquals(
+            Detection.ReadingPosition(chapterUrl, page = 4, pageCount = 56),
+            BridgeProtocol.toPosition(message as PageMessage.Position)
+        )
+    }
+
+    @Test
+    fun `drops a position outside the chapter`() {
+        listOf(0 to 10, 11 to 10, 1 to 0, 1 to 100_000).forEach { (p, count) ->
+            val message = BridgeProtocol.decode(
+                """{"type":"position","url":"$chapterUrl","page":$p,"pageCount":$count}"""
+            )
+            assertEquals(null, BridgeProtocol.toPosition(message as PageMessage.Position))
+        }
+    }
 }

@@ -26,6 +26,10 @@ internal sealed interface PageMessage {
     @Serializable
     @SerialName("result")
     data class Result(val url: String, val via: DetectionSource, val result: Evaluation) : PageMessage
+
+    @Serializable
+    @SerialName("position")
+    data class Position(val url: String, val page: Int, val pageCount: Int) : PageMessage
 }
 
 /** The evaluator's result, as contracts/README.md defines it. */
@@ -118,6 +122,14 @@ internal object BridgeProtocol {
             else -> Detection.None(url)
         }
     }
+
+    /** Null for a page outside the chapter or a count no chapter has. */
+    fun toPosition(message: PageMessage.Position): Detection.ReadingPosition? =
+        if (message.pageCount in 1..MAX_IMAGES && message.page in 1..message.pageCount) {
+            Detection.ReadingPosition(message.url, message.page, message.pageCount)
+        } else {
+            null
+        }
 
     /**
      * The origin of [url] as WebView reports a message's source origin, such as

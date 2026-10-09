@@ -42,6 +42,7 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
         val url = when (decoded) {
             is PageMessage.Opened -> decoded.url
             is PageMessage.Result -> decoded.url
+            is PageMessage.Position -> decoded.url
         }
         // A page may only report about itself.
         if (BridgeProtocol.originOf(url) != sourceOrigin.trimEnd('/').lowercase()) return
@@ -51,6 +52,7 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
                 reply.postMessage(BridgeProtocol.encodeRules(rules.candidatesFor(host)))
             }
             is PageMessage.Result -> onDetection(BridgeProtocol.toDetection(decoded))
+            is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(onDetection)
         }
     }
 

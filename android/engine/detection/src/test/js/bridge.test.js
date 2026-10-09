@@ -325,3 +325,39 @@ test("the document title beats an og:title a single-page site never updated", as
   const got = await detect("https://inkwell.example/title/1-cinderelle/chapter-6", html, []);
   assert.equal(got.result.title, "Cinderelle");
 });
+
+test("a chapter the reader cannot take reports the page slot on screen", async () => {
+  const slot = (i) =>
+    i < 3
+      ? `<div class="slide" style="height:900px"><img src="/p/${i}.jpg"></div>`
+      : `<div class="slide" style="height:900px"></div>`;
+  const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
+    <div class="pages">${Array.from({ length: 10 }, (_, i) => slot(i)).join("")}</div>`;
+  const page = await open("https://inkwell.example/title/1-cinderelle/chapter/6/", html);
+  await sendRules(page, []);
+  await results(page);
+  const positions = () => page.evaluate(() => __sent.filter((m) => m.type === "position"));
+  await page.waitForFunction(() => __sent.some((m) => m.type === "position"));
+  assert.deepEqual((await positions())[0], {
+    type: "position",
+    url: "https://inkwell.example/title/1-cinderelle/chapter/6/",
+    page: 1,
+    pageCount: 10,
+  });
+  await page.evaluate(() => document.querySelectorAll(".slide")[4].scrollIntoView());
+  await page.waitForFunction(() => __sent.filter((m) => m.type === "position").some((m) => m.page === 5));
+  await page.close();
+});
+
+test("a chapter with pages for the reader reports no position", async () => {
+  const page = await open(
+    "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/203",
+    fixture("heuristic/strip-a.html"),
+  );
+  await sendRules(page, []);
+  await results(page);
+  await page.waitForTimeout(300);
+  const sent = await page.evaluate(() => __sent.filter((m) => m.type === "position"));
+  await page.close();
+  assert.deepEqual(sent, []);
+});

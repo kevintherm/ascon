@@ -38,6 +38,7 @@ object AsconIcons {
     val Forward = stroked("Forward", "M9 5l7 7-7 7")
     val PreviousChapter = stroked("PreviousChapter", "M17 6l-6 6 6 6M7 6v12")
     val NextChapter = stroked("NextChapter", "M7 6l6 6-6 6M17 6v12")
+    val ReaderOff = stroked("ReaderOff", "M4 5h7v14H4zM13 5h7v14h-7z", "M3 3l18 18")
     val Close = stroked("Close", "M6 6l12 12M18 6 6 18")
     val Reload = stroked("Reload", "M20 12a8 8 0 1 1-2.34-5.66", "M20 4v4.5h-4.5")
     val Share = stroked("Share", "M12 4v11M7.5 8.5 12 4l4.5 4.5", "M6 13v6h12v-6")

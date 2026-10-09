@@ -95,7 +95,8 @@ fun BrowserRoute(
             },
             onOpenSeries = actions.onOpenSeries,
             onHideCard = viewModel::hideCard,
-            onNoticeShown = viewModel::dismissNotice
+            onNoticeShown = viewModel::dismissNotice,
+            onDismissReaderUnavailable = viewModel::dismissReaderUnavailable
         )
     ) { modifier ->
         key(session.generation) {
@@ -118,7 +119,8 @@ data class BrowserCommands(
     val onShare: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
     val onHideCard: () -> Unit = {},
-    val onNoticeShown: (Long) -> Unit = {}
+    val onNoticeShown: (Long) -> Unit = {},
+    val onDismissReaderUnavailable: () -> Unit = {}
 )
 
 /**
@@ -156,6 +158,11 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
             ) {
                 page(Modifier.fillMaxSize())
                 state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
+                ReaderUnavailableBanner(
+                    visible = state.readerUnavailable && state.error == null,
+                    onDismiss = commands.onDismissReaderUnavailable,
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp)
+                )
             }
             Spacer(
                 Modifier

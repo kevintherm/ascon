@@ -131,6 +131,7 @@ docs/               ADRs and longer notes
 - Fetch natively with OkHttp using the WebView's cookies from `CookieManager`, the chapter URL as `Referer`, and the exact same User-Agent, because Cloudflare clearance is tied to it.
 - **If extraction fails**, zero images, blob or canvas images, or scrambled tiles: show the page as-is in the WebView, track progress with an injected `IntersectionObserver`, and show the "reader mode isn't available here" banner.
 - Preload the next chapter in an off-screen WebView.
+- **Planned, agreed with the owner: page lists from the site's own data.** Some readers never put all page URLs in the DOM. MangaFire keeps an empty slot per page and loads its list from `/api/chapters/<id>` with a signed `vrf` token. Spike reading such responses from the injected script, by watching `fetch` and XHR for a JSON list of image URLs, then decide. Weigh how visible the hook is to the site and whether responses are encoded. Until then these sites use the page-as-is fallback.
 
 ### Downloads
 

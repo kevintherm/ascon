@@ -11,6 +11,10 @@
  *   page → app  {"type":"page","url":...}
  *   app → page  {"type":"rules","rules":[{"via":...,"when":selector|null,"rule":{...}}]}
  *   page → app  {"type":"result","url":...,"via":"rule"|"builtin"|"heuristic","result":{...}}
+ *   page → app  {"type":"position","url":...,"page":n,"pageCount":m}
+ *
+ * A position is sent for a chapter whose pages the reader cannot take, so the page is
+ * read as it is. It is the page slot most on screen, counted from 1.
  */
 (function () {
   "use strict";
@@ -163,6 +167,11 @@
     return urls.filter(function (u) { return directoryOf(u) === top; });
   }
 
+  /** A slot holds an image or nothing; children with text are headings or notes. */
+  function isSlot(child) {
+    return child.tagName === "IMG" || child.querySelector("img") !== null || child.textContent.trim() === "";
+  }
+
   /**
    * Children with neither an image nor text. A reader that fills page slots only near
    * the page on screen has many; its images are then a few pages, not the chapter.
@@ -176,8 +185,8 @@
     return n;
   }
 
-  /** Image URLs from the container that holds the most images, in document order. */
-  function pageImages(base) {
+  /** The container that holds the most images, with their URLs in document order. */
+  function imageRun(base) {
     var groups = [];
     var imgs = document.images;
     for (var i = 0; i < imgs.length; i++) {
@@ -191,7 +200,12 @@
       if (!group) groups.push(group = { holder: holder, urls: [] });
       if (group.urls.indexOf(url) < 0) group.urls.push(url);
     }
-    var best = groups.reduce(function (a, g) { return a && a.urls.length >= g.urls.length ? a : g; }, null);
+    return groups.reduce(function (a, g) { return a && a.urls.length >= g.urls.length ? a : g; }, null);
+  }
+
+  /** The chapter's page images, or none when they look like a preview or a half-loaded reader. */
+  function pageImages(base) {
+    var best = imageRun(base);
     if (!best || best.urls.length < MIN_PAGES || emptySlots(best.holder) >= best.urls.length) return [];
     var pages = sameDirectory(best.urls);
     return pages.length < MIN_PAGES ? [] : pages;
@@ -263,6 +277,42 @@
     };
   }
 
+  // ---- Position on a page read as it is ----------------------------------
+
+  var tracked = null; // { holder, observer, ratios, page }
+
+  function stopTracking() {
+    if (tracked) tracked.observer.disconnect();
+    tracked = null;
+  }
+
+  /** Reports which of [holder]'s page slots is most on screen, whenever that changes. */
+  function track(holder) {
+    if (tracked && tracked.holder === holder) return;
+    stopTracking();
+    var slots = [].filter.call(holder.children, isSlot);
+    if (slots.length < MIN_PAGES) return;
+    var state = { holder: holder, ratios: slots.map(function () { return 0; }), page: 0 };
+    state.observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { state.ratios[slots.indexOf(e.target)] = e.intersectionRatio; });
+      var best = 0;
+      for (var i = 1; i < state.ratios.length; i++) if (state.ratios[i] > state.ratios[best]) best = i;
+      if (state.ratios[best] === 0 || best + 1 === state.page) return;
+      state.page = best + 1;
+      send({ type: "position", url: location.href, page: state.page, pageCount: slots.length });
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+    slots.forEach(function (slot) { state.observer.observe(slot); });
+    tracked = state;
+  }
+
+  /** Tracks the position on a chapter the reader cannot take; stops on any other page. */
+  function followPosition(found) {
+    var r = found.result;
+    var run = r.pageType === "chapter" && r.images.length === 0 ? imageRun(location.href) : null;
+    if (run) track(run.holder);
+    else stopTracking();
+  }
+
   // ---- Evaluation -------------------------------------------------------
 
   /*
@@ -290,6 +340,7 @@
     if (candidates == null || !document.documentElement) return;
     var url = location.href;
     var found = detect(url);
+    followPosition(found);
     var report = stringify({ type: "result", url: url, via: found.via, result: found.result });
     if (report !== lastReport) {
       lastReport = report;
@@ -306,6 +357,8 @@
     var url = location.href;
     if (url === lastUrl) return;
     lastUrl = url;
+    // A new chapter in the same reader starts its position over.
+    stopTracking();
     watchUntil = Date.now() + WATCH_MS;
     schedule(SETTLE_MS);
   }
