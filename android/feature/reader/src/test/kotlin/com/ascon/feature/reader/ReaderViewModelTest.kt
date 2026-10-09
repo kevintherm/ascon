@@ -91,4 +91,12 @@ class ReaderViewModelTest {
         vm.toggleBars()
         assertTrue(vm.state.value.barsVisible)
     }
+
+    @Test
+    fun `the bars show again near the end of the chapter`() {
+        val vm = ReaderViewModel(library, clock, chapter())
+        vm.toggleBars()
+        vm.nearEnd()
+        assertTrue(vm.state.value.barsVisible)
+    }
 }

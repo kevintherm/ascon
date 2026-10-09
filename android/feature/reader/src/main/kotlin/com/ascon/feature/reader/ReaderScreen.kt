@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -20,16 +21,23 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.designsystem.theme.AsconColors
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 /** Where the reader sends the user. [onOpenChapter] gets a chapter page URL on the site. */
@@ -45,7 +53,8 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
             onPrevious = { state.previous?.let(actions.onOpenChapter) },
             onNext = { state.next?.let(actions.onOpenChapter) },
             onPageShown = viewModel::onPageShown,
-            onToggleBars = viewModel::toggleBars
+            onToggleBars = viewModel::toggleBars,
+            onNearEnd = viewModel::nearEnd
         )
     ) { index, url, modifier ->
         PageImage(index, url, referer = state.url, images = images, modifier = modifier)
@@ -58,7 +67,9 @@ data class ReaderCommands(
     val onPrevious: () -> Unit = {},
     val onNext: () -> Unit = {},
     val onPageShown: (Int) -> Unit = {},
-    val onToggleBars: () -> Unit = {}
+    val onToggleBars: () -> Unit = {},
+    /** The end of the last page is less than half a screen away. */
+    val onNearEnd: () -> Unit = {}
 )
 
 internal const val PAGES_TAG = "reader-pages"
@@ -80,6 +91,12 @@ fun ReaderScreen(
     LaunchedEffect(list) {
         snapshotFlow { list.pageOnScreen() }.collect { commands.onPageShown(it) }
     }
+    LaunchedEffect(list) {
+        snapshotFlow { list.isNearEnd() }.distinctUntilChanged().filter { it }.collect { commands.onNearEnd() }
+    }
+    // Room after the last page, so the panel shown at the end never covers it.
+    var panelHeight by remember { mutableIntStateOf(0) }
+    val endSpace = with(LocalDensity.current) { panelHeight.toDp() }
 
     Box(
         Modifier
@@ -88,6 +105,7 @@ fun ReaderScreen(
     ) {
         LazyColumn(
             state = list,
+            contentPadding = PaddingValues(bottom = endSpace),
             modifier = Modifier
                 .fillMaxSize()
                 .testTag(PAGES_TAG)
@@ -113,7 +131,10 @@ fun ReaderScreen(
         }
         AnimatedVisibility(
             visible = state.barsVisible,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                // Kept while the panel hides, so the pages do not jump.
+                .onSizeChanged { if (it.height > 0) panelHeight = it.height },
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 }
         ) {
@@ -128,6 +149,13 @@ fun ReaderScreen(
             )
         }
     }
+}
+
+/** True when the end of the last page is less than half the screen below the screen's bottom. */
+private fun LazyListState.isNearEnd(): Boolean {
+    val info = layoutInfo
+    val last = info.visibleItemsInfo.lastOrNull()?.takeIf { it.index == info.totalItemsCount - 1 } ?: return false
+    return last.offset + last.size - info.viewportEndOffset < info.viewportSize.height / 2
 }
 
 /** The page at the top of the screen, or the last page once the list cannot scroll further. */

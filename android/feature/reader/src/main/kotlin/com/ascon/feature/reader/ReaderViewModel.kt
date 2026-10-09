@@ -72,6 +72,11 @@ class ReaderViewModel(
         _state.update { it.copy(barsVisible = !it.barsVisible) }
     }
 
+    /** Shows the bars as the end of the chapter comes up, for the next chapter. A tap hides them again. */
+    fun nearEnd() {
+        _state.update { it.copy(barsVisible = true) }
+    }
+
     private companion object {
         fun hostOf(url: String): String = runCatching { URI(url).host }.getOrNull().orEmpty().removePrefix("www.")
     }
