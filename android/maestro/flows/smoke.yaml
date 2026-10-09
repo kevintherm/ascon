@@ -1,0 +1,14 @@
+# The app opens on Home and each tab shows its screen.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Continue reading"
+- tapOn: "Library"
+- assertVisible: "Library"
+- tapOn: "Browse"
+- assertVisible: "Browse"
+- tapOn: "Settings"
+- assertVisible: "Settings"
+- back
+- assertVisible: "Continue reading"

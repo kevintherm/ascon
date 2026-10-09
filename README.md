@@ -20,6 +20,17 @@ Compose screens have golden screenshots in each feature's `src/test/screenshots/
 
 `./run.sh` builds the app and opens it on an emulator. The screens run on fake data in `core/data/fake` until Room and the backend client exist.
 
+UI flows run on an emulator with [Maestro](https://maestro.mobile.dev). They find elements by their text and report pass or fail. `tools/emulator-setup.sh` starts an emulator if none is connected. It also locks portrait, turns off animations and turns off stylus handwriting. Then install the debug app and run the flows:
+
+```
+tools/emulator-setup.sh
+./gradlew installDebug
+maestro/run.sh                    # every flow in maestro/flows
+maestro/run.sh flows/smoke.yaml   # one flow
+```
+
+`maestro/run.sh` serves `maestro/site` on port 8765 while the flows run. The emulator reaches it at `http://10.0.2.2:8765`, which only debug builds may load over plain http.
+
 Backend, from `backend/`:
 
 ```

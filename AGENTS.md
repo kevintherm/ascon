@@ -214,6 +214,19 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 
 **Prototype first:** reader-mode extraction on hostile sites, and JS/Go evaluator parity. They are the highest risk and may change the architecture.
 
+## Workflow
+
+How agents work in this repo, agreed with the owner to keep the loop fast.
+
+- **Spec as tests first.** Each step starts with a short list of acceptance criteria, each turned into a failing test before any UI. Logic lives in plain Kotlin, such as view models, state reducers and URL guards, and is tested with JUnit on the JVM.
+- **Spike unknowns.** Before building on a platform API you have not used here, check its behavior with a 10-line experiment or one small test.
+- **Compose through semantics.** While building a screen, test it with compose-ui-test under Robolectric and assert on the semantics tree. Record Roborazzi goldens once, at the end of the feature.
+- **Warm, narrow Gradle.** Never pass `--no-daemon`; `gradle.properties` sets the memory and caches. In the inner loop, compile and test only the module you touched, for example `./gradlew :feature:browser:testDebugUnitTest --tests "*BrowserViewModelTest"`.
+- **Gates once, before commit.** Run `ktlintFormat`, compile, then `./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true`, the JS tests in `engine/detection` if they changed, and `python3 tools/context.py`.
+- **One device pass per feature.** Use Maestro flows in `android/maestro/flows`, not adb taps. Take screenshots only when a flow fails. See the README.
+- **Protect context.** Read `android/CONTEXT.md` for the shared API before opening sources in `core` or `engine`. Keep files under about 300 lines.
+- **Hold scope.** A step ships the minimum that passes its acceptance tests. Error pages, menus and extra rules become their own later steps.
+
 ## Conventions
 
 - Small PRs, one milestone step each. Conventional commit messages.
