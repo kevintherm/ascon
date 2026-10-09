@@ -33,15 +33,16 @@ appId: com.ascon.app
 # Back shows the site page with its card.
 - back
 - extendedWaitUntil:
-    visible: "Chapter 15 · progress saved"
+    visible: "Chapter 15( · progress saved)?"
     timeout: 15000
 # Back walks the page history. A page the reader already showed stays on the site.
 - back
 - extendedWaitUntil:
-    visible: "Chapter 14 · progress saved"
+    visible: "Chapter 14( · progress saved)?"
     timeout: 15000
 - assertNotVisible: "Next chapter"
 # Progress stays on chapter 15, which was new to the library and is added.
-- tapOn: "Open series"
+- tapOn: "Menu"
+- tapOn: "Go to series"
 - assertVisible: "15 chapters"
 - takeScreenshot: build/series-after-reading

@@ -47,7 +47,11 @@
     <string name="reader_unavailable_dismiss">Dismiss</string>
     <string name="detection_no_chapter">Chapter number not found</string>
     <string name="detection_open_series">Open series</string>
-    <string name="detection_hide">Hide</string>
+    <string name="detection_open_reader">Open in Reader</string>
+    <string name="detection_dock">Dock</string>
+    <string name="reader_chip_chapter">Chapter %1$s</string>
+    <string name="reader_chip_open">Reader</string>
+    <string name="reader_chip_page">%1$d / %2$d</string>
 
     <!-- Load errors -->
     <string name="error_not_found_title">Can\'t find %1$s</string>

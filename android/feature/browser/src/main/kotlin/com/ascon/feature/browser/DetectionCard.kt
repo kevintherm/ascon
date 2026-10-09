@@ -7,24 +7,35 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
@@ -34,6 +45,7 @@ import androidx.compose.ui.window.Popup
 import com.ascon.core.designsystem.component.CoverArt
 import com.ascon.core.designsystem.component.Dot
 import com.ascon.core.designsystem.component.PillColors
+import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconType
@@ -48,10 +60,37 @@ private val CardButtonShape = RoundedCornerShape(AsconRadius.nested(AsconRadius.
 
 private val CardTitle = AsconType.SectionTitle.copy(fontSize = 16.sp)
 
-/** The card that says what Ascon detected on the page, per the Browser screen. */
+/** How long the card stays before it docks. A series not saved yet gets longer. */
+private const val COUNTDOWN_MS = 5_000f
+private const val COUNTDOWN_UNSAVED_MS = 8_000f
+
+/**
+ * The card that says what Ascon detected on the page, per BrowserV2Detected. A line
+ * along its bottom counts down, then [onDock] docks it into the reader chip. Touching the
+ * card pauses the countdown; the chevron docks it at once.
+ */
 @Composable
-internal fun DetectionCardView(card: DetectionCard, onOpenSeries: (String) -> Unit, onHide: () -> Unit) {
-    Column(
+internal fun DetectionCardView(
+    card: DetectionCard,
+    readerAvailable: Boolean,
+    onOpenReader: () -> Unit,
+    onOpenSeries: (String) -> Unit,
+    onDock: () -> Unit
+) {
+    var remaining by remember(card.url, card.chapter) { mutableFloatStateOf(1f) }
+    var touched by remember { mutableStateOf(false) }
+    val duration = if (card.saved) COUNTDOWN_MS else COUNTDOWN_UNSAVED_MS
+    LaunchedEffect(card.url, card.chapter, touched) {
+        if (touched) return@LaunchedEffect
+        var last = withFrameMillis { it }
+        while (remaining > 0f) {
+            val now = withFrameMillis { it }
+            remaining -= (now - last) / duration
+            last = now
+        }
+        onDock()
+    }
+    Box(
         Modifier
             .fillMaxWidth()
             .dropShadow(
@@ -60,56 +99,95 @@ internal fun DetectionCardView(card: DetectionCard, onOpenSeries: (String) -> Un
             )
             .clip(CardShape)
             .background(AsconColors.Surface)
-            .padding(CardPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            card.cover?.let {
-                CoverArt(it, RoundedCornerShape(AsconRadius.CoverThumb), Modifier.size(44.dp, 62.dp))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Dot(AsconColors.Accent)
-                    Text(
-                        stringResource(
-                            if (card.seriesId !=
-                                null
-                            ) {
-                                R.string.detection_eyebrow_library
-                            } else {
-                                R.string.detection_eyebrow
-                            }
-                        ).uppercase(),
-                        style = AsconType.Eyebrow.copy(letterSpacing = AsconType.Eyebrow.letterSpacing * 2 / 3),
-                        color = AsconColors.TextMuted
-                    )
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        touched = event.changes.any { it.pressed }
+                    }
                 }
-                Text(
-                    card.title ?: stringResource(R.string.detection_unknown_title),
-                    style = CardTitle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(chapterLine(card), style = AsconType.Meta, color = AsconColors.TextMuted)
             }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    ) {
+        Column(Modifier.padding(CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            CardHeader(card, onDock)
             val seriesId = card.seriesId
-            if (seriesId != null) {
-                CardButton(
+            when {
+                readerAvailable -> CardButton(
+                    stringResource(R.string.detection_open_reader),
+                    PillColors.Primary,
+                    Modifier.fillMaxWidth(),
+                    onOpenReader
+                )
+                seriesId != null -> CardButton(
                     stringResource(R.string.detection_open_series),
                     PillColors.Primary,
-                    Modifier.weight(1f)
+                    Modifier.fillMaxWidth()
                 ) { onOpenSeries(seriesId) }
             }
-            CardButton(
-                stringResource(R.string.detection_hide),
-                PillColors.Outline,
-                if (seriesId == null) Modifier.weight(1f) else Modifier,
-                onHide
+        }
+        Box(
+            Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(AsconColors.SurfaceSunken)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(remaining.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(AsconColors.Ink)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardHeader(card: DetectionCard, onDock: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        card.cover?.let {
+            CoverArt(it, RoundedCornerShape(AsconRadius.CoverThumb), Modifier.size(44.dp, 62.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Dot(AsconColors.Accent)
+                val eyebrow = if (card.seriesId !=
+                    null
+                ) {
+                    R.string.detection_eyebrow_library
+                } else {
+                    R.string.detection_eyebrow
+                }
+                Text(
+                    stringResource(eyebrow).uppercase(),
+                    style = AsconType.Eyebrow.copy(letterSpacing = AsconType.Eyebrow.letterSpacing * 2 / 3),
+                    color = AsconColors.TextMuted
+                )
+            }
+            Text(
+                card.title ?: stringResource(R.string.detection_unknown_title),
+                style = CardTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(chapterLine(card), style = AsconType.Meta, color = AsconColors.TextMuted)
+        }
+        val dock = stringResource(R.string.detection_dock)
+        Box(
+            Modifier
+                .align(Alignment.Top)
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(AsconColors.Ground)
+                .clickable(role = Role.Button, onClick = onDock)
+                .semantics { contentDescription = dock },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                AsconIcons.ChevronDown,
+                contentDescription = null,
+                tint = AsconColors.TextMuted,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

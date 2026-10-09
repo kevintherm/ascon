@@ -19,7 +19,7 @@ appId: com.ascon.app
 - assertVisible: "3 / 3"
 - back
 - extendedWaitUntil:
-    visible: "Chapter 7 · progress saved"
+    visible: "Chapter 7( · progress saved)?"
     timeout: 15000
 - stopApp
 - launchApp

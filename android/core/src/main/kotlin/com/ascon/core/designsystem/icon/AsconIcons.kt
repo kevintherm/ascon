@@ -29,6 +29,7 @@ object AsconIcons {
     val Search = stroked("Search", circle(11f, 11f, 7f), "m20 20-3.5-3.5")
     val Back = stroked("Back", "M15 5l-7 7 7 7")
     val ChevronRight = stroked("ChevronRight", "M9 6l6 6-6 6")
+    val ChevronDown = stroked("ChevronDown", "M6 9l6 6 6-6")
     val Download = stroked("Download", "M12 4v11M7 10l5 5 5-5M5 20h14")
     val Bell = stroked("Bell", "M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z", "M10 20.5a2 2 0 0 0 4 0")
     val Check = stroked("Check", "M5 12l4 4 10-10")

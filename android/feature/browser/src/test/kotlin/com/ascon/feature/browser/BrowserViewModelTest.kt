@@ -114,19 +114,32 @@ class BrowserViewModelTest {
     }
 
     @Test
-    fun `navigating clears the card and hiding keeps it hidden for the page`() = runTest {
+    fun `a docked card stays docked until the chapter changes`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter())
-        vm.hideCard()
+        assertFalse(vm.state.value.cardDocked)
+        vm.dockCard()
         vm.onDetection(chapter())
-        assertNull(vm.state.value.card)
+        assertTrue(vm.state.value.cardDocked)
+        assertEquals(BigDecimal(14), vm.state.value.card?.chapter)
 
         val next = "https://mangafire.to/read/aztec/chapter-15"
-        vm.onDetection(chapter())
         vm.onHistoryChanged(next, canGoBack = true, canGoForward = false)
         vm.onDetection(chapter(url = next, number = "15"))
         assertEquals(BigDecimal(15), vm.state.value.card?.chapter)
+        assertFalse(vm.state.value.cardDocked)
         assertTrue(vm.state.value.canGoBack)
+    }
+
+    @Test
+    fun `scrolling one screen docks the card`() = runTest {
+        val vm = viewModel()
+        vm.onScrolled(scrollY = 300, viewportHeight = 800)
+        vm.onDetection(chapter())
+        vm.onScrolled(scrollY = 900, viewportHeight = 800)
+        assertFalse(vm.state.value.cardDocked)
+        vm.onScrolled(scrollY = 1100, viewportHeight = 800)
+        assertTrue(vm.state.value.cardDocked)
     }
 
     @Test
@@ -254,12 +267,12 @@ class BrowserViewModelTest {
     }
 
     @Test
-    fun `a hidden card still saves the page`() = runTest {
+    fun `a docked card still saves the page`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter())
-        vm.hideCard()
+        vm.dockCard()
         vm.onDetection(Detection.ReadingPosition(chapter14, page = 7, pageCount = 56))
-        assertNull(vm.state.value.card)
+        assertEquals(7, vm.state.value.card?.page)
         assertEquals(7, library.series("aztec-turning-of-heaven").first()?.progress?.page)
     }
 

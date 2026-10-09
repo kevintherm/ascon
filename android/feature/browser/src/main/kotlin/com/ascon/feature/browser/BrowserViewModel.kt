@@ -40,7 +40,9 @@ data class BrowserUiState(
     /** The chapter on this page, with its pages, for opening the reader again. */
     val readerChapter: ReaderChapter? = null,
     /** Requests the ad blocker stopped on this page. */
-    val blocked: Int = 0
+    val blocked: Int = 0,
+    /** The card has docked into the reader chip above the bar. It shows again when the chapter changes. */
+    val cardDocked: Boolean = false
 ) {
     val host: String get() = displayHost(url)
 }
@@ -93,7 +95,10 @@ class BrowserViewModel(
 
     /** A page on screen reported before its chapter's card exists, applied once it does. */
     private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
-    private var hiddenUrl: String? = null
+    private var scrollY = 0
+
+    /** Where the page was scrolled to when the card appeared. One screen past it docks the card. */
+    private var cardScrollStart = 0
     private var noticeCount = 0L
 
     override fun onPageStarted(url: String) {
@@ -129,7 +134,6 @@ class BrowserViewModel(
         if (page != state.value.url.withoutFragment()) return
         when {
             detection is Detection.ReadingPosition -> onPosition(page, detection)
-            page == hiddenUrl -> Unit
             detection is Detection.ChapterPage -> onChapter(page, detection)
             else -> _state.update { it.copy(card = null, readerUnavailable = false) }
         }
@@ -157,27 +161,37 @@ class BrowserViewModel(
             }
             // add() is false for a page the reader already showed, such as one reached with back.
             val reader = available?.takeIf { readerOpenedFor.add(page) }
-            // The user may have moved on while the library was read.
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
-            _state.update {
-                if (it.url.withoutFragment() == page) {
-                    // A repeat result keeps the page the card already shows.
-                    val kept = chapterCard?.takeIf { old -> old.url == page && old.chapter == card.chapter }
-                    chapterCard = card.copy(page = kept?.page, pageCount = kept?.pageCount)
-                    it.copy(
-                        card = chapterCard,
-                        reader = reader ?: it.reader,
-                        readerChapter = available ?: it.readerChapter,
-                        readerUnavailable = unavailable
-                    )
-                } else {
-                    it
-                }
-            }
+            showChapter(page, card, reader, available, unavailable)
             earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->
                 earlyPosition = null
                 onPosition(page, position)
             }
+        }
+    }
+
+    /** Shows the card for [page], unless the user moved on while the library was read. */
+    private fun showChapter(
+        page: String,
+        card: DetectionCard,
+        reader: ReaderChapter?,
+        available: ReaderChapter?,
+        unavailable: Boolean
+    ) {
+        _state.update {
+            if (it.url.withoutFragment() != page) return@update it
+            // A repeat result keeps the page the card already shows, and stays docked.
+            val kept = chapterCard?.takeIf { old -> old.url == page && old.chapter == card.chapter }
+            chapterCard = card.copy(page = kept?.page, pageCount = kept?.pageCount)
+            val sameChapter = it.card?.url == page && it.card.chapter == card.chapter
+            if (!sameChapter) cardScrollStart = scrollY
+            it.copy(
+                card = chapterCard,
+                cardDocked = sameChapter && it.cardDocked,
+                reader = reader ?: it.reader,
+                readerChapter = available ?: it.readerChapter,
+                readerUnavailable = unavailable
+            )
         }
     }
 
@@ -233,9 +247,15 @@ class BrowserViewModel(
         _state.update { it.copy(reader = null) }
     }
 
-    fun hideCard() {
-        hiddenUrl = state.value.card?.url
-        _state.update { it.copy(card = null) }
+    /** Docks the card into the reader chip: after its countdown, from its chevron, or by scrolling. */
+    fun dockCard() {
+        _state.update { if (it.card != null) it.copy(cardDocked = true) else it }
+    }
+
+    override fun onScrolled(scrollY: Int, viewportHeight: Int) {
+        this.scrollY = scrollY
+        val card = state.value.card
+        if (card != null && !state.value.cardDocked && scrollY - cardScrollStart >= viewportHeight) dockCard()
     }
 
     fun dismissNotice(id: Long) {
@@ -254,6 +274,7 @@ class BrowserViewModel(
             it.copy(
                 url = url,
                 card = if (samePage) it.card else null,
+                cardDocked = samePage && it.cardDocked,
                 reader = if (samePage) it.reader else null,
                 readerChapter = if (samePage) it.readerChapter else null,
                 blocked = if (samePage) it.blocked else 0,

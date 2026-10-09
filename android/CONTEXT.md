@@ -210,6 +210,7 @@ object AsconIcons
     val Search
     val Back
     val ChevronRight
+    val ChevronDown
     val Download
     val Bell
     val Check

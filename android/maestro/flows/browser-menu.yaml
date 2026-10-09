@@ -11,7 +11,7 @@ appId: com.ascon.app
     timeout: 15000
 - back
 - extendedWaitUntil:
-    visible: "Chapter 14 · progress saved"
+    visible: "Chapter 14( · progress saved)?"
     timeout: 15000
 - tapOn: "Menu"
 - tapOn: "Open in Reader"
@@ -27,6 +27,6 @@ appId: com.ascon.app
     timeout: 5000
 - tapOn: "Browse"
 - extendedWaitUntil:
-    visible: "Chapter 14 · progress saved"
+    visible: "Chapter 14( · progress saved)?"
     timeout: 5000
 - assertNotVisible: "Chapter 14 · 10.0.2.2"

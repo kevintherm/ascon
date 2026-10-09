@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -108,7 +109,7 @@ fun BrowserRoute(
                 context.startActivity(Intent.createChooser(send, null))
             },
             onOpenSeries = actions.onOpenSeries,
-            onHideCard = viewModel::hideCard,
+            onDockCard = viewModel::dockCard,
             onNoticeShown = viewModel::dismissNotice,
             onDismissReaderUnavailable = viewModel::dismissReaderUnavailable,
             onOpenReader = viewModel::openReader,
@@ -138,7 +139,7 @@ data class BrowserCommands(
     val onRetry: () -> Unit = {},
     val onShare: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
-    val onHideCard: () -> Unit = {},
+    val onDockCard: () -> Unit = {},
     val onNoticeShown: (Long) -> Unit = {},
     val onDismissReaderUnavailable: () -> Unit = {},
     val onOpenReader: () -> Unit = {},
@@ -210,12 +211,31 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
             ) {
                 state.notice?.let { NoticePill(noticeText(it)) }
             }
+            val readerAvailable = state.readerChapter != null
             AnimatedVisibility(
-                visible = state.card != null && !editing,
+                visible = state.card != null && !state.cardDocked && !editing,
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 }
             ) {
-                state.card?.let { DetectionCardView(it, commands.onOpenSeries, commands.onHideCard) }
+                state.card?.let {
+                    DetectionCardView(
+                        it,
+                        readerAvailable,
+                        commands.onOpenReader,
+                        commands.onOpenSeries,
+                        commands.onDockCard
+                    )
+                }
+            }
+            AnimatedVisibility(
+                visible = state.card != null && state.cardDocked && !editing,
+                enter = fadeIn() + slideInVertically { it / 2 },
+                exit = fadeOut()
+            ) {
+                state.card?.let {
+                    // The chip sits 10 above the bar where the card sits 12, per BrowserV2Docked.
+                    ReaderChip(it, readerAvailable, commands.onOpenReader, Modifier.offset(y = 2.dp))
+                }
             }
             BrowserBar(
                 state = state,

@@ -9,13 +9,13 @@ appId: com.ascon.app
 - extendedWaitUntil:
     visible: "Reader mode isn't available here"
     timeout: 15000
-- assertVisible: "Chapter 16 · page 1 of 12 saved"
+- assertVisible: "(Chapter 16 · page 1 of 12 saved|1 / 12)"
 - swipe:
     direction: UP
 - swipe:
     direction: UP
 - extendedWaitUntil:
-    visible: "Chapter 16 · page [2-9] of 12 saved"
+    visible: "(Chapter 16 · page [2-9] of 12 saved|[2-9] / 12)"
     timeout: 5000
 - tapOn: "Dismiss"
 - assertNotVisible: "Reader mode isn't available here"

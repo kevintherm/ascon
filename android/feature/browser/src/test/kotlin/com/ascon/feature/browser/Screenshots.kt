@@ -61,6 +61,13 @@ class Screenshots {
     }
 
     @Test
+    fun browserDocked() = capture("browser_docked") {
+        val chapter =
+            ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)
+        browser(BrowserUiState(url = url, card = PreviewCard, cardDocked = true, readerChapter = chapter, blocked = 27))
+    }
+
+    @Test
     fun browserMenu() = capture("browser_menu") {
         val chapter =
             ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)
