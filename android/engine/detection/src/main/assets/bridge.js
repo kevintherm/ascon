@@ -4,7 +4,8 @@
  * Injected at document start right after evaluator.js, in the main frame only.
  * It asks the app for the rules that apply to this page, evaluates them as the
  * page changes, and reports what it found. When no rule applies it falls back
- * to heuristics: JSON-LD, og:title and a chapter number in the URL.
+ * to heuristics: JSON-LD, og:title, a chapter number in the URL and the
+ * largest run of images.
  *
  * Messages are JSON strings.
  *   page → app  {"type":"page","url":...}
@@ -60,7 +61,7 @@
 
   // ---- Heuristics -------------------------------------------------------
 
-  var CHAPTER_IN_PATH = /(?:^|[\/_.-])(?:chapter|chap|ch|episode|ep)[-_.]?(\d+(?:[-.]\d+)?)(?=$|[\/_.-])/;
+  var CHAPTER_IN_PATH = /(?:^|[\/_.-])(?:chapter|chap|ch|episode|ep)[-_./]?(\d+(?:[-.]\d+)?)(?=$|[\/_.-])/;
   var CHAPTER_IN_TITLE = /[\s\-–—|:,]*\b(?:chapter|chap|ch|episode|ep)\b\.?\s*#?\d[\s\S]*$/i;
   var TITLE_SEPARATOR = /\s+[|–—-]\s+/;
   var READ_PREFIX = /^read\s+/i;
@@ -115,6 +116,73 @@
     return t === "" ? null : t;
   }
 
+  // Pages of a chapter are images stacked in one container. Fewer than this
+  // many is a preview or a gallery, not a chapter.
+  var MIN_PAGES = 3;
+  // Images narrower than this, by their width attribute, are icons.
+  var MIN_WIDTH = 100;
+  var LAZY_ATTRIBUTES = ["data-src", "data-lazy-src", "data-original"];
+
+  function imageUrl(img, base) {
+    for (var i = 0; i < LAZY_ATTRIBUTES.length; i++) {
+      var lazy = evaluator.resolveUrl(img.getAttribute(LAZY_ATTRIBUTES[i]), base);
+      if (lazy) return lazy;
+    }
+    var srcset = img.getAttribute("srcset");
+    var best = srcset ? evaluator.resolveUrl(evaluator.largestCandidate(srcset), base) : null;
+    return best || evaluator.resolveUrl(img.getAttribute("src"), base);
+  }
+
+  /** The element that holds an image and its siblings, skipping wrappers around one image. */
+  function holderOf(img) {
+    var el = img;
+    while (el.parentElement && el.parentElement.children.length === 1) el = el.parentElement;
+    return el.parentElement;
+  }
+
+  function directoryOf(url) {
+    var path = new URL(url).pathname;
+    return path.slice(0, path.lastIndexOf("/") + 1);
+  }
+
+  /**
+   * Keeps the images that share the most common directory, when at least half do.
+   * That drops a banner placed among the pages without hurting sites whose pages
+   * each live in their own directory.
+   */
+  function sameDirectory(urls) {
+    var counts = {};
+    var top = null;
+    urls.forEach(function (u) {
+      var d = directoryOf(u);
+      counts[d] = (counts[d] || 0) + 1;
+      if (top === null || counts[d] > counts[top]) top = d;
+    });
+    if (counts[top] * 2 < urls.length) return urls;
+    return urls.filter(function (u) { return directoryOf(u) === top; });
+  }
+
+  /** Image URLs from the container that holds the most images, in document order. */
+  function pageImages(base) {
+    var groups = [];
+    var imgs = document.images;
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      var width = parseInt(img.getAttribute("width"), 10);
+      if (width < MIN_WIDTH) continue;
+      var url = imageUrl(img, base);
+      var holder = url && holderOf(img);
+      if (!holder) continue;
+      var group = groups.filter(function (g) { return g.holder === holder; })[0];
+      if (!group) groups.push(group = { holder: holder, urls: [] });
+      if (group.urls.indexOf(url) < 0) group.urls.push(url);
+    }
+    var best = groups.reduce(function (a, g) { return a && a.urls.length >= g.urls.length ? a : g; }, null);
+    if (!best || best.urls.length < MIN_PAGES) return [];
+    var pages = sameDirectory(best.urls);
+    return pages.length < MIN_PAGES ? [] : pages;
+  }
+
   function heuristic(url) {
     var path;
     try {
@@ -130,7 +198,7 @@
       title: cleanTitle(jsonLdTitle() || metaContent('meta[property="og:title"]') || document.title),
       chapterLabel: null,
       chapter: evaluator.parseChapterNumber(m[1]),
-      images: [],
+      images: pageImages(url),
       next: null,
       previous: null
     };

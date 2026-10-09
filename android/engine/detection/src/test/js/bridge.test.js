@@ -230,3 +230,47 @@ test("an unchanged result is not sent twice", async () => {
   await page.close();
   assert.equal(all.length, 1);
 });
+
+test("heuristics take the chapter images from the largest run of images", async () => {
+  const url = "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/203";
+  const got = await detect(url, fixture("heuristic/strip-a.html"), []);
+  assert.equal(got.result.title, "Absolute Sword Sense");
+  assert.equal(got.result.chapter, "203");
+  assert.equal(got.result.images.length, 20);
+  assert.equal(
+    got.result.images[0],
+    "https://cdn.reader-a.example/reader-a-images/chapters/absolute-sword-sense/203/23a82d.webp?v=1790533453",
+  );
+});
+
+test("heuristics leave out a banner that sits among the pages", async () => {
+  const got = await detect("https://reader-b.example/ao-ashi-chapter-410/", fixture("heuristic/strip-b.html"), []);
+  assert.equal(got.result.chapter, "410");
+  assert.equal(got.result.images.length, 32);
+  assert.equal(got.result.images[0], "https://image2.cdn-b.example/upload5/ao-ashi/410/2026-09-25/1.webp");
+  assert.ok(got.result.images.every((u) => u.includes("/upload5/ao-ashi/410/")));
+});
+
+test("heuristics find no pages on a chapter preview", async () => {
+  const url = "https://index-c.example/comic/the-women-who-loved-me/ovyzbkaE-chapter-1-en";
+  const got = await detect(url, fixture("heuristic/preview-only.html"), []);
+  assert.equal(got.result.pageType, "chapter");
+  assert.deepEqual(got.result.images, []);
+});
+
+test("heuristics read lazy image attributes and skip small and inline images", async () => {
+  const html = `<!DOCTYPE html><title>Paper Moth Chapter 3</title>
+    <div class="reader">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" data-src="/p/1.jpg">
+      <figure><img src="/spinner.gif" data-lazy-src="/p/2.jpg"></figure>
+      <picture><img srcset="/p/3-small.jpg 400w, /p/3.jpg 1200w"></picture>
+      <img src="data:image/png;base64,iVBORw0KGgo=">
+      <img src="/p/like.png" width="24" height="24">
+    </div>`;
+  const got = await detect("https://inkwell.example/paper-moth/chapter-3/", html, []);
+  assert.deepEqual(got.result.images, [
+    "https://inkwell.example/p/1.jpg",
+    "https://inkwell.example/p/2.jpg",
+    "https://inkwell.example/p/3.jpg",
+  ]);
+});

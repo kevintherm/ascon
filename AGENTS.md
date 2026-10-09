@@ -231,6 +231,7 @@ How agents work in this repo, agreed with the owner to keep the loop fast.
 
 - Small PRs, one milestone step each. Conventional commit messages.
 - Every use case and every rule evaluator change has tests. Detection rules get golden tests against saved HTML fixtures.
+- Fixtures saved from real sites go through `android/tools/fixture.py`, which strips scripts, shortens text and renames the site, so the repo never names one.
 - Kotlin: ktlint and detekt. Go: golangci-lint. Compose screens get previews and screenshot tests.
 - No new dependency without a one-line reason in the PR.
 - Prose in docs and UI copy: plain, flat sentences. Avoid parentheses where a sentence works.

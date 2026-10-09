@@ -193,6 +193,7 @@
   globalThis.AsconEvaluator = Object.freeze({
     evaluate: evaluate,
     parseChapterNumber: parseChapterNumber,
-    resolveUrl: resolveUrl
+    resolveUrl: resolveUrl,
+    largestCandidate: largestCandidate
   });
 })();
