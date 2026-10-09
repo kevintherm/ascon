@@ -12,9 +12,13 @@
  *   app → page  {"type":"rules","rules":[{"via":...,"when":selector|null,"rule":{...}}]}
  *   page → app  {"type":"result","url":...,"via":"rule"|"builtin"|"heuristic","result":{...}}
  *   page → app  {"type":"position","url":...,"page":n,"pageCount":m}
+ *   page → app  {"type":"tap","url":...,"href":link|null}
  *
  * A position is sent for a chapter whose pages the reader cannot take, so the page is
  * read as it is. It is the page slot most on screen, counted from 1.
+ *
+ * A tap reports the link under the finger, or null, for the navigation guard: a tap
+ * only lets the tab go to another site through the link that was tapped.
  */
 (function () {
   "use strict";
@@ -362,6 +366,14 @@
     watchUntil = Date.now() + WATCH_MS;
     schedule(SETTLE_MS);
   }
+
+  // Registered before any page script, so a page cannot hide a tap from it. Pointerdown
+  // comes before the click handlers that hijack taps.
+  window.addEventListener("pointerdown", function (event) {
+    var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+    var href = link ? evaluator.resolveUrl(link.getAttribute("href"), location.href) : null;
+    send({ type: "tap", url: location.href, href: href });
+  }, true);
 
   // Single-page sites change the URL without loading a new document.
   ["pushState", "replaceState"].forEach(function (name) {

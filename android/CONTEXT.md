@@ -368,7 +368,7 @@ data class ChapterLink(val url: String, val label: String?, val number: BigDecim
 
 ```kotlin
 class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope)
-    fun install(webView: WebView, onDetection: (Detection) -> Unit): Boolean
+    fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): Boolean
     companion object
         const val BRIDGE_NAME
         val ORIGIN_RULES

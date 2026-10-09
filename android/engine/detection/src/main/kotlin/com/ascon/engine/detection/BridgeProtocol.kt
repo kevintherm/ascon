@@ -30,6 +30,11 @@ internal sealed interface PageMessage {
     @Serializable
     @SerialName("position")
     data class Position(val url: String, val page: Int, val pageCount: Int) : PageMessage
+
+    /** [href] is the link under a tap, or null for a tap elsewhere. */
+    @Serializable
+    @SerialName("tap")
+    data class Tap(val url: String, val href: String? = null) : PageMessage
 }
 
 /** The evaluator's result, as contracts/README.md defines it. */
@@ -122,6 +127,9 @@ internal object BridgeProtocol {
             else -> Detection.None(url)
         }
     }
+
+    /** The tapped link, if it is a web page. */
+    fun tappedLink(message: PageMessage.Tap): String? = message.href?.takeIf(::isWebUrl)
 
     /** Null for a page outside the chapter or a count no chapter has. */
     fun toPosition(message: PageMessage.Position): Detection.ReadingPosition? =

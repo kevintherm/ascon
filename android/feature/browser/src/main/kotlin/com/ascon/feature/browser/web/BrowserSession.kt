@@ -5,6 +5,7 @@ import android.content.MutableContextWrapper
 import android.graphics.Bitmap
 import android.net.http.SslError
 import android.os.Message
+import android.os.SystemClock
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
@@ -59,6 +60,12 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
 
     private var webView: TabWebView = first.also(::setUp)
 
+    /** The user's last tap, for the navigation guard. */
+    private var lastTap: Tap? = null
+
+    /** [href] is the link under the tap, or null; [at] is uptime in milliseconds. */
+    private class Tap(val href: String?, val at: Long)
+
     /** The view to place on screen, detached from any old parent and bound to [activity]. */
     fun attach(activity: Context): WebView {
         webView.wrapper.baseContext = activity
@@ -93,6 +100,7 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         view.webViewClient = Client()
         view.webChromeClient = Chrome()
         view.onDetection = { events?.onDetection(it) }
+        view.onTap = { href -> lastTap = Tap(href, SystemClock.uptimeMillis()) }
         view.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
             val kind = if (DownloadPolicy.isBlocked(url, contentDisposition, mimeType)) {
                 BlockedKind.AppDownload
@@ -120,7 +128,8 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
                 to = to,
                 isMainFrame = request.isForMainFrame,
                 hasGesture = request.hasGesture(),
-                isRedirect = request.isRedirect
+                isRedirect = request.isRedirect,
+                tappedLink = lastTap?.takeIf { SystemClock.uptimeMillis() - it.at < TAP_WINDOW_MS }?.href
             ) ?: return false
             if (request.isForMainFrame) {
                 events?.onBlocked(if (blocked == BlockReason.Scheme) BlockedKind.OtherApp else BlockedKind.Redirect, to)
@@ -188,6 +197,9 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
     }
 
     private companion object {
+        /** How long after a tap a navigation can still come from it. */
+        const val TAP_WINDOW_MS = 1500L
+
         fun Int.toKind() = when (this) {
             WebViewClient.ERROR_HOST_LOOKUP -> LoadErrorKind.NotFound
             WebViewClient.ERROR_CONNECT, WebViewClient.ERROR_TIMEOUT -> LoadErrorKind.Unreachable

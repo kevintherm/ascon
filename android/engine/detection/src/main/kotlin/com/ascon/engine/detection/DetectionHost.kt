@@ -22,11 +22,11 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
      * scripts at document start, in which case the page is shown without detection.
      */
     @SuppressLint("RequiresFeature") // Checked by isSupported.
-    fun install(webView: WebView, onDetection: (Detection) -> Unit): Boolean {
+    fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): Boolean {
         if (!isSupported()) return false
         WebViewCompat.addDocumentStartJavaScript(webView, script, ORIGIN_RULES)
         val listener = WebViewCompat.WebMessageListener { _, message, origin, isMainFrame, reply ->
-            if (isMainFrame) onMessage(message, origin.toString(), reply, onDetection)
+            if (isMainFrame) onMessage(message, origin.toString(), reply, Listeners(onDetection, onTap))
         }
         WebViewCompat.addWebMessageListener(webView, BRIDGE_NAME, ORIGIN_RULES, listener)
         return true
@@ -36,13 +36,14 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
         message: WebMessageCompat,
         sourceOrigin: String,
         reply: JavaScriptReplyProxy,
-        onDetection: (Detection) -> Unit
+        listeners: Listeners
     ) {
         val decoded = message.data?.let(BridgeProtocol::decode) ?: return
         val url = when (decoded) {
             is PageMessage.Opened -> decoded.url
             is PageMessage.Result -> decoded.url
             is PageMessage.Position -> decoded.url
+            is PageMessage.Tap -> decoded.url
         }
         // A page may only report about itself.
         if (BridgeProtocol.originOf(url) != sourceOrigin.trimEnd('/').lowercase()) return
@@ -51,10 +52,14 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
                 val host = java.net.URI(url).host ?: return@launch
                 reply.postMessage(BridgeProtocol.encodeRules(rules.candidatesFor(host)))
             }
-            is PageMessage.Result -> onDetection(BridgeProtocol.toDetection(decoded))
-            is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(onDetection)
+            is PageMessage.Result -> listeners.onDetection(BridgeProtocol.toDetection(decoded))
+            is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(listeners.onDetection)
+            is PageMessage.Tap -> listeners.onTap(BridgeProtocol.tappedLink(decoded))
         }
     }
+
+    /** Where results go, and where taps go for the navigation guard. */
+    private class Listeners(val onDetection: (Detection) -> Unit, val onTap: (String?) -> Unit)
 
     companion object {
         /** The name bridge.js finds the listener under, then deletes from the page. */

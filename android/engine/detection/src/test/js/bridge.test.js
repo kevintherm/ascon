@@ -361,3 +361,22 @@ test("a chapter with pages for the reader reports no position", async () => {
   await page.close();
   assert.deepEqual(sent, []);
 });
+
+test("reports the link under each tap, or none", async () => {
+  const html = `<!DOCTYPE html><title>x</title>
+    <a id="next" href="/paper-moth/chapter-4/"><span>Next</span></a>
+    <div id="page" style="height:200px">page</div>`;
+  const page = await open("https://inkwell.example/paper-moth/chapter-3/", html);
+  const press = (selector) =>
+    page.evaluate((sel) => document.querySelector(sel).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })), selector);
+  await press("#next span");
+  await press("#page");
+  const taps = await page.evaluate(() => __sent.filter((m) => m.type === "tap"));
+  await page.close();
+  assert.deepEqual(taps[0], {
+    type: "tap",
+    url: "https://inkwell.example/paper-moth/chapter-3/",
+    href: "https://inkwell.example/paper-moth/chapter-4/",
+  });
+  assert.equal(taps[taps.length - 1].href, null);
+});

@@ -14,8 +14,9 @@ class NavigationGuardTest {
         from: String? = page,
         isMainFrame: Boolean = true,
         hasGesture: Boolean = false,
-        isRedirect: Boolean = false
-    ) = guard.check(from, to, isMainFrame, hasGesture, isRedirect)
+        isRedirect: Boolean = false,
+        tappedLink: String? = null
+    ) = guard.check(from, to, isMainFrame, hasGesture, isRedirect, tappedLink)
 
     @Test
     fun `blocks schemes that leave the browser`() {
@@ -40,8 +41,37 @@ class NavigationGuardTest {
     }
 
     @Test
-    fun `the user can go anywhere`() {
-        assertNull(check("https://mangadex.org/title/1", hasGesture = true))
+    fun `a tapped link can go to another site`() {
+        assertNull(
+            check("https://mangadex.org/title/1", hasGesture = true, tappedLink = "https://mangadex.org/title/1")
+        )
+        // Sites rewrite links on the way out, such as tracking parameters; the site is what counts.
+        assertNull(
+            check(
+                "https://www.mangadex.org/title/1?ref=x",
+                hasGesture = true,
+                tappedLink = "https://mangadex.org/title/1"
+            )
+        )
+    }
+
+    @Test
+    fun `a tap elsewhere cannot send the tab to another site`() {
+        // A click handler that hijacks a tap on the page or on a link to somewhere else.
+        assertEquals(BlockReason.Hijack, check("https://ads.example/landing", hasGesture = true))
+        assertEquals(
+            BlockReason.Hijack,
+            check(
+                "https://ads.example/landing",
+                hasGesture = true,
+                tappedLink = "https://mangafire.to/read/aztec/chapter-13"
+            )
+        )
+    }
+
+    @Test
+    fun `a tap moves freely within the site`() {
+        assertNull(check("https://mangafire.to/read/aztec/chapter-13", hasGesture = true))
     }
 
     @Test

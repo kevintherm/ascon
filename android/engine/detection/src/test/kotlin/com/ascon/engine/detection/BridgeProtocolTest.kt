@@ -135,6 +135,18 @@ class RuleLookupTest {
     }
 
     @Test
+    fun `reads a tap and keeps only web links`() {
+        fun tap(href: String?) = BridgeProtocol.tappedLink(
+            BridgeProtocol.decode(
+                """{"type":"tap","url":"$chapterUrl","href":${href?.let { "\"$it\"" } ?: "null"}}"""
+            ) as PageMessage.Tap
+        )
+        assertEquals("https://lumen.example/next/", tap("https://lumen.example/next/"))
+        assertEquals(null, tap("javascript:void(0)"))
+        assertEquals(null, tap(null))
+    }
+
+    @Test
     fun `drops a position outside the chapter`() {
         listOf(0 to 10, 11 to 10, 1 to 0, 1 to 100_000).forEach { (p, count) ->
             val message = BridgeProtocol.decode(

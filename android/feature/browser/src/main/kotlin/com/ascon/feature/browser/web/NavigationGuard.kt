@@ -9,7 +9,10 @@ enum class BlockReason {
     Scheme,
 
     /** A page sent the tab to another site without the user touching anything. */
-    NoGesture
+    NoGesture,
+
+    /** A tap sent the tab to another site, but not through the link that was tapped. */
+    Hijack
 }
 
 /** Decides which site a host belongs to, such as `mangadex.org` for `api.mangadex.org`. */
@@ -24,18 +27,32 @@ fun interface SiteKey {
  * - The main frame only goes to http and https pages.
  * - A page cannot send the main frame to another site on its own. It needs a user
  *   gesture. Server redirects belong to the navigation that started them and pass.
+ * - A gesture only counts for the site of the link the user tapped, so a click handler
+ *   cannot turn a tap into a trip to an ad site.
  * - Frames may also load `about:`, `data:` and `blob:` documents, which sites use for
  *   their own widgets. Every other scheme is blocked there too.
  */
 class NavigationGuard(private val sites: SiteKey) {
-    /** Returns null to allow the navigation, or why it was blocked. */
-    fun check(from: String?, to: String, isMainFrame: Boolean, hasGesture: Boolean, isRedirect: Boolean): BlockReason? {
+    /**
+     * Returns null to allow the navigation, or why it was blocked. [tappedLink] is the
+     * link under the user's last tap, if the tap was moments ago.
+     */
+    fun check(
+        from: String?,
+        to: String,
+        isMainFrame: Boolean,
+        hasGesture: Boolean,
+        isRedirect: Boolean,
+        tappedLink: String? = null
+    ): BlockReason? {
         val scheme = schemeOf(to) ?: return BlockReason.Scheme
         val allowed = if (isMainFrame) WEB_SCHEMES else FRAME_SCHEMES
+        val site = siteOfUrl(to)
         return when {
             scheme !in allowed -> BlockReason.Scheme
-            !isMainFrame || hasGesture || isRedirect || from == null -> null
-            siteOfUrl(from) != siteOfUrl(to) -> BlockReason.NoGesture
+            !isMainFrame || isRedirect || from == null || siteOfUrl(from) == site -> null
+            !hasGesture -> BlockReason.NoGesture
+            tappedLink == null || siteOfUrl(tappedLink) != site -> BlockReason.Hijack
             else -> null
         }
     }

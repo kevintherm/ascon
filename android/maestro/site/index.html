@@ -12,5 +12,14 @@
 <a href="intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end">Open another app</a>
 <a href="/reader.apk">Download the reader app</a>
 <a href="/redirect.html">Page that redirects by itself</a>
+<a id="hijacked" href="/manga/aztec-turning-of-heaven/chapter-13/">Next page with a hijacked tap</a>
+<a href="http://127.0.0.1:8765/other.html">Go to another site</a>
+<script>
+  // Like an ad script: a tap on the link sends the tab to another site instead.
+  document.getElementById("hijacked").addEventListener("click", function (event) {
+    event.preventDefault();
+    location.href = "http://127.0.0.1:8765/other.html";
+  });
+</script>
 </body>
 </html>

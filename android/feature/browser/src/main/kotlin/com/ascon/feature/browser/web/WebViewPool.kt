@@ -16,6 +16,7 @@ import com.ascon.engine.detection.DetectionHost
 @SuppressLint("ViewConstructor") // Only created in code, never inflated.
 class TabWebView internal constructor(val wrapper: MutableContextWrapper) : WebView(wrapper) {
     internal var onDetection: ((Detection) -> Unit)? = null
+    internal var onTap: ((String?) -> Unit)? = null
 }
 
 /**
@@ -70,7 +71,7 @@ class WebViewPool(
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             WebViewCompat.addDocumentStartJavaScript(view, NO_WINDOW_OPEN, setOf("*"))
         }
-        detection().install(view) { view.onDetection?.invoke(it) }
+        detection().install(view, onDetection = { view.onDetection?.invoke(it) }, onTap = { view.onTap?.invoke(it) })
         return view
     }
 

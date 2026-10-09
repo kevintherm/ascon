@@ -74,6 +74,7 @@ docs/               ADRs and longer notes
 - Bridge with `WebViewCompat.addWebMessageListener`, origin-restricted. Do not use `addJavascriptInterface`.
 - Strip the `X-Requested-With` header with `WebSettingsCompat.setRequestedWithHeaderOriginAllowList(emptySet())`. WebView 153 reports that switch unsupported and still sends `X-Requested-With: com.ascon.app`. Decided with the owner: solve it in step 7, where adblock already routes every request through `shouldInterceptRequest`.
 - Navigation guard in `shouldOverrideUrlLoading`: block `intent://`, `market://` and other non-web schemes; block cross-domain navigations where `request.hasGesture()` is false; deny `onCreateWindow`; override `window.open`.
+- Click hijacking: a tap counts for a cross-domain navigation only when the navigation goes to the link the user tapped. The injected script reports the link under each tap. A site's click handler that sends the page elsewhere is blocked like a redirect.
 - Block APK and executable downloads in the download listener.
 - Keep at most one or two live WebViews. Other tabs are a URL plus a screenshot thumbnail and are recreated on focus.
 - Pre-warm one WebView at app start; first init is slow.
@@ -84,6 +85,8 @@ docs/               ADRs and longer notes
 - Parse filter lists once, serialize the engine to disk, load from the snapshot on start.
 - Network blocking: every request in `shouldInterceptRequest` goes through the engine. Infer resource type from main-frame flag, `Accept` header and extension. Blocked requests return an empty response.
 - Cosmetic blocking: on page start, inject the engine's hide selectors and scriptlets; a `MutationObserver` reports new class and id names back for generic hiding.
+- Main-frame navigations also go through the engine in `shouldOverrideUrlLoading`, tapped or not, so a link to a known ad or popunder domain is blocked. This covers hijacked links the tap rule lets through, including tapped `target=_blank` links, which load in the same tab.
+- Invisible links laid over the page are left to cosmetic filters, since tapping one really is a tap on that link.
 - Filter lists are modules with id, version and toggle: EasyList, EasyPrivacy, an Ascon manga-site list, per-site allowlist as generated exception rules. Toggling rebuilds the engine in the background.
 
 ### Detection

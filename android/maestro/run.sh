@@ -13,6 +13,9 @@ python3 serve.py >/dev/null 2>&1 &
 server=$!
 trap 'kill $server' EXIT
 
+# The emulator's own 127.0.0.1:8765 reaches the server too, as a second site.
+adb reverse tcp:8765 tcp:8765 >/dev/null
+
 mkdir -p build
 if [ $# -eq 0 ]; then set -- flows; fi
 "$MAESTRO" test --format=junit --output=build/report.xml "$@"

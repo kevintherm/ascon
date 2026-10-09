@@ -1,4 +1,5 @@
 # Step 5: the browser stops pages from leaving the app, installing apps or redirecting on their own.
+# A tap only takes the tab to another site through the link that was tapped.
 appId: com.ascon.app
 ---
 - launchApp:
@@ -12,6 +13,19 @@ appId: com.ascon.app
 - assertVisible: "Stopped this page from opening another app"
 - tapOn: "Download the reader app"
 - assertVisible: "Blocked an app download"
+- tapOn: "Next page with a hijacked tap"
+- extendedWaitUntil:
+    visible: "Stopped a redirect to 127.0.0.1"
+    timeout: 15000
+- assertVisible: "Ascon test site"
+- tapOn: "Go to another site"
+- extendedWaitUntil:
+    visible: "Another test site"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "Page that redirects by itself"
+    timeout: 15000
 - tapOn: "Page that redirects by itself"
 - extendedWaitUntil:
     visible: "Stopped a redirect to 127.0.0.1"
