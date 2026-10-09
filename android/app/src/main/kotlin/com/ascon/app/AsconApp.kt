@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -35,7 +37,12 @@ import com.ascon.core.designsystem.component.NavItem
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.ReadingStatus
-import com.ascon.feature.browser.BrowseScreen
+import com.ascon.feature.browser.BrowseRoute
+import com.ascon.feature.browser.BrowseViewModel
+import com.ascon.feature.browser.BrowserActions
+import com.ascon.feature.browser.BrowserRoute
+import com.ascon.feature.browser.BrowserViewModel
+import com.ascon.feature.browser.web.BrowserSessionHolder
 import com.ascon.feature.library.home.HomeActions
 import com.ascon.feature.library.home.HomeRoute
 import com.ascon.feature.library.home.HomeViewModel
@@ -55,11 +62,13 @@ private val NavBarGap = 32.dp
 /**
  * The whole app. Tabs live in [TabHost], always composed at the bottom. The back stack
  * holds [Route.Root] plus detail screens, which [NavDisplay] slides in over the tabs.
- * The floating nav sits on top and hides while a detail screen is open.
+ * The floating nav sits on top and hides while a detail screen is open. [startUrl], when
+ * set, opens a browser tab over the tabs at launch.
  */
 @Composable
-fun AsconApp(container: AppContainer) {
+fun AsconApp(container: AppContainer, startUrl: String? = null) {
     val backStack = rememberNavBackStack(Route.Root)
+    LaunchedEffect(startUrl) { startUrl?.let { backStack.push(Route.Browser(it)) } }
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     val cover = remember { CoverState() }
     val tabsShown = backStack.showsTabs()
@@ -70,8 +79,10 @@ fun AsconApp(container: AppContainer) {
     val home = viewModel { HomeViewModel(container.library, container.accounts) }
     val library = viewModel { LibraryViewModel(container.library, ReadingStatus.Reading) }
     val settings = viewModel { SettingsViewModel(container.settings, container.accounts, container.clock) }
+    val browse = viewModel { BrowseViewModel(container.library) }
 
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
+    val openUrl: (String) -> Unit = { backStack.push(Route.Browser(it)) }
     val openLibrary: (ReadingStatus) -> Unit = { status ->
         library.selectFilter(status)
         tab = Tab.Library
@@ -92,7 +103,7 @@ fun AsconApp(container: AppContainer) {
                             onOpenSeries = openSeries,
                             onSeeAll = { openLibrary(ReadingStatus.Reading) },
                             onStatus = openLibrary,
-                            onOpenSite = { tab = Tab.Browse },
+                            onOpenSite = { site -> openUrl("https://${site.domain}/") },
                             onAddSite = { tab = Tab.Browse }
                         ),
                         bottomPadding = bottomPadding
@@ -102,7 +113,7 @@ fun AsconApp(container: AppContainer) {
                         actions = LibraryActions(onOpenSeries = openSeries, onOpenSite = { tab = Tab.Browse }),
                         bottomPadding = bottomPadding
                     )
-                    Tab.Browse -> BrowseScreen(bottomPadding)
+                    Tab.Browse -> BrowseRoute(browse, onOpen = openUrl, bottomPadding = bottomPadding)
                     Tab.Settings -> SettingsRoute(
                         viewModel = settings,
                         actions = SettingsActions(),
@@ -126,6 +137,15 @@ fun AsconApp(container: AppContainer) {
                         SeriesRoute(
                             viewModel = viewModel { SeriesViewModel(container.library, key.id, container.clock) },
                             actions = SeriesActions(onBack = { backStack.pop() })
+                        )
+                    }
+                    entry<Route.Browser> { key ->
+                        BrowserRoute(
+                            viewModel = viewModel {
+                                BrowserViewModel(container.library, container.clock, createSavedStateHandle(), key.url)
+                            },
+                            session = viewModel { BrowserSessionHolder(container.webViews) }.session,
+                            actions = BrowserActions(onClose = { backStack.pop() }, onOpenSeries = openSeries)
                         )
                     }
                 }

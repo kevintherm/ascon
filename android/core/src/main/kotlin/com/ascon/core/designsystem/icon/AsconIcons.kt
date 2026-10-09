@@ -35,6 +35,17 @@ object AsconIcons {
     val Plus = stroked("Plus", "M12 5v14M5 12h14")
     val Sort = stroked("Sort", "M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3")
     val Person = stroked("Person", circle(12f, 8f, 4f), "M5 20a7 7 0 0 1 14 0")
+    val Forward = stroked("Forward", "M9 5l7 7-7 7")
+    val Close = stroked("Close", "M6 6l12 12M18 6 6 18")
+    val Reload = stroked("Reload", "M20 12a8 8 0 1 1-2.34-5.66", "M20 4v4.5h-4.5")
+    val Share = stroked("Share", "M12 4v11M7.5 8.5 12 4l4.5 4.5", "M6 13v6h12v-6")
+    val Offline = stroked(
+        "Offline",
+        "M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 10.5-2M8.5 15.5a5 5 0 0 1 5-1",
+        circle(12f, 19f, 1f),
+        "M3 3l18 18"
+    )
+    val Shield = stroked("Shield", "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z")
     val Play = filled("Play", "M8 5.5v13l11-6.5z")
     val More = filled("More", circle(5f, 12f, 1.8f), circle(12f, 12f, 1.8f), circle(19f, 12f, 1.8f))
 

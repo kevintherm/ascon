@@ -1,0 +1,24 @@
+# Step 5: the browser stops pages from leaving the app, installing apps or redirecting on their own.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/"
+- extendedWaitUntil:
+    visible: "Open another app"
+    timeout: 15000
+- tapOn: "Open another app"
+- assertVisible: "Stopped this page from opening another app"
+- tapOn: "Download the reader app"
+- assertVisible: "Blocked an app download"
+- tapOn: "Page that redirects by itself"
+- extendedWaitUntil:
+    visible: "Stopped a redirect to 127.0.0.1"
+    timeout: 15000
+- assertVisible: "This page tries to leave for another site without a tap."
+# Back walks the history, then closes the browser.
+- back
+- assertVisible: "Ascon test site"
+- back
+- assertVisible: "Continue reading"

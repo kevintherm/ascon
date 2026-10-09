@@ -1,5 +1,7 @@
 package com.ascon.core.data.fake
 
+import com.ascon.core.model.ReadingStatus
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -30,5 +32,52 @@ class FakeLibraryRepositoryTest {
         val aztec = FakeLibrary.series(clock).first { it.id == "aztec-turning-of-heaven" }
         assertEquals(listOf(13, 14), aztec.upNext.map { it.number.toInt() })
         assertEquals(2, aztec.newChapterCount)
+    }
+
+    @Test
+    fun `opening a chapter moves progress and reads the ones before it`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        val at = clock.instant().plusSeconds(60)
+        repo.recordChapterOpened("aztec-turning-of-heaven", BigDecimal(14), at)
+
+        val aztec = repo.series("aztec-turning-of-heaven").first()!!
+        assertEquals(BigDecimal(14), aztec.progress?.chapter)
+        assertEquals(0, aztec.progress?.page)
+        assertEquals("mangaplus", aztec.progress?.sourceId)
+        assertEquals((1..13).toList(), aztec.chapters.filter { it.read }.map { it.number.toInt() })
+        assertEquals(at, aztec.lastReadAt)
+    }
+
+    @Test
+    fun `opening an older chapter keeps progress`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordChapterOpened("aztec-turning-of-heaven", BigDecimal(3), clock.instant())
+        assertEquals(BigDecimal(12), repo.series("aztec-turning-of-heaven").first()?.progress?.chapter)
+    }
+
+    @Test
+    fun `opening the chapter in progress keeps the page`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordChapterOpened("aztec-turning-of-heaven", BigDecimal("12.0"), clock.instant())
+        assertEquals(34, repo.series("aztec-turning-of-heaven").first()?.progress?.page)
+    }
+
+    @Test
+    fun `opening a planned series starts reading it`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordChapterOpened("tidewater-saga", BigDecimal.ONE, clock.instant())
+        val saga = repo.series("tidewater-saga").first()!!
+        assertEquals(ReadingStatus.Reading, saga.status)
+        assertEquals(BigDecimal.ONE, saga.progress?.chapter)
+    }
+
+    @Test
+    fun `opening a chapter the library did not know adds it`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordChapterOpened("aztec-turning-of-heaven", BigDecimal(15), clock.instant())
+        val aztec = repo.series("aztec-turning-of-heaven").first()!!
+        assertEquals((1..15).toList(), aztec.chapters.map { it.number.toInt() })
+        assertEquals(BigDecimal(15), aztec.latestChapter?.number)
+        assertEquals(false, aztec.latestChapter?.read)
     }
 }

@@ -62,12 +62,15 @@ fun GroupedCard(
     )
 }
 
-/** A hairline between rows, inset to line up with the rows' content. */
+/**
+ * A hairline between rows, inset to line up with the rows' content. [start] can be larger
+ * than [inset] to line up with text after a leading icon.
+ */
 @Composable
-fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset) {
+fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset, start: Dp = inset) {
     Spacer(
         modifier
-            .padding(horizontal = inset)
+            .padding(start = start, end = inset)
             .fillMaxWidth()
             .height(1.dp)
             .background(AsconColors.SurfaceSunken)

@@ -1,0 +1,144 @@
+package com.ascon.feature.browser
+
+import androidx.lifecycle.SavedStateHandle
+import com.ascon.core.data.fake.FakeLibrary
+import com.ascon.core.data.fake.FakeLibraryRepository
+import com.ascon.engine.detection.Detection
+import com.ascon.engine.detection.DetectionSource
+import com.ascon.feature.browser.web.BlockedKind
+import com.ascon.feature.browser.web.LoadErrorKind
+import java.math.BigDecimal
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class BrowserViewModelTest {
+    private val clock = Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC)
+    private val library = FakeLibraryRepository(FakeLibrary.series(clock))
+    private val chapter14 = "https://mangafire.to/read/aztec/chapter-14"
+
+    @Before
+    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
+
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
+        BrowserViewModel(library, clock, saved, initialUrl = chapter14).also {
+            it.onPageStarted(chapter14)
+        }
+
+    private fun chapter(url: String = chapter14, title: String? = "Aztec Turning of Heaven", number: String? = "14") =
+        Detection.ChapterPage(
+            url = url,
+            source = DetectionSource.BuiltIn,
+            seriesSlug = "aztec",
+            title = title,
+            chapterLabel = null,
+            chapter = number?.let(::BigDecimal),
+            images = emptyList(),
+            next = null,
+            previous = null
+        )
+
+    @Test
+    fun `a chapter of a library series records progress and shows the card`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(title = "aztec turning of heaven"))
+
+        val card = vm.state.value.card!!
+        assertEquals("Aztec Turning of Heaven", card.title)
+        assertEquals("aztec-turning-of-heaven", card.seriesId)
+        assertTrue(card.saved)
+        assertEquals(BigDecimal(14), library.series("aztec-turning-of-heaven").first()?.progress?.chapter)
+    }
+
+    @Test
+    fun `progress is recorded once per page`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        library.recordChapterOpened("aztec-turning-of-heaven", BigDecimal(3), clock.instant().plusSeconds(1))
+        vm.onDetection(chapter())
+        assertEquals(clock.instant().plusSeconds(1), library.series("aztec-turning-of-heaven").first()?.lastReadAt)
+    }
+
+    @Test
+    fun `an unknown series shows the card without saving`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(title = "Moonlit Ferry"))
+        val card = vm.state.value.card!!
+        assertNull(card.seriesId)
+        assertFalse(card.saved)
+    }
+
+    @Test
+    fun `results for another page are ignored`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(url = "https://mangafire.to/read/aztec/chapter-13"))
+        assertNull(vm.state.value.card)
+        vm.onDetection(chapter(url = "$chapter14#page-3"))
+        assertEquals(chapter14, vm.state.value.card?.url)
+    }
+
+    @Test
+    fun `navigating clears the card and hiding keeps it hidden for the page`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        vm.hideCard()
+        vm.onDetection(chapter())
+        assertNull(vm.state.value.card)
+
+        val next = "https://mangafire.to/read/aztec/chapter-15"
+        vm.onDetection(chapter())
+        vm.onHistoryChanged(next, canGoBack = true, canGoForward = false)
+        vm.onDetection(chapter(url = next, number = "15"))
+        assertEquals(BigDecimal(15), vm.state.value.card?.chapter)
+        assertTrue(vm.state.value.canGoBack)
+    }
+
+    @Test
+    fun `a page that is not a chapter has no card`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        vm.onDetection(Detection.None(chapter14))
+        assertNull(vm.state.value.card)
+    }
+
+    @Test
+    fun `errors, notices and the saved URL`() = runTest {
+        val saved = SavedStateHandle()
+        val vm = viewModel(saved)
+        vm.onLoadError("https://www.mangadex.org/", LoadErrorKind.Unreachable)
+        assertEquals(LoadError("mangadex.org", LoadErrorKind.Unreachable), vm.state.value.error)
+        vm.retry()
+        assertNull(vm.state.value.error)
+
+        vm.onBlocked(BlockedKind.Redirect, "https://ads.example/x")
+        val notice = vm.state.value.notice!!
+        assertEquals("ads.example", notice.host)
+        vm.dismissNotice(notice.id + 1)
+        assertEquals(notice, vm.state.value.notice)
+        vm.dismissNotice(notice.id)
+        assertNull(vm.state.value.notice)
+
+        assertEquals(
+            chapter14,
+            BrowserViewModel(library, clock, saved, initialUrl = "https://x.example/").state.value.url
+        )
+    }
+}

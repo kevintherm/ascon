@@ -1,6 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Browse tab -->
     <string name="browse_title">Browse</string>
-    <string name="browse_placeholder_title">The browser is next</string>
-    <string name="browse_placeholder_body">Open any site here and Ascon will track what you read. It arrives in the next build step.</string>
+    <string name="browse_address_hint">Search or type an address</string>
+    <string name="browse_your_sites">Your sites</string>
+    <string name="browse_no_sites">Sites you read on show up here.</string>
+    <string name="browse_webview_outdated_title">Android System WebView is out of date</string>
+    <string name="browse_webview_outdated_body">Update it from the Play Store for security fixes. Pages still open.</string>
+    <string name="browse_webview_no_detection_title">Detection needs a newer WebView</string>
+    <string name="browse_webview_no_detection_body">Pages open, but Ascon can\'t track chapters until Android System WebView is updated.</string>
+    <string name="browse_webview_missing_title">No WebView installed</string>
+    <string name="browse_webview_missing_body">Ascon shows sites with Android System WebView. Install or enable it to browse.</string>
+
+    <!-- Browser bar -->
+    <string name="browser_back">Back</string>
+    <string name="browser_close">Close browser</string>
+    <string name="browser_cancel_edit">Cancel</string>
+    <string name="browser_address">Address, %1$s</string>
+    <string name="browser_more">More</string>
+    <string name="browser_forward">Forward</string>
+    <string name="browser_reload">Reload</string>
+    <string name="browser_share">Share page</string>
+    <string name="browser_loading">Loading</string>
+
+    <!-- Detection card -->
+    <string name="detection_eyebrow">Detected</string>
+    <string name="detection_eyebrow_library">Detected · In your library</string>
+    <string name="detection_unknown_title">Unknown series</string>
+    <string name="detection_chapter_saved">Chapter %1$s · progress saved</string>
+    <string name="detection_chapter_not_in_library">Chapter %1$s · not in your library</string>
+    <string name="detection_no_chapter">Chapter number not found</string>
+    <string name="detection_open_series">Open series</string>
+    <string name="detection_hide">Hide</string>
+
+    <!-- Load errors -->
+    <string name="error_not_found_title">Can\'t find %1$s</string>
+    <string name="error_not_found_body">The address doesn\'t exist, or your network is blocking it.</string>
+    <string name="error_unreachable_title">Can\'t reach %1$s</string>
+    <string name="error_unreachable_body">The connection timed out. Your network may be blocking this site.</string>
+    <string name="error_insecure_title">%1$s isn\'t secure</string>
+    <string name="error_insecure_body">Its certificate isn\'t valid, so Ascon didn\'t open the page.</string>
+    <string name="error_crashed_title">This page stopped working</string>
+    <string name="error_crashed_body">It ran out of memory or crashed. Reload to try again.</string>
+    <string name="error_other_title">Can\'t open %1$s</string>
+    <string name="error_other_body">Something went wrong while loading this page.</string>
+    <string name="error_retry">Retry</string>
+
+    <!-- Blocked notices -->
+    <string name="blocked_redirect">Stopped a redirect to %1$s</string>
+    <string name="blocked_other_app">Stopped this page from opening another app</string>
+    <string name="blocked_popup">Blocked a pop-up</string>
+    <string name="blocked_app_download">Blocked an app download</string>
+    <string name="blocked_download">Downloads from sites aren\'t supported yet</string>
 </resources>

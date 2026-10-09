@@ -1,0 +1,49 @@
+[
+  {
+    "name": "madara",
+    "when": "meta[name=generator][content*=Madara], .wp-manga-chapter-img, li.wp-manga-chapter",
+    "rule": {
+      "schemaVersion": 1,
+      "domain": "madara.invalid",
+      "version": 1,
+      "chapterPage": {
+        "url": "https?://[^/]+/(?:manga|manhwa|manhua|webtoon|comic|series)/(?<series>[^/?#]+)/(?<chapter>[^/?#]+)/?(?:\\?[^#]*)?(?:#.*)?",
+        "title": { "selector": "#chapter-heading", "pattern": "^(?<value>.+?) [-–] " },
+        "chapterLabel": { "selector": ".c-breadcrumb li.active" },
+        "images": {
+          "selector": ".reading-content img.wp-manga-chapter-img",
+          "attributes": ["data-src", "data-lazy-src", "src"]
+        },
+        "next": { "selector": ".nav-next a.next_page" },
+        "previous": { "selector": ".nav-previous a.prev_page" }
+      },
+      "seriesPage": {
+        "url": "https?://[^/]+/(?:manga|manhwa|manhua|webtoon|comic|series)/(?<series>[^/?#]+)/?(?:\\?[^#]*)?(?:#.*)?",
+        "title": { "selector": ".post-title h1" },
+        "chapterLinks": "li.wp-manga-chapter > a"
+      }
+    }
+  },
+  {
+    "name": "themesia",
+    "when": "#readerarea, #chapterlist",
+    "rule": {
+      "schemaVersion": 1,
+      "domain": "themesia.invalid",
+      "version": 1,
+      "chapterPage": {
+        "url": "https?://[^/]+/(?<series>[a-z0-9-]+?)-(?:chapter|ch|episode)-(?<chapter>[0-9]+(?:-[0-9]+)?)/?(?:\\?[^#]*)?(?:#.*)?",
+        "title": { "selector": ".allc a" },
+        "chapterLabel": { "selector": "h1.entry-title" },
+        "images": { "selector": "#readerarea img", "attributes": ["data-src", "src"] },
+        "next": { "selector": ".nextprev a.ch-next-btn" },
+        "previous": { "selector": ".nextprev a.ch-prev-btn" }
+      },
+      "seriesPage": {
+        "url": "https?://[^/]+/(?:manga|comics|series)/(?<series>[^/?#]+)/?(?:\\?[^#]*)?(?:#.*)?",
+        "title": { "selector": "h1.entry-title" },
+        "chapterLinks": "#chapterlist li a"
+      }
+    }
+  }
+]

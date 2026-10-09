@@ -14,6 +14,10 @@ sealed interface Route : NavKey {
 
     @Serializable
     data class Series(val id: String) : Route
+
+    /** A browser tab opened at [url]. */
+    @Serializable
+    data class Browser(val url: String) : Route
 }
 
 /** The floating nav's tabs, in order. The order is also the direction tabs slide. */
