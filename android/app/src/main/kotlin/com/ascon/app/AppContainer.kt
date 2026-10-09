@@ -12,6 +12,7 @@ import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.InMemoryRuleCache
 import com.ascon.engine.detection.RuleLookup
 import com.ascon.feature.browser.web.WebViewPool
+import com.ascon.feature.reader.ReaderImages
 import java.time.Clock
 import java.time.Duration
 import kotlinx.coroutines.MainScope
@@ -45,4 +46,6 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     }
 
     val webViews = WebViewPool(app, detection = { detection })
+
+    val pageImages = ReaderImages(app)
 }

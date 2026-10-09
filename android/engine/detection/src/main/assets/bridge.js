@@ -183,24 +183,55 @@
     return pages.length < MIN_PAGES ? [] : pages;
   }
 
-  function heuristic(url) {
-    var path;
+  /** Where the chapter number sits in a URL, or null when it names no chapter. */
+  function chapterInUrl(url) {
+    var u;
     try {
-      path = new URL(url).pathname.toLowerCase();
+      u = new URL(url);
     } catch (e) {
-      return { pageType: "none" };
+      return null;
     }
+    var path = u.pathname.toLowerCase();
     var m = CHAPTER_IN_PATH.exec(path);
-    if (!m) return { pageType: "none" };
+    if (!m) return null;
+    return {
+      before: u.origin + path.slice(0, m.index),
+      after: path.slice(m.index + m[0].length),
+      raw: m[1],
+      number: parseFloat(evaluator.parseChapterNumber(m[1]))
+    };
+  }
+
+  /**
+   * The nearest chapters before and after, from links that differ from this page's URL
+   * only in the chapter number. Those belong to the same series and language.
+   */
+  function neighbors(here, base) {
+    var next = null, previous = null, nextN = Infinity, previousN = -Infinity;
+    var links = document.querySelectorAll("a[href]");
+    for (var i = 0; i < links.length; i++) {
+      var url = evaluator.resolveUrl(links[i].getAttribute("href"), base);
+      var c = url && chapterInUrl(url);
+      if (!c || c.before !== here.before || c.after !== here.after || isNaN(c.number)) continue;
+      if (c.number > here.number && c.number < nextN) { next = url; nextN = c.number; }
+      if (c.number < here.number && c.number > previousN) { previous = url; previousN = c.number; }
+    }
+    return { next: next, previous: previous };
+  }
+
+  function heuristic(url) {
+    var here = chapterInUrl(url);
+    if (!here) return { pageType: "none" };
+    var around = neighbors(here, url);
     return {
       pageType: "chapter",
       series: null,
       title: cleanTitle(jsonLdTitle() || metaContent('meta[property="og:title"]') || document.title),
       chapterLabel: null,
-      chapter: evaluator.parseChapterNumber(m[1]),
+      chapter: evaluator.parseChapterNumber(here.raw),
       images: pageImages(url),
-      next: null,
-      previous: null
+      next: around.next,
+      previous: around.previous
     };
   }
 

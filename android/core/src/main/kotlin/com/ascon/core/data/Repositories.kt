@@ -25,6 +25,13 @@ interface LibraryRepository {
      * progress back.
      */
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
+
+    /**
+     * Records that page [page] of [pageCount], counted from 1, is on screen in the
+     * reader. Opens the chapter first, as [recordChapterOpened] does. Reaching the
+     * last page marks the chapter read.
+     */
+    suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
 }
 
 interface SettingsRepository {

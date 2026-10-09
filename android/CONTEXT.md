@@ -11,6 +11,7 @@ interface LibraryRepository
     fun series(id: String): Flow<Series?>
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
+    suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
 interface SettingsRepository
     val settings: Flow<Settings>
     val summary: Flow<SettingsSummary>
@@ -37,6 +38,7 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override fun series(id: String): Flow<Series?>
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
+    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeSettingsRepository.kt
@@ -185,6 +187,8 @@ object AsconIcons
     val Sort
     val Person
     val Forward
+    val PreviousChapter
+    val NextChapter
     val Close
     val Reload
     val Share
@@ -289,6 +293,12 @@ object AsconType
 sealed interface AccountState
     data object SignedOut : AccountState
     data class SignedIn(val displayName: String, val premium: Boolean, val lastSyncedAt: Instant?) : AccountState
+```
+
+## core/src/main/kotlin/com/ascon/core/model/ReaderChapter.kt
+
+```kotlin
+data class ReaderChapter(val url: String, val title: String?, val chapter: BigDecimal?, val seriesId: String?, val pages: List<String>, val next: String?, val previous: String?)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/Series.kt

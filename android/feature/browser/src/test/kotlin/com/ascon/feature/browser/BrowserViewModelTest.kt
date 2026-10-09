@@ -3,6 +3,7 @@ package com.ascon.feature.browser
 import androidx.lifecycle.SavedStateHandle
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeLibraryRepository
+import com.ascon.core.model.ReaderChapter
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.DetectionSource
 import com.ascon.feature.browser.web.BlockedKind
@@ -43,18 +44,22 @@ class BrowserViewModelTest {
             it.onPageStarted(chapter14)
         }
 
-    private fun chapter(url: String = chapter14, title: String? = "Aztec Turning of Heaven", number: String? = "14") =
-        Detection.ChapterPage(
-            url = url,
-            source = DetectionSource.BuiltIn,
-            seriesSlug = "aztec",
-            title = title,
-            chapterLabel = null,
-            chapter = number?.let(::BigDecimal),
-            images = emptyList(),
-            next = null,
-            previous = null
-        )
+    private fun chapter(
+        url: String = chapter14,
+        title: String? = "Aztec Turning of Heaven",
+        number: String? = "14",
+        images: List<String> = emptyList()
+    ) = Detection.ChapterPage(
+        url = url,
+        source = DetectionSource.BuiltIn,
+        seriesSlug = "aztec",
+        title = title,
+        chapterLabel = null,
+        chapter = number?.let(::BigDecimal),
+        images = images,
+        next = if (images.isEmpty()) null else "$chapter14/next",
+        previous = null
+    )
 
     @Test
     fun `a chapter of a library series records progress and shows the card`() = runTest {
@@ -140,5 +145,47 @@ class BrowserViewModelTest {
             chapter14,
             BrowserViewModel(library, clock, saved, initialUrl = "https://x.example/").state.value.url
         )
+    }
+
+    @Test
+    fun `a chapter with pages opens the reader once per page`() = runTest {
+        val vm = viewModel()
+        val pages = listOf("https://cdn.example/1.webp", "https://cdn.example/2.webp", "https://cdn.example/3.webp")
+        vm.onDetection(chapter(title = "aztec turning of heaven", images = pages))
+
+        assertEquals(
+            ReaderChapter(
+                url = chapter14,
+                title = "Aztec Turning of Heaven",
+                chapter = BigDecimal(14),
+                seriesId = "aztec-turning-of-heaven",
+                pages = pages,
+                next = "$chapter14/next",
+                previous = null
+            ),
+            vm.state.value.reader
+        )
+        vm.readerOpened()
+        assertNull(vm.state.value.reader)
+
+        // Coming back from the reader shows the page again, and detection runs again.
+        vm.onDetection(chapter(images = pages))
+        assertNull(vm.state.value.reader)
+
+        // Going back through the site's history to a page the reader showed stays on the site.
+        val chapter15 = "https://mangafire.to/read/aztec/chapter-15"
+        vm.onPageStarted(chapter15)
+        vm.onDetection(chapter(url = chapter15, number = "15", images = pages))
+        vm.readerOpened()
+        vm.onPageStarted(chapter14)
+        vm.onDetection(chapter(images = pages))
+        assertNull(vm.state.value.reader)
+    }
+
+    @Test
+    fun `a chapter without pages stays on the site`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter())
+        assertNull(vm.state.value.reader)
     }
 }

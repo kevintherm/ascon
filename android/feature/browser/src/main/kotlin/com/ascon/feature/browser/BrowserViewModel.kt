@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.model.Cover
+import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.matchSeries
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.withoutFragment
@@ -30,7 +31,9 @@ data class BrowserUiState(
     val canGoForward: Boolean = false,
     val error: LoadError? = null,
     val card: DetectionCard? = null,
-    val notice: Notice? = null
+    val notice: Notice? = null,
+    /** A chapter with pages, waiting for the reader to open. See [BrowserViewModel.readerOpened]. */
+    val reader: ReaderChapter? = null
 ) {
     val host: String get() = displayHost(url)
 }
@@ -57,7 +60,9 @@ data class Notice(val kind: BlockedKind, val host: String, val id: Long)
  * only sees its events, so it is tested without one.
  *
  * When detection finds a chapter of a series in the library, progress is recorded once
- * per page. Matching is by exact title key for now.
+ * per page. Matching is by exact title key for now. A chapter with pages opens the
+ * reader once per page, so coming back from the reader, or going back to a page the
+ * reader showed, shows the site.
  */
 class BrowserViewModel(
     private val library: LibraryRepository,
@@ -70,6 +75,7 @@ class BrowserViewModel(
     val state: StateFlow<BrowserUiState> = _state.asStateFlow()
 
     private var recordedUrl: String? = null
+    private val readerOpenedFor = mutableSetOf<String>()
     private var hiddenUrl: String? = null
     private var noticeCount = 0L
 
@@ -124,9 +130,29 @@ class BrowserViewModel(
                 cover = series?.cover,
                 saved = series != null && chapter != null
             )
+            // add() is false for a page the reader already showed, such as one reached with back.
+            val reader = if (detection.images.isNotEmpty() && readerOpenedFor.add(page)) {
+                ReaderChapter(
+                    page,
+                    card.title,
+                    chapter,
+                    series?.id,
+                    detection.images,
+                    detection.next,
+                    detection.previous
+                )
+            } else {
+                null
+            }
             // The user may have moved on while the library was read.
-            _state.update { if (it.url.withoutFragment() == page) it.copy(card = card) else it }
+            _state.update {
+                if (it.url.withoutFragment() == page) it.copy(card = card, reader = reader ?: it.reader) else it
+            }
         }
+    }
+
+    fun readerOpened() {
+        _state.update { it.copy(reader = null) }
     }
 
     fun hideCard() {
@@ -147,7 +173,7 @@ class BrowserViewModel(
         saved[KEY_URL] = url
         _state.update {
             val samePage = it.url.withoutFragment() == url.withoutFragment()
-            it.copy(url = url, card = if (samePage) it.card else null)
+            it.copy(url = url, card = if (samePage) it.card else null, reader = if (samePage) it.reader else null)
         }
     }
 

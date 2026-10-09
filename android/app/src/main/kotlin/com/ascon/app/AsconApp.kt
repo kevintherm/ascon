@@ -49,6 +49,9 @@ import com.ascon.feature.library.home.HomeViewModel
 import com.ascon.feature.library.shelf.LibraryActions
 import com.ascon.feature.library.shelf.LibraryRoute
 import com.ascon.feature.library.shelf.LibraryViewModel
+import com.ascon.feature.reader.ReaderActions
+import com.ascon.feature.reader.ReaderRoute
+import com.ascon.feature.reader.ReaderViewModel
 import com.ascon.feature.series.SeriesActions
 import com.ascon.feature.series.SeriesRoute
 import com.ascon.feature.series.SeriesViewModel
@@ -83,6 +86,8 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
 
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
     val openUrl: (String) -> Unit = { backStack.push(Route.Browser(it)) }
+    // A chapter picked in the reader, for the browser tab under it to load.
+    var browserLoad by rememberSaveable { mutableStateOf<String?>(null) }
     val openLibrary: (ReadingStatus) -> Unit = { status ->
         library.selectFilter(status)
         tab = Tab.Library
@@ -145,7 +150,28 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                                 BrowserViewModel(container.library, container.clock, createSavedStateHandle(), key.url)
                             },
                             session = viewModel { BrowserSessionHolder(container.webViews) }.session,
-                            actions = BrowserActions(onClose = { backStack.pop() }, onOpenSeries = openSeries)
+                            actions = BrowserActions(
+                                onClose = { backStack.pop() },
+                                onOpenSeries = openSeries,
+                                onOpenReader = { backStack.push(Route.Reader.of(it)) },
+                                onUrlLoaded = { browserLoad = null }
+                            ),
+                            loadUrl = browserLoad
+                        )
+                    }
+                    entry<Route.Reader> { key ->
+                        ReaderRoute(
+                            viewModel = viewModel {
+                                ReaderViewModel(container.library, container.clock, key.toChapter())
+                            },
+                            images = container.pageImages,
+                            actions = ReaderActions(
+                                onBack = { backStack.pop() },
+                                onOpenChapter = { url ->
+                                    browserLoad = url
+                                    backStack.pop()
+                                }
+                            )
                         )
                     }
                 }

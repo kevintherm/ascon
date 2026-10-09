@@ -36,6 +36,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.designsystem.theme.AsconColors
+import com.ascon.core.model.ReaderChapter
 import com.ascon.feature.browser.web.BrowserSession
 import com.ascon.feature.browser.web.addressToUrl
 import kotlinx.coroutines.delay
@@ -43,15 +44,39 @@ import kotlinx.coroutines.delay
 /** How long a notice about something blocked stays up. */
 private const val NOTICE_MS = 3000L
 
-data class BrowserActions(val onClose: () -> Unit = {}, val onOpenSeries: (String) -> Unit = {})
+data class BrowserActions(
+    val onClose: () -> Unit = {},
+    val onOpenSeries: (String) -> Unit = {},
+    val onOpenReader: (ReaderChapter) -> Unit = {},
+    /** Called once [BrowserRoute]'s `loadUrl` is loaded, so the app can clear it. */
+    val onUrlLoaded: () -> Unit = {}
+)
 
+/** [loadUrl], when set, is loaded in this tab, for example the next chapter picked in the reader. */
 @Composable
-fun BrowserRoute(viewModel: BrowserViewModel, session: BrowserSession, actions: BrowserActions) {
+fun BrowserRoute(
+    viewModel: BrowserViewModel,
+    session: BrowserSession,
+    actions: BrowserActions,
+    loadUrl: String? = null
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Events keep flowing while a series page covers the browser, so state stays current.
     SideEffect { session.events = viewModel }
     LaunchedEffect(session) { if (session.isEmpty) session.load(state.url) }
+    LaunchedEffect(loadUrl) {
+        loadUrl?.let {
+            session.load(it)
+            actions.onUrlLoaded()
+        }
+    }
+    LaunchedEffect(state.reader) {
+        state.reader?.let {
+            viewModel.readerOpened()
+            actions.onOpenReader(it)
+        }
+    }
 
     BrowserScreen(
         state = state,

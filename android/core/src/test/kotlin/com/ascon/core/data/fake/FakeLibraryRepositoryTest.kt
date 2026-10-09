@@ -80,4 +80,31 @@ class FakeLibraryRepositoryTest {
         assertEquals(BigDecimal(15), aztec.latestChapter?.number)
         assertEquals(false, aztec.latestChapter?.read)
     }
+
+    @Test
+    fun `reading a page saves the page and the page count`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(13), page = 5, pageCount = 40, at = clock.instant())
+        val progress = repo.series("aztec-turning-of-heaven").first()?.progress
+        assertEquals(BigDecimal(13), progress?.chapter)
+        assertEquals(5, progress?.page)
+        assertEquals(40, progress?.pageCount)
+    }
+
+    @Test
+    fun `reading the last page marks the chapter read`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(13), page = 40, pageCount = 40, at = clock.instant())
+        val aztec = repo.series("aztec-turning-of-heaven").first()!!
+        assertEquals(true, aztec.chapters.first { it.number.toInt() == 13 }.read)
+    }
+
+    @Test
+    fun `reading a page of an older chapter keeps progress`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(3), page = 2, pageCount = 20, at = clock.instant())
+        val progress = repo.series("aztec-turning-of-heaven").first()?.progress
+        assertEquals(BigDecimal(12), progress?.chapter)
+        assertEquals(34, progress?.page)
+    }
 }

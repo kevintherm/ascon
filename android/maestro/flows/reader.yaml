@@ -1,0 +1,47 @@
+# Step 6: a detected chapter with pages opens the native reader, which saves the page.
+# Chapter pages and their images come from maestro/serve.py, built from the Madara fixture.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/aztec-turning-of-heaven/chapter-14/"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- assertVisible: "Aztec Turning of Heaven"
+- assertVisible: "1 / 3"
+# Next chapter loads the site's next page in the browser, which opens the reader again.
+- tapOn: "Next chapter"
+- extendedWaitUntil:
+    visible: "Chapter 15 · 10.0.2.2"
+    timeout: 15000
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- assertVisible: "3 / 3"
+# A tap hides the bars and another brings them back.
+- tapOn:
+    point: "50%,50%"
+- assertNotVisible: "3 / 3"
+- tapOn:
+    point: "50%,50%"
+- assertVisible: "3 / 3"
+# Back shows the site page with its card.
+- back
+- extendedWaitUntil:
+    visible: "Chapter 15 · progress saved"
+    timeout: 15000
+# Back walks the page history. A page the reader already showed stays on the site.
+- back
+- extendedWaitUntil:
+    visible: "Chapter 14 · progress saved"
+    timeout: 15000
+- assertNotVisible: "Next chapter"
+# Progress stays on chapter 15, which was new to the library and is added.
+- tapOn: "Open series"
+- assertVisible: "15 chapters"
+- takeScreenshot: build/series-after-reading

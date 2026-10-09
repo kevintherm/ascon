@@ -43,6 +43,34 @@ class FakeLibraryRepository(
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant) {
         state.update { all -> all.map { if (it.id == seriesId) it.opened(chapter, at) else it } }
     }
+
+    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant) {
+        state.update { all ->
+            all.map {
+                if (it.id ==
+                    seriesId
+                ) {
+                    it.opened(chapter, at).onPage(chapter, page, pageCount)
+                } else {
+                    it
+                }
+            }
+        }
+    }
+}
+
+private fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int): Series {
+    val current = progress
+    if (current == null || current.chapter.compareTo(chapter) != 0) return this
+    val finished = page >= pageCount
+    return copy(
+        progress = current.copy(page = page, pageCount = pageCount),
+        chapters = if (finished) {
+            chapters.map { if (it.number.compareTo(chapter) == 0) it.copy(read = true, isNew = false) else it }
+        } else {
+            chapters
+        }
+    )
 }
 
 private fun Series.opened(chapter: BigDecimal, at: Instant): Series {

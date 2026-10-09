@@ -125,7 +125,9 @@ docs/               ADRs and longer notes
 
 ### Reader mode
 
+- Decided with the owner: the reader opens by itself when a chapter's pages are found. Back returns to the site page, and a page the reader already showed stays on the site.
 - Image URLs from the rule's image selector, resolving `data-src` and `srcset`. Fallback: collect large image requests seen in `shouldInterceptRequest`.
+- Without a rule, heuristics take the largest run of images sharing one container, and the next and previous chapters from links that differ from the page URL only in the chapter number.
 - Fetch natively with OkHttp using the WebView's cookies from `CookieManager`, the chapter URL as `Referer`, and the exact same User-Agent, because Cloudflare clearance is tied to it.
 - **If extraction fails**, zero images, blob or canvas images, or scrambled tiles: show the page as-is in the WebView, track progress with an injected `IntersectionObserver`, and show the "reader mode isn't available here" banner.
 - Preload the next chapter in an off-screen WebView.

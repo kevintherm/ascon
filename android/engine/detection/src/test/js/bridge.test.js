@@ -274,3 +274,28 @@ test("heuristics read lazy image attributes and skip small and inline images", a
     "https://inkwell.example/p/3.jpg",
   ]);
 });
+
+test("heuristics link the chapters before and after", async () => {
+  const a = await detect(
+    "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/203",
+    fixture("heuristic/strip-a.html"),
+    [],
+  );
+  assert.equal(a.result.next, "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/204");
+  assert.equal(a.result.previous, "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/202");
+
+  const b = await detect("https://reader-b.example/ao-ashi-chapter-410/", fixture("heuristic/strip-b.html"), []);
+  assert.equal(b.result.previous, "https://reader-b.example/ao-ashi-chapter-409/");
+  assert.equal(b.result.next, null);
+});
+
+test("neighbor links must belong to the same series", async () => {
+  const html = `<!DOCTYPE html><title>Paper Moth Chapter 3</title>
+    <a href="/other-series/chapter-4/">Other</a>
+    <a href="https://elsewhere.example/paper-moth/chapter-4/">Mirror</a>
+    <a href="/paper-moth/chapter-5/">Five</a>
+    <a href="/paper-moth/chapter-3.5/">Extra</a>`;
+  const got = await detect("https://inkwell.example/paper-moth/chapter-3/", html, []);
+  assert.equal(got.result.next, "https://inkwell.example/paper-moth/chapter-3.5/");
+  assert.equal(got.result.previous, null);
+});
