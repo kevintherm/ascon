@@ -10,6 +10,13 @@ appId: com.ascon.app
     visible: "page loaded"
     timeout: 15000
 - assertVisible: "banner blocked"
+# Elements the lists name are hidden, including one the page adds later.
+- assertVisible: "Page text stays"
+- assertNotVisible: "SITE BANNER"
+- assertNotVisible: "AD SLOT"
+- extendedWaitUntil:
+    notVisible: "LATE AD"
+    timeout: 3000
 # A tapped link to a page on the lists stays on this page with a notice.
 - tapOn: "Ad link"
 - extendedWaitUntil:

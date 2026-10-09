@@ -9,6 +9,7 @@ import android.webkit.WebView
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.ascon.engine.adblock.CosmeticFilter
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.DetectionHost
@@ -32,6 +33,8 @@ class WebViewPool(
     private val detection: () -> DetectionHost,
     /** Checked for every request a page makes, and for every page it opens. */
     internal val adblock: RequestFilter = RequestFilter.AllowAll,
+    /** Hides the page elements the filter lists name, or null to hide nothing. */
+    private val cosmetics: () -> CosmeticFilter? = { null },
     internal val guard: NavigationGuard = NavigationGuard(OkHttpSiteKey, adblock)
 ) {
     private var warm: TabWebView? = null
@@ -74,6 +77,7 @@ class WebViewPool(
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             WebViewCompat.addDocumentStartJavaScript(view, NO_WINDOW_OPEN, setOf("*"))
         }
+        cosmetics()?.install(view)
         detection().install(view, onDetection = { view.onDetection?.invoke(it) }, onTap = { view.onTap?.invoke(it) })
         return view
     }

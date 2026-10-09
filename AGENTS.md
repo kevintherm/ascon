@@ -84,7 +84,8 @@ docs/               ADRs and longer notes
 
 - Parse filter lists once, serialize the engine to disk, load from the snapshot on start.
 - The engine is `engine/adblock/rust`, a thin UniFFI wrapper over adblock-rust that Gradle builds with cargo-ndk for arm64-v8a, armeabi-v7a and x86_64, the app's only ABIs. The Kotlin bindings are generated into the build directory and call the library through JNA. Rust changes get `cargo fmt`, `cargo clippy` and `cargo test` with the gates.
-- Until the engine loads, and on a device it can't load on, nothing is blocked and browsing still works.
+- At launch, request checks and cosmetic answers off the main thread wait up to 3 seconds for the engine, so the first page is filtered too. The main thread never waits. On a device the engine can't load on, nothing is blocked and browsing still works.
+- Cosmetic hiding has its own bridge, `asconAdblock`, and script, `engine/adblock/src/main/assets/cosmetic.js`, separate from detection. Main frames only for now.
 - Debug builds add `app/src/debug/assets/adblock/maestro.txt`, a list the Maestro flows block against.
 - Network blocking: every request in `shouldInterceptRequest` goes through the engine. Infer resource type from main-frame flag, `Accept` header and extension. Blocked requests return an empty response.
 - Cosmetic blocking: on page start, inject the engine's hide selectors and scriptlets; a `MutationObserver` reports new class and id names back for generic hiding.

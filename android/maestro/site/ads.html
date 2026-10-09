@@ -5,6 +5,10 @@
 <!-- The debug filter list blocks /ads/. The page says whether each image loaded. -->
 <p><img id="banner" src="/ads/banner.png" width="60"> <span id="banner-state">banner pending</span></p>
 <p><img id="page" src="/pages/1/1.png" width="60"> <span id="page-state">page pending</span></p>
+<!-- Cosmetic rules: one for this site, one generic, and an element added later. -->
+<div class="site-banner">SITE BANNER</div>
+<div class="ad-slot">AD SLOT</div>
+<p>Page text stays</p>
 <p><a href="http://127.0.0.1:8765/ads/landing.html" style="font-size:32px">Ad link</a></p>
 <script>
   for (const name of ["banner", "page"]) {
@@ -13,4 +17,10 @@
     img.onload = () => { state.textContent = name + (img.naturalWidth > 0 ? " loaded" : " blocked"); };
     img.onerror = () => { state.textContent = name + " blocked"; };
   }
+  setTimeout(() => {
+    const late = document.createElement("div");
+    late.className = "ad-slot";
+    late.textContent = "LATE AD";
+    document.body.appendChild(late);
+  }, 500);
 </script>

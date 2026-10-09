@@ -2,6 +2,7 @@ import org.gradle.internal.os.OperatingSystem
 
 plugins {
     id("ascon.android.library")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -72,6 +73,9 @@ dependencies {
     // Weekly filter list updates.
     implementation(libs.androidx.work.runtime)
     implementation(libs.okhttp)
+    // The cosmetic bridge's messages are JSON. WebMessageListener is in androidx.webkit.
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.webkit)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

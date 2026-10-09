@@ -12,6 +12,7 @@ import com.ascon.core.data.room.AsconDatabase
 import com.ascon.core.data.room.RoomLibraryRepository
 import com.ascon.core.model.AccountState
 import com.ascon.engine.adblock.Adblock
+import com.ascon.engine.adblock.CosmeticFilter
 import com.ascon.engine.adblock.FilterListUpdateWorker
 import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.InMemoryRuleCache
@@ -64,7 +65,9 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
         FilterListUpdateWorker.schedule(app)
     }
 
-    val webViews = WebViewPool(app, detection = { detection }, adblock = adblock)
+    private val cosmetics by lazy { CosmeticFilter(adblock, CosmeticFilter.loadScript(app), MainScope()) }
+
+    val webViews = WebViewPool(app, detection = { detection }, adblock = adblock, cosmetics = { cosmetics })
 
     val pageImages = ReaderImages(app)
 }

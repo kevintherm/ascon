@@ -28,6 +28,9 @@ appId: com.ascon.app
     timeout: 15000
 - tapOn: "Page that redirects by itself"
 - extendedWaitUntil:
+    visible: "This page tries to leave for another site without a tap."
+    timeout: 15000
+- extendedWaitUntil:
     visible: "Stopped a redirect to 127.0.0.1"
     timeout: 15000
 - assertVisible: "This page tries to leave for another site without a tap."
