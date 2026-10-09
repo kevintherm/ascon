@@ -8,6 +8,7 @@ import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.Series
 import com.ascon.core.model.matchSeries
+import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.withoutFragment
 import com.ascon.feature.browser.web.BlockedKind
@@ -39,14 +40,24 @@ data class BrowserUiState(
     val readerUnavailable: Boolean = false,
     /** The chapter on this page, with its pages, for opening the reader again. */
     val readerChapter: ReaderChapter? = null,
-    /** Requests the ad blocker stopped on this page. */
-    val blocked: Int = 0,
+    /** What protection stopped on this page. */
+    val blocked: BlockedCounts = BlockedCounts(),
     /** The card has docked into the reader chip above the bar. It shows again when the chapter changes. */
     val cardDocked: Boolean = false,
     /** Scrolling down shrank the bar and chip into a thin strip. Scrolling up, a tap or the page end expands it. */
     val barCollapsed: Boolean = false
 ) {
     val host: String get() = displayHost(url)
+}
+
+/** What protection stopped on one page load, as the protection sheet counts it. */
+data class BlockedCounts(val ads: Int = 0, val trackers: Int = 0, val redirects: Int = 0) {
+    val total: Int get() = ads + trackers + redirects
+
+    fun plus(category: BlockCategory): BlockedCounts = when (category) {
+        BlockCategory.Ad -> copy(ads = ads + 1)
+        BlockCategory.Tracker -> copy(trackers = trackers + 1)
+    }
 }
 
 data class LoadError(val host: String, val kind: LoadErrorKind)
@@ -131,7 +142,12 @@ class BrowserViewModel(
     }
 
     override fun onBlocked(kind: BlockedKind, url: String) {
-        _state.update { it.copy(notice = Notice(kind, displayHost(url), ++noticeCount)) }
+        _state.update {
+            // Pages the tab was kept from count as redirects stopped. Downloads are not redirects.
+            val redirect = kind != BlockedKind.Download && kind != BlockedKind.AppDownload
+            val blocked = if (redirect) it.blocked.copy(redirects = it.blocked.redirects + 1) else it.blocked
+            it.copy(notice = Notice(kind, displayHost(url), ++noticeCount), blocked = blocked)
+        }
     }
 
     override fun onDetection(detection: Detection) {
@@ -256,9 +272,15 @@ class BrowserViewModel(
     }
 
     /** Called off the main thread for each request the ad blocker stops on [pageUrl]. */
-    override fun onRequestBlocked(pageUrl: String) {
+    override fun onRequestBlocked(pageUrl: String, category: BlockCategory) {
         _state.update {
-            if (it.url.withoutFragment() == pageUrl.withoutFragment()) it.copy(blocked = it.blocked + 1) else it
+            if (it.url.withoutFragment() ==
+                pageUrl.withoutFragment()
+            ) {
+                it.copy(blocked = it.blocked.plus(category))
+            } else {
+                it
+            }
         }
     }
 
@@ -310,7 +332,7 @@ class BrowserViewModel(
                 barCollapsed = samePage && it.barCollapsed,
                 reader = if (samePage) it.reader else null,
                 readerChapter = if (samePage) it.readerChapter else null,
-                blocked = if (samePage) it.blocked else 0,
+                blocked = if (samePage) it.blocked else BlockedCounts(),
                 readerUnavailable = samePage && it.readerUnavailable
             )
         }

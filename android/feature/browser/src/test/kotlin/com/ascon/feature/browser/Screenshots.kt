@@ -34,7 +34,13 @@ class Screenshots {
 
     @Test
     fun browserDetected() = capture("browser_detected") {
-        browser(BrowserUiState(url = url, card = PreviewCard, blocked = 27))
+        browser(
+            BrowserUiState(
+                url = url,
+                card = PreviewCard,
+                blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2)
+            )
+        )
     }
 
     @Test
@@ -64,19 +70,41 @@ class Screenshots {
     fun browserDocked() = capture("browser_docked") {
         val chapter =
             ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)
-        browser(BrowserUiState(url = url, card = PreviewCard, cardDocked = true, readerChapter = chapter, blocked = 27))
+        browser(
+            BrowserUiState(
+                url = url,
+                card = PreviewCard,
+                cardDocked = true,
+                readerChapter = chapter,
+                blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2)
+            )
+        )
     }
 
     @Test
     fun browserScrolling() = capture("browser_scrolling") {
-        browser(BrowserUiState(url = url, card = PreviewCard, cardDocked = true, barCollapsed = true, blocked = 27))
+        browser(
+            BrowserUiState(
+                url = url,
+                card = PreviewCard,
+                cardDocked = true,
+                barCollapsed = true,
+                blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2)
+            )
+        )
     }
 
     @Test
     fun browserMenu() = capture("browser_menu") {
         val chapter =
             ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)
-        val state = BrowserUiState(url = url, blocked = 27, readerChapter = chapter, canGoBack = true)
+        val state =
+            BrowserUiState(
+                url = url,
+                blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2),
+                readerChapter = chapter,
+                canGoBack = true
+            )
         Box {
             browser(state)
             BrowserMenu(visible = true, state = state, commands = BrowserCommands(), onDismiss = {})

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeLibraryRepository
 import com.ascon.core.model.ReaderChapter
+import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.DetectionSource
 import com.ascon.feature.browser.web.BlockedKind
@@ -279,13 +280,17 @@ class BrowserViewModelTest {
     @Test
     fun `blocked requests are counted for the page that made them`() = runTest {
         val vm = viewModel()
-        vm.onRequestBlocked(chapter14)
-        vm.onRequestBlocked(chapter14)
-        vm.onRequestBlocked("https://mangafire.to/old-page")
-        assertEquals(2, vm.state.value.blocked)
+        vm.onRequestBlocked(chapter14, BlockCategory.Ad)
+        vm.onRequestBlocked(chapter14, BlockCategory.Ad)
+        vm.onRequestBlocked(chapter14, BlockCategory.Tracker)
+        vm.onRequestBlocked("https://mangafire.to/old-page", BlockCategory.Ad)
+        vm.onBlocked(BlockedKind.Redirect, "https://ads.example/")
+        vm.onBlocked(BlockedKind.AppDownload, "https://mangafire.to/app.apk")
+        assertEquals(BlockedCounts(ads = 2, trackers = 1, redirects = 1), vm.state.value.blocked)
+        assertEquals(4, vm.state.value.blocked.total)
 
         vm.onPageStarted("https://mangafire.to/read/aztec/chapter-15")
-        assertEquals(0, vm.state.value.blocked)
+        assertEquals(BlockedCounts(), vm.state.value.blocked)
     }
 
     @Test

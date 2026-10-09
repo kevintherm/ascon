@@ -180,7 +180,7 @@ private fun CollapsedStrip(state: BrowserUiState, onExpand: () -> Unit) {
         ) {
             Icon(AsconIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
             Text(
-                state.blocked.toString(),
+                state.blocked.total.toString(),
                 style = AsconType.CaptionStrong.copy(fontWeight = FontWeight.Bold),
                 color = Color.White
             )
@@ -256,7 +256,7 @@ private fun AddressPill(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ShieldCount(state.blocked)
+            ShieldCount(state.blocked.total)
             Text(
                 state.host,
                 style = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight),

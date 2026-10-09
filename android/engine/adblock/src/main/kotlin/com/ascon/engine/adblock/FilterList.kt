@@ -2,15 +2,23 @@ package com.ascon.engine.adblock
 
 /**
  * A filter list the user can turn on or off. A copy ships in the app's assets as
- * `adblock/<id>.txt`; a list with an [updateUrl] is refreshed from it weekly.
+ * `adblock/<id>.txt`; a list with an [updateUrl] is refreshed from it weekly. Lists of
+ * each [category] share one engine, so a blocked request counts as that category.
  */
-data class FilterList(val id: String, val title: String, val updateUrl: String?) {
+data class FilterList(val id: String, val title: String, val updateUrl: String?, val category: BlockCategory) {
     companion object {
-        val EasyList = FilterList("easylist", "EasyList", "https://easylist.to/easylist/easylist.txt")
-        val EasyPrivacy = FilterList("easyprivacy", "EasyPrivacy", "https://easylist.to/easylist/easyprivacy.txt")
+        val EasyList =
+            FilterList("easylist", "EasyList", "https://easylist.to/easylist/easylist.txt", BlockCategory.Ad)
+        val EasyPrivacy =
+            FilterList(
+                "easyprivacy",
+                "EasyPrivacy",
+                "https://easylist.to/easylist/easyprivacy.txt",
+                BlockCategory.Tracker
+            )
 
         /** Ads and pop-unders on manga sites that general lists miss. Updates with the app. */
-        val Ascon = FilterList("ascon", "Ascon manga sites", updateUrl = null)
+        val Ascon = FilterList("ascon", "Ascon manga sites", updateUrl = null, BlockCategory.Ad)
 
         val All = listOf(EasyList, EasyPrivacy, Ascon)
     }

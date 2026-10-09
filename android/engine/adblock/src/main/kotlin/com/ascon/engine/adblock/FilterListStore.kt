@@ -7,7 +7,7 @@ import java.io.File
  * Where filter lists live on the device: the copies shipped in the assets, newer
  * downloads beside them in app storage. Which lists are on is a protection setting.
  *
- * Asset files under `adblock/` that no [FilterList] names are extra lists, always on.
+ * Asset files under `adblock/` that no [FilterList] names are extra ad lists, always on.
  * Debug builds add one for the Maestro flows.
  */
 class FilterListStore(private val context: Context) {
@@ -26,10 +26,11 @@ class FilterListStore(private val context: Context) {
         temporary.renameTo(File(dir, "${list.id}.txt"))
     }
 
-    /** The text of every list the engine should use, all but the [disabled] ids. */
-    fun enabledTexts(disabled: Set<String>): List<String> {
+    /** The text of every list of [category] the engine should use, all but the [disabled] ids. */
+    fun enabledTexts(category: BlockCategory, disabled: Set<String>): List<String> {
+        val modules = FilterList.All.filter { it.category == category && it.id !in disabled }.mapNotNull(::text)
+        if (category != BlockCategory.Ad) return modules
         val known = FilterList.All.map { "${it.id}.txt" }.toSet()
-        val modules = FilterList.All.filter { it.id !in disabled }.mapNotNull(::text)
         val extras = context.assets.list(ASSET_DIR).orEmpty().filter { it !in known }.sorted().mapNotNull(::asset)
         return modules + extras
     }

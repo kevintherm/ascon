@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.adblock.RequestType
 import com.ascon.engine.detection.Detection
 import java.io.ByteArrayInputStream
@@ -52,7 +53,7 @@ interface BrowserEvents {
     fun onScrolled(scrollY: Int, viewportHeight: Int, atEnd: Boolean)
 
     /** The ad blocker stopped a request from [pageUrl]. Called off the main thread. */
-    fun onRequestBlocked(pageUrl: String)
+    fun onRequestBlocked(pageUrl: String, category: BlockCategory)
 }
 
 /**
@@ -190,9 +191,9 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
             }?.value
             val type = RequestType.of(url, isMainFrame = false, accept = accept)
             val page = pageUrl ?: url
-            val blocked = pool.guard.blocksRequest(url, page, type, pool.protection())
-            if (blocked) events?.onRequestBlocked(page)
-            return if (blocked) emptyResponse() else null
+            val blocked = pool.guard.blockedAs(url, page, type, pool.protection()) ?: return null
+            events?.onRequestBlocked(page, blocked)
+            return emptyResponse()
         }
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {

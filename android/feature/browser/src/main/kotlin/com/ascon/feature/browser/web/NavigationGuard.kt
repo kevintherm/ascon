@@ -1,6 +1,7 @@
 package com.ascon.feature.browser.web
 
 import com.ascon.core.model.ProtectionSettings
+import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.adblock.RequestType
 import java.net.URI
@@ -74,9 +75,12 @@ class NavigationGuard(private val sites: SiteKey, private val ads: RequestFilter
         }
     }
 
-    /** True to stop a request [pageUrl] makes for [url]. Main-frame pages go through [check]. */
-    fun blocksRequest(url: String, pageUrl: String, type: RequestType, protection: ProtectionSettings): Boolean =
-        filtersPage(pageUrl, protection) && ads.shouldBlock(url, pageUrl, type)
+    /**
+     * What a request [pageUrl] makes for [url] is stopped as, or null to let it through.
+     * Main-frame pages go through [check].
+     */
+    fun blockedAs(url: String, pageUrl: String, type: RequestType, protection: ProtectionSettings): BlockCategory? =
+        if (filtersPage(pageUrl, protection)) ads.blockedAs(url, pageUrl, type) else null
 
     /** True when the filter lists apply to [pageUrl], for its requests and its hidden elements. */
     fun filtersPage(pageUrl: String, protection: ProtectionSettings): Boolean =

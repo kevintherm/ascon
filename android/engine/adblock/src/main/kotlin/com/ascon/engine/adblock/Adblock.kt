@@ -13,16 +13,25 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * The ad blocker. Parsing filter lists takes seconds, so the engine is built once and
+ * The ad blocker. Parsing filter lists takes seconds, so each engine is built once and
  * saved as a snapshot, which later starts load in a fraction of that. A snapshot is
  * named after a hash of the lists it holds, so changed lists build a new one.
+ *
+ * There is one engine per [BlockCategory]: EasyList and the Ascon list for ads,
+ * EasyPrivacy for trackers. A request is checked against ads first, so each blocked
+ * request counts once. The lists are split, not copied, so memory stays about the same.
  *
  * Until the first [start] finishes, checks off the main thread wait for it, briefly, so
  * pages opened at launch are filtered too. The main thread never waits.
  */
 class Adblock(private val context: Context, val lists: FilterListStore = FilterListStore(context)) : RequestFilter {
+    /** Swapped as a whole, so a check never sees one new engine and one old. */
+    private class Engines(val byCategory: Map<BlockCategory, AdblockEngine>) {
+        val all: Collection<AdblockEngine> get() = byCategory.values
+    }
+
     @Volatile
-    private var engine: AdblockEngine? = null
+    private var engines: Engines? = null
     private val firstStart = CountDownLatch(1)
 
     /** Ids of the filter lists the user turned off. */
@@ -31,15 +40,15 @@ class Adblock(private val context: Context, val lists: FilterListStore = FilterL
         private set
 
     /**
-     * Builds or loads the engine from all lists but the [disabled] ones. Call off the main
-     * thread at start, and again after lists change. The old engine keeps working until
-     * the new one is ready.
+     * Builds or loads the engines from all lists but the [disabled] ones. Call off the
+     * main thread at start, and again after lists change. The old engines keep working
+     * until the new ones are ready.
      */
     @Synchronized
     fun start(disabled: Set<String> = this.disabled) {
         this.disabled = disabled
         try {
-            startEngine(lists.enabledTexts(disabled))
+            startEngines(disabled)
         } catch (e: UnsatisfiedLinkError) {
             // No engine for this device's ABI. Browsing works, unblocked.
             Log.e(TAG, "Engine not loaded", e)
@@ -48,34 +57,51 @@ class Adblock(private val context: Context, val lists: FilterListStore = FilterL
         }
     }
 
-    private fun startEngine(lists: List<String>) {
+    private fun startEngines(disabled: Set<String>) {
         val dir = File(context.noBackupFilesDir, "adblock/engine").apply { mkdirs() }
-        val snapshot = File(dir, "engine-${hashOf(lists)}.dat")
         val started = SystemClock.elapsedRealtime()
-        val loaded = snapshot.takeIf { it.exists() }?.let(::load)
-        engine = loaded ?: build(lists, snapshot)
-        Log.i(
-            TAG,
-            "Engine ${if (loaded != null) "loaded" else "built"} in ${SystemClock.elapsedRealtime() - started} ms"
-        )
-        dir.listFiles()?.filter { it != snapshot }?.forEach { it.delete() }
+        val snapshots = mutableListOf<File>()
+        val built = BlockCategory.entries.mapNotNull { category ->
+            val texts = lists.enabledTexts(category, disabled).takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val snapshot = File(dir, "engine-${category.name.lowercase()}-${hashOf(texts)}.dat")
+            snapshots += snapshot
+            category to (snapshot.takeIf { it.exists() }?.let(::load) ?: build(texts, snapshot))
+        }.toMap()
+        engines = Engines(built)
+        Log.i(TAG, "Engines ${built.keys} ready in ${SystemClock.elapsedRealtime() - started} ms")
+        dir.listFiles()?.filter { it !in snapshots }?.forEach { it.delete() }
     }
 
     override fun shouldBlock(url: String, sourceUrl: String, type: RequestType): Boolean =
-        ready()?.shouldBlock(url, sourceUrl, type.filterName) ?: false
+        blockedAs(url, sourceUrl, type) != null
 
-    /** The page's own hide rules, or null until the engine has loaded. */
-    internal fun pageCosmetics(url: String): PageCosmetics? = ready()?.pageCosmetics(url)
+    override fun blockedAs(url: String, sourceUrl: String, type: RequestType): BlockCategory? {
+        val current = ready() ?: return null
+        // Entries follow BlockCategory's order, so ads are checked first.
+        return current.byCategory.entries.firstOrNull { (_, engine) ->
+            engine.shouldBlock(url, sourceUrl, type.filterName)
+        }?.key
+    }
+
+    /** The page's own hide rules from every engine, or null until the engines have loaded. */
+    internal fun pageCosmetics(url: String): PageCosmetics? {
+        val parts = ready()?.all?.map { it.pageCosmetics(url) }?.takeIf { it.isNotEmpty() } ?: return null
+        return PageCosmetics(
+            hideSelectors = parts.flatMap { it.hideSelectors },
+            exceptions = parts.flatMap { it.exceptions }.distinct(),
+            generichide = parts.any { it.generichide }
+        )
+    }
 
     /** Selectors from generic rules that name any of these classes or ids, less [exceptions]. */
     internal fun hiddenSelectors(classes: List<String>, ids: List<String>, exceptions: List<String>): List<String>? =
-        ready()?.hiddenSelectors(classes, ids, exceptions)
+        ready()?.all?.flatMap { it.hiddenSelectors(classes, ids, exceptions) }
 
-    private fun ready(): AdblockEngine? {
-        val current = engine
+    private fun ready(): Engines? {
+        val current = engines
         if (current != null || Looper.myLooper() == Looper.getMainLooper()) return current
         firstStart.await(STARTUP_WAIT_MS, TimeUnit.MILLISECONDS)
-        return engine
+        return engines
     }
 
     private fun load(snapshot: File): AdblockEngine? = try {

@@ -1,6 +1,7 @@
 package com.ascon.feature.browser.web
 
 import com.ascon.core.model.ProtectionSettings
+import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.adblock.RequestType
 import org.junit.Assert.assertEquals
@@ -39,7 +40,7 @@ class NavigationGuardTest {
         val trusted = ProtectionSettings(trustedSites = setOf("mangafire.to"))
         assertNull(check("https://ads.example/landing", protection = trusted))
         assertNull(check("https://popunder.example/", hasGesture = true, protection = trusted))
-        assertFalse(guard.blocksRequest("https://popunder.example/x.js", page, RequestType.Document, trusted))
+        assertNull(guard.blockedAs("https://popunder.example/x.js", page, RequestType.Document, trusted))
         assertFalse(guard.filtersPage(page, trusted))
         assertTrue(guard.filtersPage("https://other.example/", trusted))
     }
@@ -56,8 +57,11 @@ class NavigationGuardTest {
             )
         )
         assertEquals(BlockReason.NoGesture, check("https://popunder.example/", protection = off))
-        assertFalse(guard.blocksRequest("https://popunder.example/x", page, RequestType.Document, off))
-        assertTrue(guard.blocksRequest("https://popunder.example/x", page, RequestType.Document, ProtectionSettings()))
+        assertNull(guard.blockedAs("https://popunder.example/x", page, RequestType.Document, off))
+        assertEquals(
+            BlockCategory.Ad,
+            guard.blockedAs("https://popunder.example/x", page, RequestType.Document, ProtectionSettings())
+        )
     }
 
     @Test
