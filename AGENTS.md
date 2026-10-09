@@ -244,6 +244,7 @@ How agents work in this repo, agreed with the owner to keep the loop fast.
 - **Compose through semantics.** While building a screen, test it with compose-ui-test under Robolectric and assert on the semantics tree. Record Roborazzi goldens once, at the end of the feature.
 - **Warm, narrow Gradle.** Never pass `--no-daemon`; `gradle.properties` sets the memory and caches. In the inner loop, compile and test only the module you touched, for example `./gradlew :feature:browser:testDebugUnitTest --tests "*BrowserViewModelTest"`.
 - **Gates once, before commit.** Run `ktlintFormat`, compile, then `./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true`, the JS tests in `engine/detection` if they changed, and `python3 tools/context.py`.
+- **Inspect real sites from inside the app.** `android/tools/webview.py` runs JavaScript in the debug app's WebView, such as `tools/webview.py 'document.images.length'`. Use it to check a site's DOM as Ascon sees it before guessing from screenshots.
 - **One device pass per feature.** Use Maestro flows in `android/maestro/flows`, not adb taps. Take screenshots only when a flow fails. See the README.
 - **Protect context.** Read `android/CONTEXT.md` for the shared API before opening sources in `core` or `engine`. Keep new files under about 300 lines. Split an existing larger file only when a task already touches it.
 - **Hold scope.** A step ships the minimum that passes its acceptance tests. Error pages, menus and extra rules become their own later steps.

@@ -31,6 +31,8 @@ maestro/run.sh flows/smoke.yaml   # one flow
 
 `maestro/run.sh` serves `maestro/site` on port 8765 while the flows run. The emulator reaches it at `http://10.0.2.2:8765`, and at `http://127.0.0.1:8765` through `adb reverse`, which flows use as a second site. Only debug builds may load these over plain http.
 
+`tools/webview.py` runs JavaScript in the debug app's WebView on the connected device, to inspect a real site as Ascon loads it. It needs `pip install websocket-client`.
+
 Backend, from `backend/`:
 
 ```
