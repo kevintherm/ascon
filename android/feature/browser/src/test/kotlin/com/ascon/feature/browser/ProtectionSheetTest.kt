@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.ProtectionSettings
@@ -83,5 +85,14 @@ class ProtectionSheetTest {
         compose.onNodeWithContentDescription("Protection, 27 blocked").performClick()
         compose.onNodeWithText("Protection off").assertExists()
         compose.onNodeWithText("Site looks broken?").assertDoesNotExist()
+    }
+
+    @Test
+    fun `dragging the sheet down closes it`() {
+        show(ProtectionUiState(site = "mangafire.to"), BrowserCommands())
+        compose.onNodeWithContentDescription("Protection, 27 blocked").performClick()
+        compose.onNodeWithText("Protected").performTouchInput { swipeDown(startY = top, endY = top + 600f) }
+
+        compose.onNodeWithText("Protected").assertDoesNotExist()
     }
 }
