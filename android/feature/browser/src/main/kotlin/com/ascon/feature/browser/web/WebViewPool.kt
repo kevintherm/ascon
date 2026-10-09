@@ -3,6 +3,7 @@ package com.ascon.feature.browser.web
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.MutableContextWrapper
+import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.webkit.WebSettingsCompat
@@ -45,6 +46,10 @@ class WebViewPool(
     @SuppressLint("SetJavaScriptEnabled") // Sites need it; the guard and detection depend on it.
     internal fun create(): TabWebView {
         val view = TabWebView(MutableContextWrapper(app.applicationContext))
+        // Compose gives an AndroidView without layout params WRAP_CONTENT, and a WebView that
+        // wraps its height sizes the page to its content, so CSS vh units become 0.
+        view.layoutParams =
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         with(view.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
