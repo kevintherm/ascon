@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reader settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#fff}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0E0F12; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #fff">
+
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #ECE8E0 0%, #9E9483 100%)">
+<div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.16) 1px, transparent 1.5px); background-size: 6px 6px"></div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(14,15,18,0.55)"></div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; background: #1B1C21; border-radius: 28px 28px 0 0; padding: 10px 16px 24px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.2); align-self: center"></div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px">
+<div style="font-size: 18px; font-weight: 800">Reader settings</div>
+<div style="font-size: 12px; color: rgba(255,255,255,0.6)">Aztec Turning of Heaven</div>
+</div>
+
+<div role="radiogroup" aria-label="Apply to" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 16px; background: rgba(255,255,255,0.08)">
+<button role="radio" aria-checked="true" style="height: 40px; border: 0; border-radius: 12px; background: #fff; color: #15161A; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer">This series</button>
+<button role="radio" aria-checked="false" style="height: 40px; border: 0; border-radius: 12px; background: transparent; color: rgba(255,255,255,0.75); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">All series</button>
+</div>
+
+<div role="radiogroup" aria-label="Reading mode" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button role="radio" aria-checked="true" style="height: 76px; border: 0; border-radius: 16px; background: #fff; color: #15161A; font: inherit; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M7 9h10M7 15h10"></path></svg>Long strip</button>
+<button role="radio" aria-checked="false" style="height: 76px; border: 0; border-radius: 16px; background: rgba(255,255,255,0.06); color: #fff; font: inherit; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="8" height="16" rx="1.5"></rect><path d="M15 12h6M18 9l3 3-3 3"></path></svg>Left to right</button>
+<button role="radio" aria-checked="false" style="height: 76px; border: 0; border-radius: 16px; background: rgba(255,255,255,0.06); color: #fff; font: inherit; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="13" y="4" width="8" height="16" rx="1.5"></rect><path d="M9 12H3M6 9l-3 3 3 3"></path></svg>Right to left</button>
+</div>
+
+<div style="background: rgba(255,255,255,0.06); border-radius: 20px; padding: 0 16px">
+<div style="min-height: 58px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Fit</span>
+<div role="radiogroup" aria-label="Fit" style="display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<button role="radio" aria-checked="true" style="height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: #fff; color: #15161A; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Width</button>
+<button role="radio" aria-checked="false" style="height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,0.75); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Screen</button>
+</div>
+</div>
+<div style="min-height: 58px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Page gap</span>
+<div role="radiogroup" aria-label="Page gap" style="display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<button role="radio" aria-checked="true" style="height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: #fff; color: #15161A; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Auto</button>
+<button role="radio" aria-checked="false" style="height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,0.75); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">None</button>
+<button role="radio" aria-checked="false" style="height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,0.75); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Small</button>
+</div>
+</div>
+<div style="min-height: 58px; display: flex; align-items: center; gap: 12px">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Background</span>
+<div role="radiogroup" aria-label="Background" style="display: flex; gap: 10px">
+<button role="radio" aria-checked="true" aria-label="Black" style="width: 32px; height: 32px; border: 2px solid #fff; border-radius: 16px; background: #000; box-shadow: inset 0 0 0 3px #1B1C21; cursor: pointer"></button>
+<button role="radio" aria-checked="false" aria-label="Gray" style="width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.15); border-radius: 16px; background: #3A3C42; cursor: pointer"></button>
+<button role="radio" aria-checked="false" aria-label="White" style="width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.15); border-radius: 16px; background: #fff; cursor: pointer"></button>
+</div>
+</div>
+</div>
+
+<div style="background: rgba(255,255,255,0.06); border-radius: 20px; padding: 0 16px">
+<button aria-pressed="false" style="width: 100%; min-height: 54px; border: 0; border-bottom: 1px solid rgba(255,255,255,0.08); background: transparent; font: inherit; color: inherit; text-align: left; display: flex; align-items: center; gap: 12px; padding: 0; cursor: pointer">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Crop borders</span>
+<span style="width: 52px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.2); position: relative; flex: none"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #fff"></span></span>
+</button>
+<button aria-pressed="true" style="width: 100%; min-height: 54px; border: 0; border-bottom: 1px solid rgba(255,255,255,0.08); background: transparent; font: inherit; color: inherit; text-align: left; display: flex; align-items: center; gap: 12px; padding: 0; cursor: pointer">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Keep screen on</span>
+<span style="width: 52px; height: 32px; border-radius: 16px; background: #fff; position: relative; flex: none"><span style="position: absolute; top: 4px; left: 24px; width: 24px; height: 24px; border-radius: 12px; background: #15161A"></span></span>
+</button>
+<button aria-pressed="false" style="width: 100%; min-height: 54px; border: 0; border-bottom: 1px solid rgba(255,255,255,0.08); background: transparent; font: inherit; color: inherit; text-align: left; display: flex; align-items: center; gap: 12px; padding: 0; cursor: pointer">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Volume keys turn pages</span>
+<span style="width: 52px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.2); position: relative; flex: none"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #fff"></span></span>
+</button>
+<button aria-pressed="false" style="width: 100%; min-height: 54px; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; display: flex; align-items: center; gap: 12px; padding: 0; cursor: pointer">
+<span style="flex: 1; font-size: 15px; font-weight: 600">Show tap zones</span>
+<span style="width: 52px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.2); position: relative; flex: none"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #fff"></span></span>
+</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

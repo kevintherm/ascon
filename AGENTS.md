@@ -33,6 +33,7 @@ Ascon never hosts, mirrors or redistributes content.
 | Adblock | Brave's `adblock-rust` crate, built with `cargo-ndk`, bound to Kotlin with UniFFI |
 | Networking | OkHttp with DNS-over-HTTPS |
 | Local data | Room |
+| Settings | Jetpack DataStore |
 | Background work | WorkManager |
 | Images | Tiled decoding for tall strips, e.g. SubsamplingScaleImageView or a Compose equivalent |
 | Backend | Go, strict clean architecture |
@@ -92,7 +93,7 @@ docs/               ADRs and longer notes
 - Main-frame navigations also go through the engine in `shouldOverrideUrlLoading`, tapped or not, so a link to a known ad or popunder domain is blocked. This covers hijacked links the tap rule lets through, including tapped `target=_blank` links, which load in the same tab.
 - Invisible links laid over the page are left to cosmetic filters, since tapping one really is a tap on that link.
 - Filter lists are modules with id, version and toggle: EasyList, EasyPrivacy, an Ascon manga-site list, per-site allowlist as generated exception rules. Toggling rebuilds the engine in the background.
-- Decided with the owner: EasyList and EasyPrivacy ship in the APK, so blocking works on first launch and offline, and a weekly WorkManager job on unmetered network downloads newer copies. A download replaces a copy only when it is a valid list with a higher `! Version:`. Refresh the shipped copies with `android/tools/update-filter-lists.sh` before a release.
+- Decided with the owner: EasyList and EasyPrivacy ship in the APK, so blocking works on first launch and offline, and a WorkManager job on unmetered network downloads newer copies, weekly until item 13 of the UI fixes moves it to every 4 days with ETag. A download replaces a copy only when it is a valid list with a higher `! Version:`. Refresh the shipped copies with `android/tools/update-filter-lists.sh` before a release.
 - EasyList and EasyPrivacy are dual licensed GPLv3 and CC BY-SA 3.0. The app must credit them, under CC BY-SA, on the open source licenses screen when it is built.
 
 ### Detection
@@ -236,18 +237,16 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 2. The overflow menu is replaced by the Browser v2 menu. Designed: BrowserV2Menu, notes.md.
 3. Returning to the reader from the site page: the reader chip above the bar. Designed: BrowserV2Docked, notes.md.
 4. Leaving the browser in one tap: Close browser, the last row of the menu. Back on the first page of history also leaves. Designed: BrowserV2Menu, notes.md.
-5. The reader lacks features for viewing comics. Not designed beyond item 9.
+5. The reader lacks features for viewing comics. Designed: ReaderSettings, ReaderChapters, and notes.md for gestures, zoom, the long-press menu and the time left.
 6. The detection card docks into the reader chip after a 5 second countdown. Designed: BrowserV2Detected, BrowserV2Docked, notes.md.
 7. A caught-up series keeps its main button as a status block. Designed: SeriesCaughtUp, SeriesAhead, notes.md.
 8. Glass bars in the reader and over web content have the glass color but no background blur.
 9. The reader leaves out parts of the Reader screen: the Chapters and Translate buttons, the reader settings button, and the time left. The chapter end screens are not built. Designed: Reader, ReaderEnd, ReaderEndCaughtUp, ReaderEndComplete, notes.md.
-10. The reader puts no gap between pages, because a gap breaks continuous strips. The Reader screen shows 4px. Decide which is right.
-11. The protection sheet is not built. Blocking works without it. Designed: BrowserShield. The shield chip in the address pill and the Protection menu row open it. notes.md sets what each switch does: app links and APK downloads are always blocked, a trusted site skips everything else, "Block popups and redirects" off allows `window.open` as a same-tab navigation and redirects without a tap. Still open:
-    - Separate counts for ads, trackers and stopped redirects. The engine only answers block or allow, so this needs one engine for the ad lists and one for EasyPrivacy, or debug rule info from adblock-rust.
-    - What "Site looks broken?" does. Proposed: ask once to trust the site, then reload.
+10. The reader puts no gap between pages. Decided in notes.md: Auto by default, 0 px between images that look like slices of one strip and 6 px otherwise, with None or Small per series in reader settings.
+11. The protection sheet is not built. Blocking works without it. Designed: BrowserShield, ShieldBroken. The shield chip in the address pill and the Protection menu row open it. notes.md sets what each switch does: app links and APK downloads are always blocked, a trusted site skips everything else, and "Block popups and redirects" off allows `window.open` as a same-tab navigation and redirects without a tap. Counts come from two engines, one for EasyList and the Ascon list as Ads and one for EasyPrivacy as Trackers; the guard counts stopped redirects. "Site looks broken?" trusts the site and reloads, with Undo.
 12. The protection switches on the Settings screen change nothing yet, because settings are an in-memory fake. notes.md specifies one persistent protection settings repository in core, shared by Settings, the sheet and the browser, with pure, tested decision functions for requests and navigations, and the switch renamed to "Block popups and redirects".
-13. "Filter lists" in Settings and on BrowserShield has no designed screen. It needs one that lists EasyList, EasyPrivacy and the Ascon list, with a switch each, the version and when each list last updated. Turning a list on or off calls `Adblock.setEnabled`, which rebuilds the engine.
-14. There is no open source licenses screen. EasyList and EasyPrivacy must be credited under CC BY-SA, see Adblock.
+13. The filter lists screen is not built. Designed: FilterLists, notes.md. It also lists trusted sites, and changes list updates to every 4 days on Wi-Fi, fetched with ETag.
+14. There is no open source licenses screen. Designed: Licenses, notes.md: an About group at the bottom of Settings, libraries listed at build time by the AboutLibraries Gradle plugin, and EasyList and EasyPrivacy first with their CC BY-SA credit.
 
 ## Workflow
 

@@ -65,6 +65,13 @@
       "x": 1880,
       "y": 4420
     },
+    "FilterLists.dc.html": {
+      "h": 844,
+      "title": "Settings · filter lists and trusted sites",
+      "w": 390,
+      "x": 470,
+      "y": 9660
+    },
     "FixDetection.dc.html": {
       "h": 844,
       "title": "Fix detection sheet",
@@ -85,6 +92,13 @@
       "w": 390,
       "x": 940,
       "y": 3110
+    },
+    "Licenses.dc.html": {
+      "h": 844,
+      "title": "Settings · open source licenses",
+      "w": 390,
+      "x": 940,
+      "y": 9660
     },
     "Logo.dc.html": {
       "h": 760,
@@ -122,6 +136,13 @@
       "x": 0,
       "y": 3110
     },
+    "ReaderChapters.dc.html": {
+      "h": 844,
+      "title": "Reader · chapters sheet",
+      "w": 390,
+      "x": 1880,
+      "y": 9660
+    },
     "ReaderEnd.dc.html": {
       "h": 844,
       "title": "Reader · chapter end",
@@ -142,6 +163,13 @@
       "w": 390,
       "x": 1410,
       "y": 7040
+    },
+    "ReaderSettings.dc.html": {
+      "h": 844,
+      "title": "Reader · settings sheet",
+      "w": 390,
+      "x": 1410,
+      "y": 9660
     },
     "Series.dc.html": {
       "h": 844,
@@ -170,6 +198,13 @@
       "w": 390,
       "x": 1410,
       "y": 3110
+    },
+    "ShieldBroken.dc.html": {
+      "h": 844,
+      "title": "Protection · site looks broken",
+      "w": 390,
+      "x": 0,
+      "y": 9660
     },
     "SiteError.dc.html": {
       "h": 844,
@@ -208,6 +243,13 @@
       "w": 460,
       "x": 1880,
       "y": 3110
+    },
+    "s4": {
+      "maxH": 1100,
+      "text": "DECISIONS FOR THIS ROW (backlog 5, 10, 11, 13, 14)\n\nPROTECTION COUNTS: use two adblock-rust engines, not debug rule info. Engine A holds EasyList + the Ascon list and counts as Ads. Engine B holds EasyPrivacy and counts as Trackers. Check A first, then B; a request blocked by A is not checked by B. Memory stays about the same because the lists are split, not duplicated. Debug rule info disables engine optimizations, so keep it for a dev build only. Redirects stopped is counted by the navigation guard, not the engine. All counts are per page load and reset on navigation.\n\nSITE LOOKS BROKEN: expands an inline confirm in the protection sheet. Turn off and reload adds the site to trusted sites, reloads, closes the sheet, and shows a snackbar Protection off for <site> · Undo. Undo removes it and reloads. The optional Send site address switch is off by default and sends only the registrable domain to the backend so the Ascon list can be fixed. Never the URL path, never page content.\n\nFILTER LISTS: reached from Settings > Filter lists and the protection sheet. Each list shows purpose, version and last update. Toggling calls Adblock.setEnabled and shows Applying changes in the status card until the rebuilt engine is swapped in. Update all fetches lists over HTTPS with ETag; automatic update every 4 days on Wi-Fi. Trusted sites are listed below with a remove button each.\n\nLICENSES: Settings gets an ABOUT group at the bottom, below Ascon Plus, with Open source licenses, Privacy policy and the version number. Open source licenses opens this screen. Generate the library list at build time with the AboutLibraries Gradle plugin. Add EasyList and EasyPrivacy manually at the top with the CC BY-SA attribution card. Each row opens the full license text.\n\nPAGE GAP (backlog 10): default Auto. In long strip, Auto puts 0 px between images when consecutive images share the same width and look like slices of one strip (height at least 1.6x width), otherwise 6 px. User can force None or Small (6 px) per series. Paged modes ignore the gap.\n\nREADER SETTINGS: Aa button. Scope switch at top: This series or All series; changes save per series unless All series is chosen. Mode: Long strip, Left to right, Right to left. Fit: Width or Screen. Page gap: Auto, None, Small. Background: Black, Gray, White. Switches: Crop borders, Keep screen on, Volume keys turn pages, Show tap zones.\n\nREADER GESTURES: tap center toggles controls. Paged: tap left or right third turns the page, mirrored in Right to left. Long strip: side taps scroll 80 percent of the screen. Double tap zooms 2x at the point, double tap again resets. Pinch zoom up to 4x. Long press an image: Save image, Share image, Report broken page. Pull past the last image to open the chapter end screen.\n\nTIME LEFT: remaining images times this user's median seconds per image, learned across chapters. Hidden until 3 images are read in the session.\n\nCHAPTERS SHEET: opened by the Chapters button. Source switcher at top, Go to chapter field, newest first by default, current chapter highlighted with its progress. New chapters get the accent dot, read chapters a check, downloaded ones a download mark.⁸",
+      "w": 480,
+      "x": 2350,
+      "y": 9592
     },
     "t1": {
       "kind": "title1",
@@ -264,6 +306,14 @@
       "w": 240,
       "x": 0,
       "y": 8090
+    },
+    "t8": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Protection, filter lists, licenses, reader tools",
+      "w": 240,
+      "x": 0,
+      "y": 9400
     }
   },
   "order": [
@@ -291,7 +341,12 @@
     "BrowserV2Detected.dc.html",
     "BrowserV2Docked.dc.html",
     "BrowserV2Scrolling.dc.html",
-    "BrowserV2Menu.dc.html"
+    "BrowserV2Menu.dc.html",
+    "ShieldBroken.dc.html",
+    "FilterLists.dc.html",
+    "Licenses.dc.html",
+    "ReaderSettings.dc.html",
+    "ReaderChapters.dc.html"
   ],
   "pages": [],
   "title": "Ascon UI direction"

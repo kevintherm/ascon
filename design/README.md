@@ -18,6 +18,8 @@
 | BrowserV2Scrolling | Browser v2: bar and chip collapsed while scrolling |
 | BrowserV2Menu | Browser v2: the menu |
 | Reader | Native reader with controls shown |
+| ReaderSettings | Reader settings sheet, opened by the Aa button |
+| ReaderChapters | Chapters sheet, opened by the Chapters button |
 | ReaderEnd | End of chapter and up next |
 | ReaderEndCaughtUp | End of the latest chapter |
 | ReaderEndComplete | End of a completed series |
@@ -25,6 +27,9 @@
 | Settings | Settings |
 | BrowserTabs | Tab switcher. Dropped: the browser is single-tab |
 | BrowserShield | Protection sheet |
+| ShieldBroken | Protection sheet with the "Site looks broken?" confirm open |
+| FilterLists | Filter lists and trusted sites, from Settings and the protection sheet |
+| Licenses | Open source licenses, from the About group in Settings |
 | BrowserFallback | Fallback when reader extraction fails |
 | SiteError | Network or ISP block, with secure DNS retry and alternate source |
 | EmptyLibrary | Empty state |
@@ -39,4 +44,4 @@ The editable canvas lives on claude.ai as "Ascon UI direction". If a screen chan
 
 ## Not designed yet
 
-Reader settings sheet, chapter list sheet, translation overlay, downloads manager, filter list manager, open source licenses, hidden library lock, Plus paywall, dark theme for non-reader screens, motion.
+Translation overlay, downloads manager, hidden library lock, Plus paywall, dark theme for non-reader screens, motion.
