@@ -18,6 +18,7 @@
     <string name="browser_cancel_edit">Cancel</string>
     <string name="browser_address">Address, %1$s</string>
     <string name="browser_menu">Menu</string>
+    <string name="browser_show_controls">Show browser controls</string>
     <string name="browser_share_short">Share</string>
     <string name="browser_menu_open_reader">Open in Reader</string>
     <string name="browser_menu_series">Go to series</string>

@@ -45,8 +45,11 @@ interface BrowserEvents {
 
     fun onDetection(detection: Detection)
 
-    /** The page scrolled to [scrollY], in pixels, in a view [viewportHeight] tall. */
-    fun onScrolled(scrollY: Int, viewportHeight: Int)
+    /**
+     * The page scrolled to [scrollY], in pixels, in a view [viewportHeight] tall. [atEnd]
+     * when it can't scroll further.
+     */
+    fun onScrolled(scrollY: Int, viewportHeight: Int, atEnd: Boolean)
 
     /** The ad blocker stopped a request from [pageUrl]. Called off the main thread. */
     fun onRequestBlocked(pageUrl: String)
@@ -115,7 +118,7 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         view.webChromeClient = Chrome()
         view.onDetection = { events?.onDetection(it) }
         view.onTap = { href -> lastTap = Tap(href, SystemClock.uptimeMillis()) }
-        view.setOnScrollChangeListener { v, _, y, _, _ -> events?.onScrolled(y, v.height) }
+        view.setOnScrollChangeListener { v, _, y, _, _ -> events?.onScrolled(y, v.height, !v.canScrollVertically(1)) }
         view.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
             val kind = if (DownloadPolicy.isBlocked(url, contentDisposition, mimeType)) {
                 BlockedKind.AppDownload

@@ -42,7 +42,9 @@ data class BrowserUiState(
     /** Requests the ad blocker stopped on this page. */
     val blocked: Int = 0,
     /** The card has docked into the reader chip above the bar. It shows again when the chapter changes. */
-    val cardDocked: Boolean = false
+    val cardDocked: Boolean = false,
+    /** Scrolling down shrank the bar and chip into a thin strip. Scrolling up, a tap or the page end expands it. */
+    val barCollapsed: Boolean = false
 ) {
     val host: String get() = displayHost(url)
 }
@@ -96,6 +98,9 @@ class BrowserViewModel(
     /** A page on screen reported before its chapter's card exists, applied once it does. */
     private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
     private var scrollY = 0
+
+    /** Where the page last scrolled up to, or the bar was expanded. 24 px down from it collapses the bar. */
+    private var expandedAt = 0
 
     /** Where the page was scrolled to when the card appeared. One screen past it docks the card. */
     private var cardScrollStart = 0
@@ -247,13 +252,22 @@ class BrowserViewModel(
         _state.update { it.copy(reader = null) }
     }
 
+    fun expandBar() {
+        expandedAt = scrollY
+        _state.update { it.copy(barCollapsed = false) }
+    }
+
     /** Docks the card into the reader chip: after its countdown, from its chevron, or by scrolling. */
     fun dockCard() {
         _state.update { if (it.card != null) it.copy(cardDocked = true) else it }
     }
 
-    override fun onScrolled(scrollY: Int, viewportHeight: Int) {
+    override fun onScrolled(scrollY: Int, viewportHeight: Int, atEnd: Boolean) {
+        val up = scrollY < this.scrollY
         this.scrollY = scrollY
+        if (up || atEnd) expandedAt = scrollY
+        val collapsed = !up && !atEnd && (state.value.barCollapsed || scrollY - expandedAt > COLLAPSE_AFTER_PX)
+        if (collapsed != state.value.barCollapsed) _state.update { it.copy(barCollapsed = collapsed) }
         val card = state.value.card
         if (card != null && !state.value.cardDocked && scrollY - cardScrollStart >= viewportHeight) dockCard()
     }
@@ -269,12 +283,17 @@ class BrowserViewModel(
 
     private fun moveTo(url: String) {
         saved[KEY_URL] = url
+        if (url.withoutFragment() != state.value.url.withoutFragment()) {
+            scrollY = 0
+            expandedAt = 0
+        }
         _state.update {
             val samePage = it.url.withoutFragment() == url.withoutFragment()
             it.copy(
                 url = url,
                 card = if (samePage) it.card else null,
                 cardDocked = samePage && it.cardDocked,
+                barCollapsed = samePage && it.barCollapsed,
                 reader = if (samePage) it.reader else null,
                 readerChapter = if (samePage) it.readerChapter else null,
                 blocked = if (samePage) it.blocked else 0,
@@ -285,5 +304,8 @@ class BrowserViewModel(
 
     private companion object {
         const val KEY_URL = "url"
+
+        /** How far down the page scrolls before the bar collapses, per notes.md. */
+        const val COLLAPSE_AFTER_PX = 24
     }
 }

@@ -4,8 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -110,6 +113,7 @@ fun BrowserRoute(
             },
             onOpenSeries = actions.onOpenSeries,
             onDockCard = viewModel::dockCard,
+            onExpandBar = viewModel::expandBar,
             onNoticeShown = viewModel::dismissNotice,
             onDismissReaderUnavailable = viewModel::dismissReaderUnavailable,
             onOpenReader = viewModel::openReader,
@@ -140,6 +144,7 @@ data class BrowserCommands(
     val onShare: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
     val onDockCard: () -> Unit = {},
+    val onExpandBar: () -> Unit = {},
     val onNoticeShown: (Long) -> Unit = {},
     val onDismissReaderUnavailable: () -> Unit = {},
     val onOpenReader: () -> Unit = {},
@@ -193,63 +198,85 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
             Spacer(
                 Modifier
                     .navigationBarsPadding()
-                    .height(BarClearance)
+                    // Steps with the bar instead of following its animation, so the page resizes once.
+                    .height(if (state.barCollapsed && !editing) StripClearance else BarClearance)
             )
         }
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(start = BarSide, end = BarSide, bottom = BarBottom),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            AnimatedVisibility(
-                visible = state.notice != null,
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut()
-            ) {
-                state.notice?.let { NoticePill(noticeText(it)) }
-            }
-            val readerAvailable = state.readerChapter != null
-            AnimatedVisibility(
-                visible = state.card != null && !state.cardDocked && !editing,
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut() + slideOutVertically { it / 2 }
-            ) {
-                state.card?.let {
-                    DetectionCardView(
-                        it,
-                        readerAvailable,
-                        commands.onOpenReader,
-                        commands.onOpenSeries,
-                        commands.onDockCard
-                    )
-                }
-            }
-            AnimatedVisibility(
-                visible = state.card != null && state.cardDocked && !editing,
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut()
-            ) {
-                state.card?.let {
-                    // The chip sits 10 above the bar where the card sits 12, per BrowserV2Docked.
-                    ReaderChip(it, readerAvailable, commands.onOpenReader, Modifier.offset(y = 2.dp))
-                }
-            }
-            BrowserBar(
-                state = state,
-                editing = editing,
-                onEditingChange = { editing = it },
-                onBack = commands.onBack,
-                onSubmit = { text ->
-                    editing = false
-                    addressToUrl(text)?.let(commands.onLoad)
-                },
-                onReload = commands.onReload,
-                onMore = { menuOpen = true }
-            )
-        }
+        BottomControls(
+            state = state,
+            commands = commands,
+            editing = editing,
+            onEditingChange = { editing = it },
+            onMore = { menuOpen = true },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
         BrowserMenu(visible = menuOpen, state = state, commands = commands, onDismiss = { menuOpen = false })
+    }
+}
+
+/** The notice, the detection card or reader chip, and the bar, stacked above the bottom edge. */
+@Composable
+private fun BottomControls(
+    state: BrowserUiState,
+    commands: BrowserCommands,
+    editing: Boolean,
+    onEditingChange: (Boolean) -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier
+            .navigationBarsPadding()
+            .padding(start = BarSide, end = BarSide, bottom = BarBottom),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AnimatedVisibility(
+            visible = state.notice != null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut()
+        ) {
+            state.notice?.let { NoticePill(noticeText(it)) }
+        }
+        val readerAvailable = state.readerChapter != null
+        AnimatedVisibility(
+            visible = state.card != null && !state.cardDocked && !editing,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 }
+        ) {
+            state.card?.let {
+                DetectionCardView(
+                    it,
+                    readerAvailable,
+                    commands.onOpenReader,
+                    commands.onOpenSeries,
+                    commands.onDockCard
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = state.card != null && state.cardDocked && !state.barCollapsed && !editing,
+            enter = fadeIn() + expandVertically(tween(COLLAPSE_MS)),
+            exit = fadeOut() + shrinkVertically(tween(COLLAPSE_MS))
+        ) {
+            state.card?.let {
+                // The chip sits 10 above the bar where the card sits 12, per BrowserV2Docked.
+                ReaderChip(it, readerAvailable, commands.onOpenReader, Modifier.offset(y = 2.dp))
+            }
+        }
+        BrowserBar(
+            state = state,
+            editing = editing,
+            onEditingChange = onEditingChange,
+            onBack = commands.onBack,
+            onSubmit = { text ->
+                onEditingChange(false)
+                addressToUrl(text)?.let(commands.onLoad)
+            },
+            onReload = commands.onReload,
+            onMore = onMore,
+            collapsed = state.barCollapsed && !editing,
+            onExpand = commands.onExpandBar
+        )
     }
 }

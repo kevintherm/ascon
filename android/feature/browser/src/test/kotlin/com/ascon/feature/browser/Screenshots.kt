@@ -68,6 +68,11 @@ class Screenshots {
     }
 
     @Test
+    fun browserScrolling() = capture("browser_scrolling") {
+        browser(BrowserUiState(url = url, card = PreviewCard, cardDocked = true, barCollapsed = true, blocked = 27))
+    }
+
+    @Test
     fun browserMenu() = capture("browser_menu") {
         val chapter =
             ReaderChapter(url, PreviewCard.title, PreviewCard.chapter, PreviewCard.seriesId, listOf("p1"), null, null)

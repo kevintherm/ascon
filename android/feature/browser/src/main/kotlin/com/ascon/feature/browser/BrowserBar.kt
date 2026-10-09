@@ -1,12 +1,16 @@
 package com.ascon.feature.browser
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -53,6 +57,7 @@ import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconType
+import com.ascon.core.model.toChapterLabel
 
 // Browser bar from design/tokens.md: 68 tall, radius 34, 10 side padding, 48 items.
 internal val BarHeight = 68.dp
@@ -76,16 +81,52 @@ internal fun BrowserBar(
     onBack: () -> Unit,
     onSubmit: (String) -> Unit,
     onReload: () -> Unit,
+    onMore: () -> Unit,
+    collapsed: Boolean = false,
+    onExpand: () -> Unit = {}
+) {
+    // Only the height animates, per notes.md. The ends stay round: radius 34 at 68, 18 at 36.
+    val height by animateDpAsState(if (collapsed) StripHeight else BarHeight, tween(COLLAPSE_MS), label = "bar")
+    val shape = RoundedCornerShape(percent = 50)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .then(
+                if (collapsed) {
+                    Modifier
+                } else {
+                    Modifier.dropShadow(
+                        shape,
+                        Shadow(radius = 30.dp, color = BarShadow, offset = DpOffset(0.dp, 12.dp))
+                    )
+                }
+            )
+            .clip(shape)
+            .background(if (collapsed) AsconColors.Glass else AsconColors.Ink)
+            .then(if (collapsed) Modifier.border(1.dp, AsconColors.GlassBorder, shape) else Modifier)
+    ) {
+        if (collapsed) {
+            CollapsedStrip(state, onExpand)
+        } else {
+            BarItems(state, editing, onEditingChange, onBack, onSubmit, onReload, onMore)
+        }
+    }
+}
+
+@Composable
+private fun BarItems(
+    state: BrowserUiState,
+    editing: Boolean,
+    onEditingChange: (Boolean) -> Unit,
+    onBack: () -> Unit,
+    onSubmit: (String) -> Unit,
+    onReload: () -> Unit,
     onMore: () -> Unit
 ) {
-    val shape = RoundedCornerShape(BarRadius)
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(BarHeight)
-            .dropShadow(shape, Shadow(radius = 30.dp, color = BarShadow, offset = DpOffset(0.dp, 12.dp)))
-            .clip(shape)
-            .background(AsconColors.Ink)
+            .fillMaxSize()
             .padding(horizontal = BarPadding),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -111,6 +152,63 @@ internal fun BrowserBar(
 }
 
 private val BarShadow = Color(0x66000000)
+
+/** The collapsed bar, per BrowserV2Scrolling. */
+internal val StripHeight = 36.dp
+internal const val COLLAPSE_MS = 200
+
+/** Space under the page for the collapsed strip. */
+internal val StripClearance = StripHeight + BarBottom + 8.dp
+
+/** The bar shrunk while scrolling: shield count, host and chapter. A tap expands it. */
+@Composable
+private fun CollapsedStrip(state: BrowserUiState, onExpand: () -> Unit) {
+    val label = stringResource(R.string.browser_show_controls)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .clickable(role = Role.Button, onClick = onExpand)
+            .semantics { contentDescription = label }
+            .padding(start = 6.dp, end = 14.dp)
+    ) {
+        Row(
+            Modifier
+                .align(Alignment.CenterStart)
+                .height(24.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(StripChipFill)
+                .padding(horizontal = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(AsconIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+            Text(
+                state.blocked.toString(),
+                style = AsconType.CaptionStrong.copy(fontWeight = FontWeight.Bold),
+                color = Color.White
+            )
+        }
+        Text(
+            state.host,
+            style = AsconType.MetaStrong,
+            color = StripHost,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.Center)
+        )
+        state.card?.chapter?.let {
+            Text(
+                stringResource(R.string.browser_menu_chapter_short, it.toChapterLabel()),
+                style = AsconType.ButtonSmall,
+                color = Color.White,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
+    }
+}
+
+private val StripChipFill = Color(0x1FFFFFFF)
+private val StripHost = Color(0xD9FFFFFF)
 
 @Composable
 private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {

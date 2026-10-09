@@ -134,11 +134,11 @@ class BrowserViewModelTest {
     @Test
     fun `scrolling one screen docks the card`() = runTest {
         val vm = viewModel()
-        vm.onScrolled(scrollY = 300, viewportHeight = 800)
+        vm.onScrolled(scrollY = 300, viewportHeight = 800, atEnd = false)
         vm.onDetection(chapter())
-        vm.onScrolled(scrollY = 900, viewportHeight = 800)
+        vm.onScrolled(scrollY = 900, viewportHeight = 800, atEnd = false)
         assertFalse(vm.state.value.cardDocked)
-        vm.onScrolled(scrollY = 1100, viewportHeight = 800)
+        vm.onScrolled(scrollY = 1100, viewportHeight = 800, atEnd = false)
         assertTrue(vm.state.value.cardDocked)
     }
 
@@ -309,5 +309,45 @@ class BrowserViewModelTest {
         assertNull(vm.state.value.readerChapter)
         vm.openReader()
         assertNull(vm.state.value.reader)
+    }
+
+    private fun BrowserViewModel.scrollTo(y: Int, atEnd: Boolean = false) =
+        onScrolled(y, viewportHeight = 800, atEnd = atEnd)
+
+    @Test
+    fun `scrolling down past 24 px collapses the bar and scrolling up expands it`() = runTest {
+        val vm = viewModel()
+        vm.scrollTo(20)
+        assertFalse(vm.state.value.barCollapsed)
+        vm.scrollTo(30)
+        assertTrue(vm.state.value.barCollapsed)
+        vm.scrollTo(500)
+        vm.scrollTo(480)
+        assertFalse(vm.state.value.barCollapsed)
+        vm.scrollTo(500)
+        assertFalse(vm.state.value.barCollapsed)
+        vm.scrollTo(510)
+        assertTrue(vm.state.value.barCollapsed)
+    }
+
+    @Test
+    fun `the end of the page, a tap or a new page expands the bar`() = runTest {
+        val vm = viewModel()
+        vm.scrollTo(400)
+        vm.scrollTo(900, atEnd = true)
+        assertFalse(vm.state.value.barCollapsed)
+
+        vm.scrollTo(100)
+        vm.scrollTo(200)
+        assertTrue(vm.state.value.barCollapsed)
+        vm.expandBar()
+        assertFalse(vm.state.value.barCollapsed)
+        vm.scrollTo(220)
+        assertFalse(vm.state.value.barCollapsed)
+        vm.scrollTo(300)
+        assertTrue(vm.state.value.barCollapsed)
+
+        vm.onPageStarted("https://mangafire.to/read/aztec/chapter-15")
+        assertFalse(vm.state.value.barCollapsed)
     }
 }
