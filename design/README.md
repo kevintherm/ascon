@@ -13,10 +13,11 @@
 | SeriesCaughtUp | Series with every chapter read: the main button becomes a status block |
 | SeriesAhead | Series with a newer chapter only on another source |
 | Browser | Browser with the detection card. Its bar is superseded by Browser v2 |
-| BrowserV2Detected | Browser v2: just detected, card with a countdown |
-| BrowserV2Docked | Browser v2: card docked into the reader chip above the bar |
-| BrowserV2Scrolling | Browser v2: bar and chip collapsed while scrolling |
-| BrowserV2Menu | Browser v2: the menu |
+| BrowserV2Detected | Browser v2: toolbar docked at the top, detection card at the bottom with a countdown |
+| BrowserV2Docked | Browser v2: the toolbar after the card is gone, with the Reader button |
+| BrowserV2Scrolling | Browser v2: toolbar hidden while scrolling, reading progress line at the top |
+| BrowserV2Fallback | Browser v2: page as-is, tracking chip and the notice row under the toolbar |
+| BrowserV2Menu | Browser v2: the menu, with Back to Ascon and Close at the bottom |
 | Reader | Native reader with controls shown |
 | ReaderSettings | Reader settings sheet, opened by the Aa button |
 | ReaderChapters | Chapters sheet, opened by the Chapters button |
@@ -30,7 +31,7 @@
 | ShieldBroken | Protection sheet with the "Site looks broken?" confirm open |
 | FilterLists | Filter lists and trusted sites, from Settings and the protection sheet |
 | Licenses | Open source licenses, from the About group in Settings |
-| BrowserFallback | Fallback when reader extraction fails |
+| BrowserFallback | Fallback when reader extraction fails. Superseded by BrowserV2Fallback |
 | SiteError | Network or ISP block, with secure DNS retry and alternate source |
 | EmptyLibrary | Empty state |
 | FixDetection | Correct a wrong title or chapter |

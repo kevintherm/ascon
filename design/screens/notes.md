@@ -4,23 +4,29 @@ Behavior the artboards can't show, exported word for word from the canvas notes.
 
 ## Browser v2
 
-BROWSER V2 BEHAVIOR (supersedes the bar on Browser · detected)
+BROWSER V2 BEHAVIOR (supersedes every earlier browser bar, including Browser · detected and Browser · reader unavailable)
 
-Bar: Back · address pill (shield count, domain, reload) · Menu. No exit button in the bar, to avoid accidental taps. Ink pill, left/right 12, bottom 18, 68 tall, radius 34, padding 10, items 48 radius 24.
+RULE: nothing stays floating over the page while reading. The toolbar is docked at the TOP, like Chrome's. The WebView starts below it, so the site's own top and bottom bars stay reachable. Back sits top-left, the same place as the back button on every other Ascon screen.
 
-Back: walks page history. On the first page of history it leaves the browser. Use predictive back.
-Close browser: last row of the menu. Leaves the browser in one tap, back to the screen that opened it. The page stays loaded and the Browse nav item returns to it.
+TOOLBAR: full width, ink, flat bottom edge, 64 tall below the status bar, padding 8 12. Left to right, gap 4: Back (bare icon, 40 wide), address box (shield count + domain, 44 tall, radius 12; shield chip 26 tall, radius 6; tap to edit the URL), Reader button (only on a detected chapter page: accent, 44 tall, radius 12, icon + Reader), Menu (bare icon, 40 wide). Address box and Reader button share height and radius on purpose. Reload lives in the menu. In page-as-is mode the Reader button becomes the neutral p. N tracking chip. No close or exit button in the toolbar, to avoid accidental taps.
 
-Single tab only. No tab switcher. Opening a new site replaces the page; the previous page stays in Back history.
+MENU FOOTER, two buttons side by side, 56 tall, radius 16:
+Back to Ascon (ink, app icon, wider): leaves the browser but keeps the page loaded, so the Browse tab returns to it exactly.
+Close (light, X): ends the browsing session. Returns to the screen that opened the browser, discards the page and its Back history, and shows a snackbar there: Browser closed · Undo. Undo reopens the same URL at the same scroll position within 5 s. Reading progress is already saved, so closing never loses progress.
+While a page loads, a 2 px accent progress line runs along the toolbar's bottom edge.
 
-Detection card: 5 s countdown line, then it docks into the full-width reader chip above the bar (8 s and an Add button if the series isn't in the library). Touch pauses the countdown, chevron docks now, scrolling one screen docks it. Shows again only when the chapter changes.
+SCROLL: scrolling down more than 24 px slides the toolbar up out of view; when the slide ends, the WebView grows to full height, once. Scrolling up, or reaching the top or end of the page, slides it back and the WebView shrinks back. Never resize mid-animation. While hidden, the only thing drawn is a 2 px reading progress line along the top edge, in the brand gradient, on detected chapter pages only. It ignores touches (pointer-events none) and tracks the visible image index, not raw scroll position.
 
-Reader chip: visible while on a detected chapter page. Reader opens that chapter at the current visible image. Reader back returns to this page and scroll position.
+DETECTION CARD: the only overlay, and it is temporary. On a new detection a white card slides up at the BOTTOM (left/right 12, bottom 16 above the gesture area) with Open in Reader and Not right?, plus a 5 s countdown line. When it runs out, the card slides down and the Reader button in the toolbar pulses once to show where it went. Touch pauses the countdown; swipe down or the chevron dismisses early. 8 s and Add to library when the series is not in the library. Shows again only when the chapter changes.
 
-Scrolling down >24 px: bar and chip collapse to a 36-tall glass strip with the same left/right edges. Only height animates, 200 ms. Scroll up, tap, or page end expands it.
+RETURN TO READER: the toolbar's Reader button, visible whenever the page is a detected chapter page. Opens the reader at the currently visible image. Reader back returns to this page and scroll position.
 
-Menu: Forward, Share, Find, Private toggle · Open in Reader, Go to series, Fix title or chapter (only when detected) · Protection (opens protection sheet), Desktop site, Open in another browser · Close browser, ink row at the bottom.
-Shield chip and Protection row both open the protection sheet.
+PAGE AS-IS: the Reader button becomes a neutral Tracking chip with the page number. On the first load only, a dismissable notice row sits under the toolbar, inside the docked area, pushing the page down. Never a banner over the page.
+
+Back: walks page history; on the first page it leaves the browser. Predictive back.
+Single tab only.
+
+MENU (bottom sheet): Forward, Reload, Share, Find · Open in Reader, Go to series, Fix title or chapter · Protection, Desktop site, Private browsing, Open in another browser · Back to Ascon and Close.
 
 ## Series main button and chapter end
 
@@ -29,8 +35,8 @@ SERIES MAIN BUTTON: never disappears, never changes height. First match wins:
 2. Chapter in progress: accent Continue Ch. N, page subtext
 3. Unread chapter on this source: accent Read Ch. N+1
 4. All read here, another source is ahead: accent Read Ch. N+1, subtext Only on <source> so far; opens that source for that chapter only
-5. All read, ongoing: white status block, check, You're caught up, Ch. N is the latest, Reread chip (54 tall, radius 27, padding 8, inner 38 radius 19). Note line under it while alerts are on
-6. All read, completed: same block, Finished, All N chapters read
+5. All read, ongoing: white status block, check, Caught up, subtext Ch. N is latest, icon-only Reread button (rotate icon, label Reread from Ch. 1). Block 54 tall, radius 27, padding 8, inner 38 radius 19. Note line under it while alerts are on
+6. All read, completed: same block, Finished, subtext All N read
 States 5 and 6 have no accent on screen.
 
 CHAPTER END CARD: next on this source, Read Chapter N+1. Next only elsewhere, Read on <source>. Caught up and alerts off, Notify me about Ch. N+1. Caught up and alerts on, no primary, status line. Final chapter of a completed series, gradient bar and Move to Done. No next chapter means no Keep scrolling hint.
