@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,8 +63,9 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.toChapterLabel
 
-// The toolbar from BrowserV2Docked: 64 tall, 8 by 12 padding, items 44 tall with radius 12.
+// The toolbar from BrowserV2Docked: 72 tall, padding 8 12 20, items 44 tall with radius 12.
 private val ToolbarPadding = 12.dp
+private val ToolbarBottom = 20.dp
 internal val ItemSize = 44.dp
 private val ItemRadius = 12.dp
 private val IconWidth = 40.dp
@@ -75,10 +79,10 @@ internal const val SLIDE_MS = 200
 private const val PULSE_SCALE = 1.12f
 
 /**
- * The toolbar docked at the top: Back, the address box, the Reader button on a chapter
- * page, and the menu. On a chapter read as the site shows it, the Reader button becomes
- * the page being tracked and a notice row sits under the toolbar on the first load.
- * While a page loads, a line runs along the bottom edge.
+ * The toolbar docked at the bottom, in thumb reach: Back, the address box, the Reader
+ * button on a chapter page, and the menu. On a chapter read as the site shows it, the
+ * Reader button becomes the page being tracked and a notice row sits above the toolbar
+ * on the first load. While a page loads, a line runs along the top edge.
  */
 @Composable
 internal fun BrowserToolbar(
@@ -89,11 +93,22 @@ internal fun BrowserToolbar(
     modifier: Modifier = Modifier
 ) {
     Column(modifier.fillMaxWidth().background(AsconColors.Ink)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(ToolbarBorder)) {
+            LoadLine(state)
+        }
+        AnimatedVisibility(
+            visible = state.readerUnavailable && state.error == null && !editing,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            ReaderUnavailableRow(commands.onDismissReaderUnavailable)
+        }
+        // 20 under the items, or the gesture area when it is taller.
+        val bottom = maxOf(ToolbarBottom, WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = ToolbarPadding, vertical = 8.dp),
+                .padding(start = ToolbarPadding, end = ToolbarPadding, top = 8.dp, bottom = bottom),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -106,16 +121,6 @@ internal fun BrowserToolbar(
                 ReaderSlot(state, commands.onOpenReader, pulse)
                 ToolbarIcon(AsconIcons.More, stringResource(R.string.browser_menu), commands.onMore)
             }
-        }
-        AnimatedVisibility(
-            visible = state.readerUnavailable && state.error == null && !editing,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            ReaderUnavailableRow(commands.onDismissReaderUnavailable)
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(ToolbarBorder)) {
-            LoadLine(state)
         }
     }
 }
@@ -132,7 +137,7 @@ internal class ToolbarCommands(
     val onDismissReaderUnavailable: () -> Unit
 )
 
-/** A 2 px accent line along the toolbar's bottom edge while the page loads. */
+/** A 2 px accent line along the toolbar's top edge while the page loads. */
 @Composable
 private fun LoadLine(state: BrowserUiState) {
     val progress by animateFloatAsState(if (state.loading) state.progress / 100f else 1f, label = "load")
@@ -271,12 +276,12 @@ private fun ToolbarChip(icon: ImageVector, text: String, fill: Color, style: Tex
     }
 }
 
-/** Under the toolbar on the first load of a chapter read as the site shows it, per BrowserV2Fallback. */
+/** Above the toolbar on the first load of a chapter read as the site shows it, per BrowserV2Fallback. */
 @Composable
 private fun ReaderUnavailableRow(onDismiss: () -> Unit) {
     Row(
         Modifier
-            .padding(start = ToolbarPadding, end = ToolbarPadding, bottom = 10.dp)
+            .padding(start = ToolbarPadding, end = ToolbarPadding, top = 10.dp)
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(14.dp))

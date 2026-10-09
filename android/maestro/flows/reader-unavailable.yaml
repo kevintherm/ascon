@@ -14,9 +14,10 @@ appId: com.ascon.app
     direction: UP
 - swipe:
     direction: UP
-# Scrolling down slid the toolbar away; scrolling back up shows it with the page tracked.
+# Scrolling down slid the toolbar away; a short scroll back up shows it with the page tracked.
 - swipe:
-    direction: DOWN
+    start: 50%, 40%
+    end: 50%, 50%
 - extendedWaitUntil:
     visible: "(Chapter 16 · page [2-9] of 12 saved|Tracking chapter 16, page [2-9])"
     timeout: 5000

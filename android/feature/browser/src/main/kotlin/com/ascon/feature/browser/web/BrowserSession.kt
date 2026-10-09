@@ -47,10 +47,10 @@ interface BrowserEvents {
     fun onDetection(detection: Detection)
 
     /**
-     * The page scrolled to [scrollY], in pixels, in a view [viewportHeight] tall. [atEnd]
-     * when it can't scroll further.
+     * The page scrolled to [scrollY], in dp, in a view [viewportHeight] dp tall, with
+     * [toEnd] dp left to scroll. [toEnd] is 0 only when it can't scroll further.
      */
-    fun onScrolled(scrollY: Int, viewportHeight: Int, atEnd: Boolean)
+    fun onScrolled(scrollY: Int, viewportHeight: Int, toEnd: Int)
 
     /** The ad blocker stopped a request from [pageUrl]. Called off the main thread. */
     fun onRequestBlocked(pageUrl: String, category: BlockCategory)
@@ -128,7 +128,13 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         view.webChromeClient = Chrome()
         view.onDetection = { events?.onDetection(it) }
         view.onTap = { href -> lastTap = Tap(href, SystemClock.uptimeMillis()) }
-        view.setOnScrollChangeListener { v, _, y, _, _ -> events?.onScrolled(y, v.height, !v.canScrollVertically(1)) }
+        view.setOnScrollChangeListener { v, _, y, _, _ ->
+            val density = v.resources.displayMetrics.density
+            val bottom = ((y + v.height) / density).toInt()
+            // contentHeight is in CSS pixels, which are dp at the usual device-width viewport.
+            val toEnd = if (v.canScrollVertically(1)) maxOf(1, (v as WebView).contentHeight - bottom) else 0
+            events?.onScrolled((y / density).toInt(), (v.height / density).toInt(), toEnd)
+        }
         view.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
             val kind = if (DownloadPolicy.isBlocked(url, contentDisposition, mimeType)) {
                 BlockedKind.AppDownload

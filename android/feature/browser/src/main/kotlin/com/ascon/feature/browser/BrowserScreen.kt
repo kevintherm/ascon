@@ -14,10 +14,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -189,9 +191,9 @@ data class BrowserCommands(
 )
 
 /**
- * The browser: the toolbar docked at the top, the page under it, and the detection card
- * and notices over the page's bottom. Scrolling down slides the toolbar away, and the
- * page takes its place once the slide ends. [page] draws the WebView; previews and tests
+ * The browser: the page, the toolbar docked under it, and the detection card and
+ * notices just above the toolbar. Scrolling down slides the toolbar away, and the page
+ * takes its place once the slide ends. [page] draws the WebView; previews and tests
  * pass a stand-in.
  */
 @Composable
@@ -245,12 +247,17 @@ fun BrowserScreen(
             .fillMaxSize()
             .background(AsconColors.BrowserGround)
             .imePadding()
-            .navigationBarsPadding()
     ) {
         Box(Modifier.fillMaxWidth().background(AsconColors.Ink).statusBarsPadding())
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-            val top = if (pageUnder) 0.dp else with(LocalDensity.current) { toolbarHeight.toDp() }
-            Box(Modifier.fillMaxSize().padding(top = top)) {
+            // Only the page's bottom edge moves, so what is at the top never jumps.
+            val density = LocalDensity.current
+            val bottom = if (pageUnder) {
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            } else {
+                with(density) { toolbarHeight.toDp() }
+            }
+            Box(Modifier.fillMaxSize().padding(bottom = bottom)) {
                 page(Modifier.fillMaxSize())
                 state.error?.let { LoadErrorPage(it, commands.onRetry, Modifier.fillMaxSize()) }
             }
@@ -272,11 +279,20 @@ fun BrowserScreen(
                 ),
                 pulse = pulse,
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .onSizeChanged { toolbarHeight = it.height }
-                    .graphicsLayer { translationY = -slide.value * size.height }
+                    .graphicsLayer { translationY = slide.value * size.height }
             )
             if (pageUnder) ReadingLine(state.card)
-            BottomOverlays(state, commands, protection, editing, Modifier.align(Alignment.BottomCenter))
+            // The card and notices sit 12 above the toolbar, and follow it as it slides.
+            val above = with(density) { (toolbarHeight * (1 - slide.value)).toDp() }
+            BottomOverlays(
+                state,
+                commands,
+                protection,
+                editing,
+                Modifier.align(Alignment.BottomCenter).padding(bottom = above)
+            )
         }
     }
     BrowserMenu(
@@ -306,7 +322,7 @@ fun BrowserScreen(
     )
 }
 
-/** The notices and the detection card, the only things over the page, above its bottom edge. */
+/** The notices and the detection card, the only things over the page, above the toolbar. */
 @Composable
 private fun BottomOverlays(
     state: BrowserUiState,
@@ -316,7 +332,7 @@ private fun BottomOverlays(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier.padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+        modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

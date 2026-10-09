@@ -77,7 +77,7 @@ docs/               ADRs and longer notes
 - Navigation guard in `shouldOverrideUrlLoading`: block `intent://`, `market://` and other non-web schemes; block cross-domain navigations where `request.hasGesture()` is false; deny `onCreateWindow`; override `window.open`.
 - Click hijacking: a tap counts for a cross-domain navigation only when the navigation goes to the link the user tapped. The injected script reports the link under each tap. A site's click handler that sends the page elsewhere is blocked like a redirect.
 - Block APK and executable downloads in the download listener.
-- Decided with the owner: the browser is single-tab, with one live WebView. Opening a new site replaces the page, and the previous page stays in back history. Back to Ascon leaves the page loaded for the Browse tab; Close, or confirming Back on the first page, discards it.
+- Decided with the owner: the browser is single-tab, with one live WebView. Its toolbar is docked at the bottom, and showing or hiding it only moves the page's bottom edge. Opening a new site replaces the page, and the previous page stays in back history. Back to Ascon leaves the page loaded for the Browse tab; Close, or confirming Back on the first page, discards it.
 - Pre-warm one WebView at app start; first init is slow.
 - Check `WebViewCompat.getCurrentWebViewPackage()` and warn on very old versions.
 
@@ -247,7 +247,7 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 12. Done: protection settings are saved with DataStore in `core/data/datastore` and shared by Settings and the browser. `NavigationGuard` applies them to navigations, requests and hidden elements, and the filter lists the user turns off are a protection setting.
 13. The filter lists screen is not built. Designed: FilterLists, notes.md. It also lists trusted sites, and changes list updates to every 4 days on Wi-Fi, fetched with ETag.
 14. There is no open source licenses screen. Designed: Licenses, notes.md: an About group at the bottom of Settings, libraries listed at build time by the AboutLibraries Gradle plugin, and EasyList and EasyPrivacy first with their CC BY-SA credit.
-15. Done: the browser toolbar is docked at the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay, and the Reader button in the toolbar takes its place.
+15. Done: the browser toolbar is docked at the bottom, decided with the owner after trying the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay, and the Reader button in the toolbar takes its place.
 16. Done: the menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
 17. Done: every bottom sheet can be dragged down to close.
 

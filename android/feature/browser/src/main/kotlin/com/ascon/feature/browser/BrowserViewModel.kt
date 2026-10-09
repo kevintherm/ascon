@@ -110,8 +110,12 @@ class BrowserViewModel(
     private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
     private var scrollY = 0
 
-    /** Where the page last scrolled up to. 24 px down from it hides the toolbar. */
-    private var expandedAt = 0
+    /**
+     * Where the scroll last turned: the highest point while the toolbar shows, the lowest
+     * while it is hidden. Only 24 dp past it, either way, changes the toolbar, so a slow
+     * drag that wobbles by a few pixels never toggles it.
+     */
+    private var turnedAt = 0
 
     /** Where the page was scrolled to when the card appeared. One screen past it docks the card. */
     private var cardScrollStart = 0
@@ -293,12 +297,24 @@ class BrowserViewModel(
         _state.update { if (it.card != null) it.copy(cardDocked = true) else it }
     }
 
-    override fun onScrolled(scrollY: Int, viewportHeight: Int, atEnd: Boolean) {
-        val up = scrollY < this.scrollY
+    /**
+     * Hides the toolbar after 24 dp down and shows it after 24 dp up, or at the top or end.
+     * Near the end it stays: hiding it would grow the page to its end and show it again.
+     */
+    override fun onScrolled(scrollY: Int, viewportHeight: Int, toEnd: Int) {
         this.scrollY = scrollY
-        if (up || atEnd) expandedAt = scrollY
-        val hidden = !up && !atEnd && (state.value.toolbarHidden || scrollY - expandedAt > HIDE_AFTER_PX)
-        if (hidden != state.value.toolbarHidden) _state.update { it.copy(toolbarHidden = hidden) }
+        val hidden = state.value.toolbarHidden
+        val change = if (hidden) {
+            turnedAt = maxOf(turnedAt, scrollY)
+            toEnd == 0 || scrollY <= 0 || turnedAt - scrollY > TURN_AFTER_DP
+        } else {
+            turnedAt = minOf(turnedAt, scrollY)
+            toEnd > KEEP_NEAR_END_DP && scrollY - turnedAt > TURN_AFTER_DP
+        }
+        if (change) {
+            turnedAt = scrollY
+            _state.update { it.copy(toolbarHidden = !hidden) }
+        }
         val card = state.value.card
         if (card != null && !state.value.cardDocked && scrollY - cardScrollStart >= viewportHeight) dockCard()
     }
@@ -315,7 +331,7 @@ class BrowserViewModel(
         chapterCard = null
         earlyPosition = null
         scrollY = 0
-        expandedAt = 0
+        turnedAt = 0
         saved[KEY_URL] = ""
         _state.value = BrowserUiState(url = "")
     }
@@ -329,7 +345,7 @@ class BrowserViewModel(
         saved[KEY_URL] = url
         if (url.withoutFragment() != state.value.url.withoutFragment()) {
             scrollY = 0
-            expandedAt = 0
+            turnedAt = 0
         }
         _state.update {
             val samePage = it.url.withoutFragment() == url.withoutFragment()
@@ -349,7 +365,10 @@ class BrowserViewModel(
     private companion object {
         const val KEY_URL = "url"
 
-        /** How far down the page scrolls before the toolbar hides, per notes.md. */
-        const val HIDE_AFTER_PX = 24
+        /** How far the page scrolls past a turn before the toolbar hides or shows, per notes.md. */
+        const val TURN_AFTER_DP = 24
+
+        /** More than the toolbar's height, so hiding it near the end can't reach the end. */
+        const val KEEP_NEAR_END_DP = 120
     }
 }

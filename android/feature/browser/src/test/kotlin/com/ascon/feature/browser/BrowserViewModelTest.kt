@@ -135,11 +135,11 @@ class BrowserViewModelTest {
     @Test
     fun `scrolling one screen docks the card`() = runTest {
         val vm = viewModel()
-        vm.onScrolled(scrollY = 300, viewportHeight = 800, atEnd = false)
+        vm.onScrolled(scrollY = 300, viewportHeight = 800, toEnd = 2000)
         vm.onDetection(chapter())
-        vm.onScrolled(scrollY = 900, viewportHeight = 800, atEnd = false)
+        vm.onScrolled(scrollY = 900, viewportHeight = 800, toEnd = 2000)
         assertFalse(vm.state.value.cardDocked)
-        vm.onScrolled(scrollY = 1100, viewportHeight = 800, atEnd = false)
+        vm.onScrolled(scrollY = 1100, viewportHeight = 800, toEnd = 2000)
         assertTrue(vm.state.value.cardDocked)
     }
 
@@ -331,11 +331,11 @@ class BrowserViewModelTest {
         assertNull(vm.state.value.reader)
     }
 
-    private fun BrowserViewModel.scrollTo(y: Int, atEnd: Boolean = false) =
-        onScrolled(y, viewportHeight = 800, atEnd = atEnd)
+    private fun BrowserViewModel.scrollTo(y: Int, toEnd: Int = 2000) =
+        onScrolled(y, viewportHeight = 800, toEnd = toEnd)
 
     @Test
-    fun `scrolling down past 24 px hides the toolbar and scrolling up shows it`() = runTest {
+    fun `scrolling 24 dp down hides the toolbar and 24 dp up shows it`() = runTest {
         val vm = viewModel()
         vm.scrollTo(20)
         assertFalse(vm.state.value.toolbarHidden)
@@ -343,18 +343,47 @@ class BrowserViewModelTest {
         assertTrue(vm.state.value.toolbarHidden)
         vm.scrollTo(500)
         vm.scrollTo(480)
+        assertTrue(vm.state.value.toolbarHidden)
+        vm.scrollTo(470)
+        assertFalse(vm.state.value.toolbarHidden)
+        vm.scrollTo(490)
         assertFalse(vm.state.value.toolbarHidden)
         vm.scrollTo(500)
-        assertFalse(vm.state.value.toolbarHidden)
-        vm.scrollTo(510)
         assertTrue(vm.state.value.toolbarHidden)
+    }
+
+    @Test
+    fun `a slow drag that wobbles never toggles the toolbar`() = runTest {
+        val vm = viewModel()
+        for (y in 0..400 step 4) {
+            vm.scrollTo(y)
+            vm.scrollTo(y - 2)
+        }
+        assertTrue(vm.state.value.toolbarHidden)
+        var toggles = 0
+        var last = true
+        for (y in 400..800 step 4) {
+            vm.scrollTo(y)
+            vm.scrollTo(y - 3)
+            if (vm.state.value.toolbarHidden != last) toggles++
+            last = vm.state.value.toolbarHidden
+        }
+        assertEquals(0, toggles)
+    }
+
+    @Test
+    fun `near the end the toolbar stays shown`() = runTest {
+        val vm = viewModel()
+        vm.scrollTo(400, toEnd = 100)
+        vm.scrollTo(450, toEnd = 50)
+        assertFalse(vm.state.value.toolbarHidden)
     }
 
     @Test
     fun `the end of the page or a new page shows the toolbar`() = runTest {
         val vm = viewModel()
         vm.scrollTo(400)
-        vm.scrollTo(900, atEnd = true)
+        vm.scrollTo(900, toEnd = 0)
         assertFalse(vm.state.value.toolbarHidden)
 
         vm.scrollTo(100)
