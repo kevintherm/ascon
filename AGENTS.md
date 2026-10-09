@@ -220,6 +220,17 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 
 **Prototype first:** reader-mode extraction on hostile sites, and JS/Go evaluator parity. They are the highest risk and may change the architecture.
 
+## Needed UI fixes
+
+Found by the owner while testing step 6. Left for a later UI pass because they need design work, not quick fixes.
+
+1. The browser's address bar area is off and needs a redesign.
+2. The browser's overflow menu lacks features and needs a redesign.
+3. Once back on the site page, there is no way to return to the reader for that chapter.
+4. There is no quick way to leave the browser and return to the app; back walks the page history first.
+5. The reader lacks features for viewing comics.
+6. The detection card stays until hidden. It should disappear by itself after a while.
+
 ## Workflow
 
 How agents work in this repo, agreed with the owner to keep the loop fast.
