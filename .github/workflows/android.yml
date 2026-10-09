@@ -21,8 +21,25 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
+      # The adblock engine is Rust, built for Android with cargo-ndk. Runners ship rustup.
+      - name: Rust for Android
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+          cargo install cargo-ndk@4.1.2 --locked
       - name: Lint and test
         run: ./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true assembleDebug
+
+  adblock:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android/engine/adblock/rust
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup component add clippy rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
 
   evaluator:
     runs-on: ubuntu-latest

@@ -181,4 +181,5 @@ internal fun noticeText(notice: Notice): String = when (notice.kind) {
     BlockedKind.Popup -> stringResource(R.string.blocked_popup)
     BlockedKind.AppDownload -> stringResource(R.string.blocked_app_download)
     BlockedKind.Download -> stringResource(R.string.blocked_download)
+    BlockedKind.Ad -> stringResource(R.string.blocked_ad, notice.host)
 }

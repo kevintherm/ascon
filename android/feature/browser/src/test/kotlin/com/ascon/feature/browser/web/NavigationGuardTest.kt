@@ -1,12 +1,17 @@
 package com.ascon.feature.browser.web
 
+import com.ascon.engine.adblock.RequestFilter
+import com.ascon.engine.adblock.RequestType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class NavigationGuardTest {
     // The last two labels; enough for these hosts. The app uses the public suffix list.
-    private val guard = NavigationGuard { host -> host.split('.').takeLast(2).joinToString(".") }
+    // The ad filter names one ad domain, and checks that it is asked about documents only.
+    private val ads =
+        RequestFilter { url, _, type -> type == RequestType.Document && hostOf(url) == "popunder.example" }
+    private val guard = NavigationGuard({ host -> host.split('.').takeLast(2).joinToString(".") }, ads)
     private val page = "https://mangafire.to/read/aztec/chapter-12"
 
     private fun check(
@@ -80,5 +85,14 @@ class NavigationGuardTest {
         assertNull(check("https://static.mangafire.to/x"))
         assertNull(check("https://login.example/callback", isRedirect = true))
         assertNull(check("https://ads.example/", from = null))
+    }
+
+    @Test
+    fun `a main-frame navigation to an ad domain is blocked even when tapped`() {
+        val ad = "https://popunder.example/go?id=1"
+        assertEquals(BlockReason.Ad, check(ad, hasGesture = true, tappedLink = ad))
+        assertEquals(BlockReason.Ad, check(ad, isRedirect = true))
+        assertEquals(BlockReason.Ad, check(ad, from = null))
+        assertNull(check("https://popunder.example/frame", isMainFrame = false))
     }
 }

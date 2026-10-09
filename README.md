@@ -6,11 +6,22 @@ Start with [AGENTS.md](AGENTS.md) for architecture and decisions, and [design/](
 
 ## Checks
 
-Android, from `android/`, needs JDK 17 or newer and Android SDK platform 37:
+Android, from `android/`, needs JDK 17 or newer, Android SDK platform 37 and NDK 28.2.13676358:
 
 ```
 ./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true assembleDebug
 ```
+
+The ad blocker is Brave's adblock-rust, built from `engine/adblock/rust` by Gradle. It needs rustup with the Android targets and cargo-ndk. A distribution's own Rust can't build for Android. Gradle uses `~/.cargo/bin/cargo` when it exists, so rustup needs no PATH change:
+
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+~/.cargo/bin/rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+~/.cargo/bin/rustup component add clippy rustfmt
+~/.cargo/bin/cargo install cargo-ndk --locked
+```
+
+The Rust crate has its own checks, from `engine/adblock/rust`: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test`.
 
 Compose screens have golden screenshots in each feature's `src/test/screenshots/`, rendered at the mockups' 390×844 by Robolectric. After an intended UI change, record new ones and review the images in the diff:
 
@@ -18,7 +29,7 @@ Compose screens have golden screenshots in each feature's `src/test/screenshots/
 ./gradlew recordRoborazziDebug
 ```
 
-`./run.sh` builds the app and opens it on an emulator. The screens run on fake data in `core/data/fake` until Room and the backend client exist.
+`./run.sh` builds the app and opens it on an emulator. Debug builds start with the sample library from `core/data/fake`.
 
 UI flows run on an emulator with [Maestro](https://maestro.mobile.dev). They find elements by their text and report pass or fail. `tools/emulator-setup.sh` starts an emulator if none is connected. It also locks portrait, turns off animations and turns off stylus handwriting. Then install the debug app and run the flows:
 

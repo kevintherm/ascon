@@ -1,5 +1,7 @@
 package com.ascon.feature.browser.web
 
+import com.ascon.engine.adblock.RequestFilter
+import com.ascon.engine.adblock.RequestType
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -12,7 +14,10 @@ enum class BlockReason {
     NoGesture,
 
     /** A tap sent the tab to another site, but not through the link that was tapped. */
-    Hijack
+    Hijack,
+
+    /** The page is on a filter list, such as a pop-under landing page. */
+    Ad
 }
 
 /** Decides which site a host belongs to, such as `mangadex.org` for `api.mangadex.org`. */
@@ -29,10 +34,13 @@ fun interface SiteKey {
  *   gesture. Server redirects belong to the navigation that started them and pass.
  * - A gesture only counts for the site of the link the user tapped, so a click handler
  *   cannot turn a tap into a trip to an ad site.
+ * - The main frame never goes to a page the ad filter blocks, tapped or not, so a
+ *   hijacked link to a known ad domain is stopped too. Frames are left to [RequestFilter]
+ *   checks on each request.
  * - Frames may also load `about:`, `data:` and `blob:` documents, which sites use for
  *   their own widgets. Every other scheme is blocked there too.
  */
-class NavigationGuard(private val sites: SiteKey) {
+class NavigationGuard(private val sites: SiteKey, private val ads: RequestFilter = RequestFilter.AllowAll) {
     /**
      * Returns null to allow the navigation, or why it was blocked. [tappedLink] is the
      * link under the user's last tap, if the tap was moments ago.
@@ -47,10 +55,20 @@ class NavigationGuard(private val sites: SiteKey) {
     ): BlockReason? {
         val scheme = schemeOf(to) ?: return BlockReason.Scheme
         val allowed = if (isMainFrame) WEB_SCHEMES else FRAME_SCHEMES
-        val site = siteOfUrl(to)
         return when {
             scheme !in allowed -> BlockReason.Scheme
-            !isMainFrame || isRedirect || from == null || siteOfUrl(from) == site -> null
+            !isMainFrame -> null
+            ads.shouldBlock(to, from ?: to, RequestType.Document) -> BlockReason.Ad
+            isRedirect || from == null -> null
+            else -> crossSite(from, to, hasGesture, tappedLink)
+        }
+    }
+
+    /** The main frame moving from [from] to [to], which is not a redirect. */
+    private fun crossSite(from: String, to: String, hasGesture: Boolean, tappedLink: String?): BlockReason? {
+        val site = siteOfUrl(to)
+        return when {
+            siteOfUrl(from) == site -> null
             !hasGesture -> BlockReason.NoGesture
             tappedLink == null || siteOfUrl(tappedLink) != site -> BlockReason.Hijack
             else -> null

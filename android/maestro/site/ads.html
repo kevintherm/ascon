@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Ads test</title>
+<!-- The debug filter list blocks /ads/. The page says whether each image loaded. -->
+<p><img id="banner" src="/ads/banner.png" width="60"> <span id="banner-state">banner pending</span></p>
+<p><img id="page" src="/pages/1/1.png" width="60"> <span id="page-state">page pending</span></p>
+<p><a href="http://127.0.0.1:8765/ads/landing.html" style="font-size:32px">Ad link</a></p>
+<script>
+  for (const name of ["banner", "page"]) {
+    const img = document.getElementById(name);
+    const state = document.getElementById(name + "-state");
+    img.onload = () => { state.textContent = name + (img.naturalWidth > 0 ? " loaded" : " blocked"); };
+    img.onerror = () => { state.textContent = name + " blocked"; };
+  }
+</script>

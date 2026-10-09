@@ -12,19 +12,22 @@ import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.ascon.engine.adblock.RequestType
 import com.ascon.engine.detection.Detection
+import java.io.ByteArrayInputStream
 
 /** How a main-frame load failed. */
 enum class LoadErrorKind { NotFound, Unreachable, Insecure, Crashed, Other }
 
 /** Something the browser stopped, told to the user briefly. */
-enum class BlockedKind { Redirect, OtherApp, Popup, AppDownload, Download }
+enum class BlockedKind { Redirect, OtherApp, Popup, AppDownload, Download, Ad }
 
 /** What a [BrowserSession] reports to the screen. Plain values only, so a view model can take them. */
 interface BrowserEvents {
@@ -59,6 +62,10 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         private set
 
     private var webView: TabWebView = first.also(::setUp)
+
+    /** The page in the main frame, for requests checked off the main thread, where [WebView.getUrl] can't be read. */
+    @Volatile
+    private var pageUrl: String? = null
 
     /** The user's last tap, for the navigation guard. */
     private var lastTap: Tap? = null
@@ -132,12 +139,30 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
                 tappedLink = lastTap?.takeIf { SystemClock.uptimeMillis() - it.at < TAP_WINDOW_MS }?.href
             ) ?: return false
             if (request.isForMainFrame) {
-                events?.onBlocked(if (blocked == BlockReason.Scheme) BlockedKind.OtherApp else BlockedKind.Redirect, to)
+                val kind = when (blocked) {
+                    BlockReason.Scheme -> BlockedKind.OtherApp
+                    BlockReason.Ad -> BlockedKind.Ad
+                    else -> BlockedKind.Redirect
+                }
+                events?.onBlocked(kind, to)
             }
             return true
         }
 
+        /** Runs on a WebView thread for every request. A blocked one gets an empty response. */
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            // Main-frame pages are checked in shouldOverrideUrlLoading, which can tell the user.
+            if (request.isForMainFrame) return null
+            val url = request.url.toString()
+            val accept = request.requestHeaders.entries.firstOrNull {
+                it.key.equals("Accept", ignoreCase = true)
+            }?.value
+            val type = RequestType.of(url, isMainFrame = false, accept = accept)
+            return if (pool.adblock.shouldBlock(url, pageUrl ?: url, type)) emptyResponse() else null
+        }
+
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+            pageUrl = url
             events?.onPageStarted(url)
         }
 
@@ -146,6 +171,7 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
         }
 
         override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+            pageUrl = url
             events?.onHistoryChanged(url, view.canGoBack(), view.canGoForward())
         }
 
@@ -199,6 +225,8 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
     private companion object {
         /** How long after a tap a navigation can still come from it. */
         const val TAP_WINDOW_MS = 1500L
+
+        fun emptyResponse() = WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
 
         fun Int.toKind() = when (this) {
             WebViewClient.ERROR_HOST_LOOKUP -> LoadErrorKind.NotFound

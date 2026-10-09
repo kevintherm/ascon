@@ -54,6 +54,7 @@
     <!-- Blocked notices -->
     <string name="blocked_redirect">Stopped a redirect to %1$s</string>
     <string name="blocked_other_app">Stopped this page from opening another app</string>
+    <string name="blocked_ad">Blocked an ad page on %1$s</string>
     <string name="blocked_popup">Blocked a pop-up</string>
     <string name="blocked_app_download">Blocked an app download</string>
     <string name="blocked_download">Downloads from sites aren\'t supported yet</string>

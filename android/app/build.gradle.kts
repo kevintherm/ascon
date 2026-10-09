@@ -14,6 +14,8 @@ android {
         targetSdk = AndroidConfig.TARGET_SDK
         versionCode = 1
         versionName = "0.1.0"
+        // The ABIs the Rust adblock engine is built for, see engine/adblock.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
     buildTypes {

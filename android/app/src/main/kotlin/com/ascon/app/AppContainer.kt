@@ -11,6 +11,7 @@ import com.ascon.core.data.fake.FakeSettingsRepository
 import com.ascon.core.data.room.AsconDatabase
 import com.ascon.core.data.room.RoomLibraryRepository
 import com.ascon.core.model.AccountState
+import com.ascon.engine.adblock.Adblock
 import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.InMemoryRuleCache
 import com.ascon.engine.detection.RuleLookup
@@ -18,7 +19,9 @@ import com.ascon.feature.browser.web.WebViewPool
 import com.ascon.feature.reader.ReaderImages
 import java.time.Clock
 import java.time.Duration
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 /**
  * Manual dependency injection: one instance of each repository for the whole app.
@@ -54,7 +57,10 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
         )
     }
 
-    val webViews = WebViewPool(app, detection = { detection })
+    /** Blocks nothing until its engine has loaded, which starts here off the main thread. */
+    private val adblock = Adblock(app).also { MainScope().launch(Dispatchers.IO) { it.start() } }
+
+    val webViews = WebViewPool(app, detection = { detection }, adblock = adblock)
 
     val pageImages = ReaderImages(app)
 }

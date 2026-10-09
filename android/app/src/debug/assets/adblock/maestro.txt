@@ -1,0 +1,3 @@
+! Debug builds only: rules the Maestro flows check against maestro/site/ads.html.
+/ads/banner.
+/ads/landing.html$document

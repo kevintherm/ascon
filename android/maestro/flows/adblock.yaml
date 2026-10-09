@@ -1,0 +1,18 @@
+# Step 7: requests and pages on the filter lists are blocked. The debug build adds a list
+# that names /ads/ on the test site, see app/src/debug/assets/adblock/maestro.txt.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/ads.html"
+- extendedWaitUntil:
+    visible: "page loaded"
+    timeout: 15000
+- assertVisible: "banner blocked"
+# A tapped link to a page on the lists stays on this page with a notice.
+- tapOn: "Ad link"
+- extendedWaitUntil:
+    visible: "Blocked an ad page on 127.0.0.1"
+    timeout: 5000
+- assertVisible: "page loaded"

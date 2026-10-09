@@ -9,6 +9,7 @@ import android.webkit.WebView
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.ascon.engine.adblock.RequestFilter
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.DetectionHost
 
@@ -29,7 +30,9 @@ class TabWebView internal constructor(val wrapper: MutableContextWrapper) : WebV
 class WebViewPool(
     private val app: Context,
     private val detection: () -> DetectionHost,
-    internal val guard: NavigationGuard = NavigationGuard(OkHttpSiteKey)
+    /** Checked for every request a page makes, and for every page it opens. */
+    internal val adblock: RequestFilter = RequestFilter.AllowAll,
+    internal val guard: NavigationGuard = NavigationGuard(OkHttpSiteKey, adblock)
 ) {
     private var warm: TabWebView? = null
 

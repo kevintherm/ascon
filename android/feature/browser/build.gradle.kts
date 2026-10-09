@@ -8,6 +8,7 @@ android {
 
 dependencies {
     implementation(project(":engine:detection"))
+    implementation(project(":engine:adblock"))
     // The public suffix list, to tell one site from another in the navigation guard.
     // The reader fetches images with it in step 6.
     implementation(libs.okhttp)

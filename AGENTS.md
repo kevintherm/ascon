@@ -83,6 +83,9 @@ docs/               ADRs and longer notes
 ### Adblock
 
 - Parse filter lists once, serialize the engine to disk, load from the snapshot on start.
+- The engine is `engine/adblock/rust`, a thin UniFFI wrapper over adblock-rust that Gradle builds with cargo-ndk for arm64-v8a, armeabi-v7a and x86_64, the app's only ABIs. The Kotlin bindings are generated into the build directory and call the library through JNA. Rust changes get `cargo fmt`, `cargo clippy` and `cargo test` with the gates.
+- Until the engine loads, and on a device it can't load on, nothing is blocked and browsing still works.
+- Debug builds add `app/src/debug/assets/adblock/maestro.txt`, a list the Maestro flows block against.
 - Network blocking: every request in `shouldInterceptRequest` goes through the engine. Infer resource type from main-frame flag, `Accept` header and extension. Blocked requests return an empty response.
 - Cosmetic blocking: on page start, inject the engine's hide selectors and scriptlets; a `MutationObserver` reports new class and id names back for generic hiding.
 - Main-frame navigations also go through the engine in `shouldOverrideUrlLoading`, tapped or not, so a link to a known ad or popunder domain is blocked. This covers hijacked links the tap rule lets through, including tapped `target=_blank` links, which load in the same tab.
@@ -245,7 +248,7 @@ How agents work in this repo, agreed with the owner to keep the loop fast.
 - **Spike unknowns.** Before building on a platform API you have not used here, check its behavior with a 10-line experiment or one small test.
 - **Compose through semantics.** While building a screen, test it with compose-ui-test under Robolectric and assert on the semantics tree. Record Roborazzi goldens once, at the end of the feature.
 - **Warm, narrow Gradle.** Never pass `--no-daemon`; `gradle.properties` sets the memory and caches. In the inner loop, compile and test only the module you touched, for example `./gradlew :feature:browser:testDebugUnitTest --tests "*BrowserViewModelTest"`.
-- **Gates once, before commit.** Run `ktlintFormat`, compile, then `./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true`, the JS tests in `engine/detection` if they changed, and `python3 tools/context.py`.
+- **Gates once, before commit.** Run `ktlintFormat`, compile, then `./gradlew ktlintCheck detekt lint test -Proborazzi.test.verify=true`, the JS tests in `engine/detection` and the Rust checks in `engine/adblock/rust` if they changed, and `python3 tools/context.py`.
 - **Inspect real sites from inside the app.** `android/tools/webview.py` runs JavaScript in the debug app's WebView, such as `tools/webview.py 'document.images.length'`. Use it to check a site's DOM as Ascon sees it before guessing from screenshots.
 - **One device pass per feature.** Use Maestro flows in `android/maestro/flows`, not adb taps. Take screenshots only when a flow fails. See the README.
 - **Protect context.** Read `android/CONTEXT.md` for the shared API before opening sources in `core` or `engine`. Keep new files under about 300 lines. Split an existing larger file only when a task already touches it.

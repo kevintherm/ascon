@@ -1,0 +1,3 @@
+! Title: Ascon manga sites
+! Rules for ads and pop-unders on manga reading sites that general lists miss.
+! Kept by the Ascon project. Empty until rules are added from real sites.

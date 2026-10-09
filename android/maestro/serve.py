@@ -23,6 +23,8 @@ SITE = HERE / "site"
 FIXTURE = HERE.parent / "engine/detection/src/test/fixtures/madara/chapter.html"
 CHAPTER = re.compile(r"^/manga/([a-z-]+)/chapter-(\d+)/$")
 PAGE = re.compile(r"^/pages/(\d+)/(\d+)\.(?:png|webp)$")
+# An image the debug filter list blocks, so a flow can tell blocking from a missing file.
+AD = "/ads/banner.png"
 
 
 def png(width, height, gray):
@@ -50,6 +52,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         page = PAGE.match(self.path)
+        if self.path == AD:
+            return self.reply("image/png", png(60, 20, 200))
         if page:
             return self.reply("image/png", png(600, 840, 120 + 10 * (int(page.group(2)) % 8)))
         m = CHAPTER.match(self.path)
