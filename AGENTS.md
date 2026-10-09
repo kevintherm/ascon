@@ -12,9 +12,9 @@ Ascon never hosts, mirrors or redistributes content.
 
 **Differentiators** against MangaPin and MangaX, which the owner tested:
 
-1. One series entity, many sources. The same title on two sites or two translations is one library entry. MangaPin gets this wrong.
-2. AI-generated detection rules shared across users, so any site works without hand-written scrapers.
-3. UI and UX quality is a hard requirement. MangaX's confusing gestures, poor hierarchy and murky dark UI are the anti-reference. Nothing ships that looks generic or "slop".
+1. Done: the Browser v2 bar with collapse while scrolling.
+2. Done: the Browser v2 menu sheet; Find, Private, Desktop site, Protection and Fix title wait for their screens.
+3. Done: the reader chip, which opens the reader at the page on screen.
 
 ## Hard rules
 
@@ -111,7 +111,7 @@ docs/               ADRs and longer notes
 1. Local rule cache by domain
 2. Backend rule by domain, then by structure fingerprint
 3. Built-in hand-written rules for common WordPress manga themes
-4. Heuristics: JSON-LD, `og:title`, chapter patterns in the URL
+4. Done: Back to Ascon in the menu, and the Browse nav item returns to the loaded page.
 5. AI generation, last resort, automatic for a signed-in user with quota left. Otherwise the user gets heuristics and the fix-detection sheet
 
 **AI generation, server side:**
@@ -224,7 +224,7 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 3. Go backend: rules and sync with tests.
 4. Android shell: Compose theme from tokens, navigation, Home, Library, Series, Settings on fake data.
 5. Browser core: WebView, injection bridge, navigation guard, rule evaluator.
-6. Reader: extraction, native long-strip reader, progress, page-as-is fallback.
+6. Done: the card counts down and docks into the reader chip.
 7. Adblock: adblock-rust via UniFFI, filter modules, protection sheet.
 
 **Prototype first:** reader-mode extraction on hostile sites, and JS/Go evaluator parity. They are the highest risk and may change the architecture.
