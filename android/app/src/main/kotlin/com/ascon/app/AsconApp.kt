@@ -42,6 +42,7 @@ import com.ascon.feature.browser.BrowseViewModel
 import com.ascon.feature.browser.BrowserActions
 import com.ascon.feature.browser.BrowserRoute
 import com.ascon.feature.browser.BrowserViewModel
+import com.ascon.feature.browser.ProtectionViewModel
 import com.ascon.feature.browser.web.BrowserSessionHolder
 import com.ascon.feature.library.home.HomeActions
 import com.ascon.feature.library.home.HomeRoute
@@ -89,6 +90,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     val browser = viewModel {
         BrowserViewModel(container.library, container.clock, createSavedStateHandle(), startUrl.orEmpty())
     }
+    val protection = viewModel { ProtectionViewModel(container.protection) }
     val browserSession = viewModel { BrowserSessionHolder(container.webViews) }.session
 
     val openSeries: (String) -> Unit = { backStack.push(Route.Series(it)) }
@@ -154,6 +156,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     entry<Route.Browser> { key ->
                         BrowserRoute(
                             viewModel = browser,
+                            protectionViewModel = protection,
                             session = browserSession,
                             openUrl = key.url,
                             actions = BrowserActions(

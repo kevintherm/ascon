@@ -1,0 +1,26 @@
+# UI fix 11: the protection sheet. "Site looks broken?" trusts the site and reloads
+# without blocking, and Undo turns protection back on. Same test page as adblock.yaml.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/ads.html"
+- extendedWaitUntil:
+    visible: "banner blocked"
+    timeout: 15000
+- tapOn: "Protection, .* blocked"
+- assertVisible: "Protected"
+- assertVisible: "Ads"
+- tapOn: "Site looks broken?"
+- assertVisible: "Turn off protection for 10.0.2.2?"
+- tapOn: "Turn off and reload"
+- assertVisible: "Protection off for 10.0.2.2"
+- extendedWaitUntil:
+    visible: "banner loaded"
+    timeout: 10000
+- assertVisible: "SITE BANNER"
+- tapOn: "Undo"
+- extendedWaitUntil:
+    visible: "banner blocked"
+    timeout: 10000

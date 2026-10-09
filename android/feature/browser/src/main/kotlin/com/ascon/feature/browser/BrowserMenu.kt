@@ -49,7 +49,13 @@ private val CloseIconFill = Color(0x1FFFFFFF)
  * browser and keeps the page loaded.
  */
 @Composable
-internal fun BrowserMenu(visible: Boolean, state: BrowserUiState, commands: BrowserCommands, onDismiss: () -> Unit) {
+internal fun BrowserMenu(
+    visible: Boolean,
+    state: BrowserUiState,
+    commands: BrowserCommands,
+    onDismiss: () -> Unit,
+    onProtection: () -> Unit = {}
+) {
     fun run(action: () -> Unit): () -> Unit = {
         onDismiss()
         action()
@@ -99,6 +105,14 @@ internal fun BrowserMenu(visible: Boolean, state: BrowserUiState, commands: Brow
             }
         }
         Group {
+            MenuRow(
+                icon = AsconIcons.Shield,
+                text = stringResource(R.string.browser_menu_protection),
+                onClick = onProtection,
+                trailing = state.blocked.total.takeIf { it > 0 }?.toString(),
+                chevron = true,
+                divider = true
+            )
             MenuRow(
                 AsconIcons.External,
                 stringResource(R.string.browser_menu_other_browser),

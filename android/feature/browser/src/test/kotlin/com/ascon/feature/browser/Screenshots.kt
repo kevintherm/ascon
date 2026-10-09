@@ -111,6 +111,28 @@ class Screenshots {
         }
     }
 
+    @Test
+    fun browserShield() = capture("browser_shield") { shield(confirming = false) }
+
+    @Test
+    fun shieldBroken() = capture("shield_broken") { shield(confirming = true) }
+
+    @Composable
+    private fun shield(confirming: Boolean) {
+        val state = BrowserUiState(url = url, blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2))
+        Box {
+            browser(state)
+            ProtectionSheet(
+                visible = true,
+                blocked = state.blocked,
+                protection = ProtectionUiState(site = "mangafire.to"),
+                commands = BrowserCommands(),
+                onDismiss = {},
+                confirmingAtStart = confirming
+            )
+        }
+    }
+
     @Composable
     private fun browser(state: BrowserUiState) {
         BrowserScreen(state, BrowserCommands()) { FakePage(it) }

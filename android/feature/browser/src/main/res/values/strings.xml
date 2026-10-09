@@ -24,6 +24,7 @@
     <string name="browser_menu_series">Go to series</string>
     <string name="browser_menu_other_browser">Open in another browser</string>
     <string name="browser_menu_close">Back to Ascon</string>
+    <string name="browser_menu_protection">Protection</string>
     <string name="browser_menu_chapter_short">Ch. %1$s</string>
     <string name="browser_menu_chapter_of">Chapter %1$s · %2$s</string>
     <plurals name="browser_blocked">
@@ -34,6 +35,25 @@
     <string name="browser_reload">Reload</string>
     <string name="browser_share">Share page</string>
     <string name="browser_loading">Loading</string>
+
+    <!-- Protection sheet -->
+    <string name="protection_on">Protected</string>
+    <string name="protection_partly">Partly protected</string>
+    <string name="protection_off">Protection off</string>
+    <string name="protection_ads">Ads</string>
+    <string name="protection_trackers">Trackers</string>
+    <string name="protection_redirects">Redirects stopped</string>
+    <string name="protection_block_ads">Block ads and trackers</string>
+    <string name="protection_block_popups">Block popups and redirects</string>
+    <string name="protection_trust">Trust this site</string>
+    <string name="protection_trust_body">Turn off protection for %1$s</string>
+    <string name="protection_broken">Site looks broken?</string>
+    <string name="protection_confirm_title">Turn off protection for %1$s?</string>
+    <string name="protection_confirm_body">Blocking can break images or buttons on some sites. The page reloads without blocking. You can turn it back on here anytime.</string>
+    <string name="protection_cancel">Cancel</string>
+    <string name="protection_turn_off">Turn off and reload</string>
+    <string name="protection_off_for">Protection off for %1$s</string>
+    <string name="protection_undo">Undo</string>
 
     <!-- Detection card -->
     <string name="detection_eyebrow">Detected</string>

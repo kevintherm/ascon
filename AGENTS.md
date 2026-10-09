@@ -234,7 +234,7 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 Found by the owner while testing steps 6 and 7. Decided with the owner: the UI pass comes next, before the rest of step 7. Screens are named by their file in `design/screens/`; behavior the artboards can't show is in `design/screens/notes.md`.
 
 1. Done: the Browser v2 bar, which collapses into a strip while scrolling.
-2. Done: the Browser v2 menu sheet. Find, Private, Desktop site, Protection and Fix title or chapter wait for their screens and settings.
+2. Done: the Browser v2 menu sheet. Find, Private, Desktop site and Fix title or chapter wait for their screens and settings.
 3. Done: the reader chip, which opens the reader at the page on screen.
 4. Done: Back to Ascon in the menu, and the Browse nav item returns to the loaded page.
 5. The reader lacks features for viewing comics. Designed: ReaderSettings, ReaderChapters, and notes.md for gestures, zoom, the long-press menu and the time left.
@@ -243,7 +243,7 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 8. Glass bars in the reader and over web content have the glass color but no background blur.
 9. The reader leaves out parts of the Reader screen: the Chapters and Translate buttons, the reader settings button, and the time left. The chapter end screens are not built. Designed: Reader, ReaderEnd, ReaderEndCaughtUp, ReaderEndComplete, notes.md.
 10. The reader puts no gap between pages. Decided in notes.md: Auto by default, 0 px between images that look like slices of one strip and 6 px otherwise, with None or Small per series in reader settings.
-11. The protection sheet is not built. Blocking works without it. Designed: BrowserShield, ShieldBroken. The shield chip in the address pill and the Protection menu row open it. notes.md sets what each switch does: app links and APK downloads are always blocked, a trusted site skips everything else, and "Block popups and redirects" off allows `window.open` as a same-tab navigation and redirects without a tap. Counts come from two engines, one for EasyList and the Ascon list as Ads and one for EasyPrivacy as Trackers; the guard counts stopped redirects. "Site looks broken?" trusts the site and reloads, with Undo.
+11. Done: the protection sheet, from the shield chip and the menu's Protection row, per BrowserShield and ShieldBroken. One engine counts ads and one trackers, and the guard counts redirects stopped. Changes from the sheet reload the page. Not built: the Send the site address switch, which needs a backend endpoint, and the Filter lists button, which waits for item 13.
 12. Done: protection settings are saved with DataStore in `core/data/datastore` and shared by Settings and the browser. `NavigationGuard` applies them to navigations, requests and hidden elements, and the filter lists the user turns off are a protection setting.
 13. The filter lists screen is not built. Designed: FilterLists, notes.md. It also lists trusted sites, and changes list updates to every 4 days on Wi-Fi, fetched with ETag.
 14. There is no open source licenses screen. Designed: Licenses, notes.md: an About group at the bottom of Settings, libraries listed at build time by the AboutLibraries Gradle plugin, and EasyList and EasyPrivacy first with their CC BY-SA credit.

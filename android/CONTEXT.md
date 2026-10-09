@@ -152,7 +152,7 @@ val ReadingStatus.labelRes: Int
 ```kotlin
 val RowInset
 @Composable fun GroupedCard(modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(), content: @Composable ColumnScope.() -> Unit)
-@Composable fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset, start: Dp = inset)
+@Composable fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset, start: Dp = inset, color: Color = AsconColors.SurfaceSunken)
 @Composable fun ListRow(title: String, onClick: () -> Unit, modifier: Modifier = Modifier, subtitle: String? = null, value: String? = null)
 @Composable fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier, subtitle: String? = null)
 @Composable fun Switch(checked: Boolean, modifier: Modifier = Modifier)

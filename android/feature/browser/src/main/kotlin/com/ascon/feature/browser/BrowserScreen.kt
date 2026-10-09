@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +48,9 @@ import com.ascon.feature.browser.web.BrowserSession
 import com.ascon.feature.browser.web.addressToUrl
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+
+/** How long Undo stays up after "Site looks broken?" turned protection off. */
+private const val UNDO_MS = 5000L
 
 /** How long a notice about something blocked stays up. */
 private const val NOTICE_MS = 3000L
@@ -68,12 +72,14 @@ data class BrowserActions(
 @Composable
 fun BrowserRoute(
     viewModel: BrowserViewModel,
+    protectionViewModel: ProtectionViewModel,
     session: BrowserSession,
     actions: BrowserActions,
     openUrl: String,
     loadUrl: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val protection by protectionViewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Events keep flowing while a series page covers the browser, so state stays current.
     SideEffect { session.events = viewModel }
@@ -92,6 +98,14 @@ fun BrowserRoute(
     }
     val endSpace = BarClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LaunchedEffect(endSpace) { session.setPageEndSpace(endSpace.value.roundToInt()) }
+    LaunchedEffect(state.url) { protectionViewModel.onPage(state.url) }
+    // A change from the protection sheet loads the page again, so hidden elements follow it.
+    LaunchedEffect(protection.reload) {
+        if (protection.reload) {
+            protectionViewModel.reloaded()
+            session.reload()
+        }
+    }
     LaunchedEffect(state.reader) {
         state.reader?.let {
             viewModel.readerOpened()
@@ -101,6 +115,7 @@ fun BrowserRoute(
 
     BrowserScreen(
         state = state,
+        protection = protection,
         commands = BrowserCommands(
             onBack = { if (state.canGoBack) session.goBack() else actions.onClose() },
             onForward = session::goForward,
@@ -124,7 +139,13 @@ fun BrowserRoute(
                 val view = Intent(Intent.ACTION_VIEW, Uri.parse(state.url)).addCategory(Intent.CATEGORY_BROWSABLE)
                 context.startActivity(Intent.createChooser(view, null))
             },
-            onCloseBrowser = actions.onClose
+            onCloseBrowser = actions.onClose,
+            onSetAdblock = protectionViewModel::setAdblock,
+            onSetBlockPopups = protectionViewModel::setBlockPopups,
+            onSetTrusted = protectionViewModel::setTrusted,
+            onTurnOffProtection = protectionViewModel::turnOffForSite,
+            onUndoTrust = protectionViewModel::undoTrust,
+            onUndoShown = protectionViewModel::undoShown
         )
     ) { modifier ->
         key(session.generation) {
@@ -154,7 +175,14 @@ data class BrowserCommands(
     /** Hands the page to another browser app. */
     val onOpenElsewhere: () -> Unit = {},
     /** Leaves the browser. The page stays loaded for the Browse tab to return to. */
-    val onCloseBrowser: () -> Unit = {}
+    val onCloseBrowser: () -> Unit = {},
+    val onSetAdblock: (Boolean) -> Unit = {},
+    val onSetBlockPopups: (Boolean) -> Unit = {},
+    val onSetTrusted: (Boolean) -> Unit = {},
+    /** "Site looks broken?" confirmed: trusts the site and reloads, with Undo. */
+    val onTurnOffProtection: () -> Unit = {},
+    val onUndoTrust: () -> Unit = {},
+    val onUndoShown: (Long) -> Unit = {}
 )
 
 /**
@@ -162,13 +190,25 @@ data class BrowserCommands(
  * floating over the page. [page] draws the WebView; previews and tests pass a stand-in.
  */
 @Composable
-fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Composable (Modifier) -> Unit) {
+fun BrowserScreen(
+    state: BrowserUiState,
+    commands: BrowserCommands,
+    protection: ProtectionUiState = ProtectionUiState(),
+    page: @Composable (Modifier) -> Unit
+) {
     StatusBarIcons(darkIcons = false)
     var editing by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var shieldOpen by remember { mutableStateOf(false) }
 
     BackHandler(enabled = editing || state.canGoBack) {
         if (editing) editing = false else commands.onBack()
+    }
+    protection.undo?.let { undo ->
+        LaunchedEffect(undo.id) {
+            delay(UNDO_MS)
+            commands.onUndoShown(undo.id)
+        }
     }
     state.notice?.let { notice ->
         LaunchedEffect(notice.id) {
@@ -204,9 +244,27 @@ fun BrowserScreen(state: BrowserUiState, commands: BrowserCommands, page: @Compo
             editing = editing,
             onEditingChange = { editing = it },
             onMore = { menuOpen = true },
+            protection = protection,
+            onShield = { shieldOpen = true },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
-        BrowserMenu(visible = menuOpen, state = state, commands = commands, onDismiss = { menuOpen = false })
+        BrowserMenu(
+            visible = menuOpen,
+            state = state,
+            commands = commands,
+            onDismiss = { menuOpen = false },
+            onProtection = {
+                menuOpen = false
+                shieldOpen = true
+            }
+        )
+        ProtectionSheet(
+            visible = shieldOpen,
+            blocked = state.blocked,
+            protection = protection,
+            commands = commands,
+            onDismiss = { shieldOpen = false }
+        )
     }
 }
 
@@ -218,6 +276,8 @@ private fun BottomControls(
     editing: Boolean,
     onEditingChange: (Boolean) -> Unit,
     onMore: () -> Unit,
+    protection: ProtectionUiState,
+    onShield: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -233,6 +293,15 @@ private fun BottomControls(
             exit = fadeOut()
         ) {
             state.notice?.let { NoticePill(noticeText(it)) }
+        }
+        AnimatedVisibility(
+            visible = protection.undo != null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut()
+        ) {
+            protection.undo?.let {
+                UndoPill(stringResource(R.string.protection_off_for, it.site), commands.onUndoTrust)
+            }
         }
         val readerAvailable = state.readerChapter != null
         AnimatedVisibility(
@@ -272,7 +341,8 @@ private fun BottomControls(
             onReload = commands.onReload,
             onMore = onMore,
             collapsed = state.barCollapsed && !editing,
-            onExpand = commands.onExpandBar
+            onExpand = commands.onExpandBar,
+            onShield = onShield
         )
     }
 }

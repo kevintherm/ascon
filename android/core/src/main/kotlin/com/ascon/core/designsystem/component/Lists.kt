@@ -64,16 +64,22 @@ fun GroupedCard(
 
 /**
  * A hairline between rows, inset to line up with the rows' content. [start] can be larger
- * than [inset] to line up with text after a leading icon.
+ * than [inset] to line up with text after a leading icon. Rows on `ground` take
+ * `DividerOnGround`.
  */
 @Composable
-fun RowDivider(modifier: Modifier = Modifier, inset: Dp = RowInset, start: Dp = inset) {
+fun RowDivider(
+    modifier: Modifier = Modifier,
+    inset: Dp = RowInset,
+    start: Dp = inset,
+    color: Color = AsconColors.SurfaceSunken
+) {
     Spacer(
         modifier
             .padding(start = start, end = inset)
             .fillMaxWidth()
             .height(1.dp)
-            .background(AsconColors.SurfaceSunken)
+            .background(color)
     )
 }
 

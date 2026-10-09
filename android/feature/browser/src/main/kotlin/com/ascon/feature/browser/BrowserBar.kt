@@ -83,7 +83,8 @@ internal fun BrowserBar(
     onReload: () -> Unit,
     onMore: () -> Unit,
     collapsed: Boolean = false,
-    onExpand: () -> Unit = {}
+    onExpand: () -> Unit = {},
+    onShield: () -> Unit = {}
 ) {
     // Only the height animates, per notes.md. The ends stay round: radius 34 at 68, 18 at 36.
     val height by animateDpAsState(if (collapsed) StripHeight else BarHeight, tween(COLLAPSE_MS), label = "bar")
@@ -109,7 +110,7 @@ internal fun BrowserBar(
         if (collapsed) {
             CollapsedStrip(state, onExpand)
         } else {
-            BarItems(state, editing, onEditingChange, onBack, onSubmit, onReload, onMore)
+            BarItems(state, editing, onEditingChange, onBack, onSubmit, onReload, onMore, onShield)
         }
     }
 }
@@ -122,7 +123,8 @@ private fun BarItems(
     onBack: () -> Unit,
     onSubmit: (String) -> Unit,
     onReload: () -> Unit,
-    onMore: () -> Unit
+    onMore: () -> Unit,
+    onShield: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -144,6 +146,7 @@ private fun BarItems(
                 state,
                 onEdit = { onEditingChange(true) },
                 onReload = onReload,
+                onShield = onShield,
                 modifier = Modifier.weight(1f)
             )
             BarIcon(AsconIcons.More, stringResource(R.string.browser_menu), onMore)
@@ -231,6 +234,7 @@ private fun AddressPill(
     state: BrowserUiState,
     onEdit: () -> Unit,
     onReload: () -> Unit,
+    onShield: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val progress by animateFloatAsState(if (state.loading) state.progress / 100f else 1f, label = "load")
@@ -256,7 +260,7 @@ private fun AddressPill(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ShieldCount(state.blocked.total)
+            ShieldCount(state.blocked.total, onShield)
             Text(
                 state.host,
                 style = AsconType.Button.copy(fontWeight = AsconType.ButtonSecondary.fontWeight),
@@ -289,15 +293,16 @@ private fun AddressPill(
     }
 }
 
-/** Requests the ad blocker stopped on this page. The protection sheet will open from here. */
+/** What protection stopped on this page. A tap opens the protection sheet. */
 @Composable
-private fun ShieldCount(count: Int) {
+private fun ShieldCount(count: Int, onClick: () -> Unit) {
     val label = pluralStringResource(R.plurals.browser_blocked, count, count)
     Row(
         Modifier
             .height(26.dp)
             .clip(RoundedCornerShape(13.dp))
             .background(AsconColors.OnDarkFill)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 8.dp)
             .semantics(mergeDescendants = true) { contentDescription = label },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
