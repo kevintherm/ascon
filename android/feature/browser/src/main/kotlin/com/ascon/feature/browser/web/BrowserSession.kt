@@ -191,9 +191,9 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
             }?.value
             val type = RequestType.of(url, isMainFrame = false, accept = accept)
             val page = pageUrl ?: url
-            val blocked = pool.guard.blockedAs(url, page, type, pool.protection()) ?: return null
-            events?.onRequestBlocked(page, blocked)
-            return emptyResponse()
+            val blocked = pool.guard.blockedAs(url, page, type, pool.protection())
+            blocked?.let { events?.onRequestBlocked(page, it) }
+            return if (blocked != null) emptyResponse() else null
         }
 
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
