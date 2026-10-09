@@ -230,7 +230,7 @@ Everything visual is in `design/`. Read `design/tokens.md` before building any U
 
 ## Needed UI fixes
 
-Found by the owner while testing step 6. Left for a later UI pass because they need design work, not quick fixes.
+Found by the owner while testing steps 6 and 7. Left for a later UI pass because they need design work, not quick fixes. Decided with the owner: the UI pass comes next, before the rest of step 7.
 
 1. The browser's address bar area is off and needs a redesign.
 2. The browser's overflow menu lacks features and needs a redesign.
@@ -242,6 +242,15 @@ Found by the owner while testing step 6. Left for a later UI pass because they n
 8. Glass bars in the reader and over web content have the glass color but no background blur.
 9. The reader leaves out parts of screen 04: the Chapters and Translate buttons, the reader settings button, and the time left. The end-of-chapter screen, screen 05, is not built.
 10. The reader puts no gap between pages, because a gap breaks continuous strips. Screen 04 shows 4px. Decide which is right.
+11. The protection sheet, screen 09, is not built. Blocking works without it. Needs, alongside items 1 and 2:
+    - An entry point. Screen 03's address bar has Back, Tabs and More, and no shield. Options: a "Protection" item in the overflow menu, a shield in the address bar, or tapping a "Blocked" notice.
+    - Separate counts for ads, trackers and stopped redirects on the current page. The engine only answers block or allow, so this needs one engine for the ad lists and one for EasyPrivacy, or debug rule info from adblock-rust.
+    - What "Block popups and redirects" turns off. Proposed: allow redirects and hijacked taps, but keep blocking app links and APK downloads, since Ascon can't hand those off safely. The settings subtitle, "Stops redirects, APK downloads and intent links", says all three.
+    - What "Site looks broken?" does. Proposed: ask once to trust the site, then reload.
+    - "Trust this site": a per-site allowlist kept on the device. Requests, cosmetic hiding and the navigation rules all skip a trusted site.
+12. The protection switches on the Settings screen, "Block ads and trackers" and "Block popups and app links", change nothing yet. Settings are an in-memory fake. They need persistent storage, shared with the protection sheet, and the browser must follow them.
+13. "Filter lists" in Settings and on screen 09 has no approved screen. It needs one that lists EasyList, EasyPrivacy and the Ascon list, with a switch each, the version and when each list last updated. Turning a list on or off calls `Adblock.setEnabled`, which rebuilds the engine.
+14. There is no open source licenses screen. EasyList and EasyPrivacy must be credited under CC BY-SA, see Adblock.
 
 ## Workflow
 
