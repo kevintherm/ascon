@@ -167,4 +167,27 @@ reader.example#@#.ad-slot
         let excepted = e.hidden_selectors(vec!["ad-slot".into()], vec![], vec![".ad-slot".into()]);
         assert!(excepted.is_empty());
     }
+
+    /// The Ascon list as shipped, so its rules are checked against the ads they were written for.
+    #[test]
+    fn ascon_list_stops_overlay_links() {
+        let list = include_str!("../../src/main/assets/adblock/ascon.txt");
+        let e = AdblockEngine::from_lists(vec![list.to_string()]);
+        let page = "https://manga.example/home";
+        let document = |url: &str| e.should_block(url.into(), page.into(), "document".into());
+        assert!(document(
+            "https://sowve.com/4/739684b2a2af3eaf9109e8ffbaec4993"
+        ));
+        assert!(document(
+            "https://rotating.example/4/739684b2a2af3eaf9109e8ffbaec4993"
+        ));
+        assert!(!document(
+            "https://manga.example/read/solo-leveling/chapter-4"
+        ));
+        let hidden = e.page_cosmetics(page.into()).hide_selectors;
+        assert!(
+            hidden.iter().any(|s| s.contains("position: fixed")),
+            "{hidden:?}"
+        );
+    }
 }

@@ -1,3 +1,11 @@
 ! Title: Ascon manga sites
+! Version: 1
 ! Rules for ads and pop-unders on manga reading sites that general lists miss.
-! Kept by the Ascon project. Empty until rules are added from real sites.
+! Kept by the Ascon project. Add a rule only after seeing the ad on a real site.
+!
+! Invisible links laid over the whole page, so the first tap anywhere opens an ad.
+! Seen on mangafire.to, pointing at Monetag direct links.
+##a[target="_blank"][style*="position: fixed"][style*="height: 100%"]
+||sowve.com^
+! Monetag direct links: one path segment 4 and a 32 character hex id, on rotating domains.
+/^https?:\/\/[^\/]+\/4\/[0-9a-f]{32}\/?$/$document

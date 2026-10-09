@@ -23,3 +23,13 @@ appId: com.ascon.app
     visible: "Blocked an ad page on 127.0.0.1"
     timeout: 5000
 - assertVisible: "page loaded"
+# The Ascon list hides an invisible link laid over the whole page, so a tap stays here.
+- launchApp:
+    arguments:
+      url: "http://10.0.2.2:8765/overlay.html"
+- extendedWaitUntil:
+    visible: "Overlay page text"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "OVERLAY LINK"
+    timeout: 5000
