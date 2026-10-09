@@ -8,9 +8,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -22,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,6 +36,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.StatusBarIcons
@@ -46,8 +51,11 @@ data class ReaderActions(val onBack: () -> Unit = {}, val onOpenChapter: (String
 @Composable
 fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: ReaderActions) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Each page's image size once it loads, for the gaps between pages.
+    val sizes = remember(state.url) { mutableStateMapOf<Int, IntSize>() }
     ReaderScreen(
         state = state,
+        pageSizes = sizes,
         commands = ReaderCommands(
             onBack = actions.onBack,
             onPrevious = { state.previous?.let(actions.onOpenChapter) },
@@ -57,7 +65,7 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
             onNearEnd = viewModel::nearEnd
         )
     ) { index, url, modifier ->
-        PageImage(index, url, referer = state.url, images = images, modifier = modifier)
+        PageImage(index, url, referer = state.url, images = images, onSize = { sizes[index] = it }, modifier = modifier)
     }
 }
 
@@ -82,6 +90,7 @@ internal const val PAGES_TAG = "reader-pages"
 fun ReaderScreen(
     state: ReaderUiState,
     commands: ReaderCommands,
+    pageSizes: Map<Int, IntSize> = emptyMap(),
     page: @Composable (index: Int, url: String, modifier: Modifier) -> Unit
 ) {
     StatusBarIcons(darkIcons = false)
@@ -112,7 +121,12 @@ fun ReaderScreen(
                 .pointerInput(Unit) { detectTapGestures { commands.onToggleBars() } }
         ) {
             itemsIndexed(state.pages, key = { index, _ -> index }) { index, url ->
-                page(index, url, Modifier.fillMaxWidth())
+                Column {
+                    page(index, url, Modifier.fillMaxWidth())
+                    if (index < state.pages.lastIndex) {
+                        Spacer(Modifier.height(autoPageGap(pageSizes[index], pageSizes[index + 1])))
+                    }
+                }
             }
         }
         AnimatedVisibility(

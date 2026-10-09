@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
@@ -37,10 +38,18 @@ internal const val PENDING_PAGE_RATIO = 1.4f
 
 /**
  * One page, fetched with [referer] and decoded at the window's width. Until it loads it
- * takes a page-shaped space with its number; if it fails, a tap tries again.
+ * takes a page-shaped space with its number; if it fails, a tap tries again. [onSize]
+ * gets the image's size once it loads.
  */
 @Composable
-internal fun PageImage(index: Int, url: String, referer: String, images: ReaderImages, modifier: Modifier = Modifier) {
+internal fun PageImage(
+    index: Int,
+    url: String,
+    referer: String,
+    images: ReaderImages,
+    onSize: (IntSize) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalPlatformContext.current
     val width = LocalWindowInfo.current.containerSize.width
     var attempt by remember(url) { mutableIntStateOf(0) }
@@ -62,7 +71,14 @@ internal fun PageImage(index: Int, url: String, referer: String, images: ReaderI
                 imageLoader = images.loader,
                 contentDescription = stringResource(R.string.reader_page, index + 1),
                 contentScale = ContentScale.FillWidth,
-                onState = { state = it },
+                onState = {
+                    state = it
+                    if (it is AsyncImagePainter.State.Success) {
+                        onSize(
+                            IntSize(it.result.image.width, it.result.image.height)
+                        )
+                    }
+                },
                 modifier = if (loaded) {
                     Modifier.fillMaxWidth()
                 } else {
