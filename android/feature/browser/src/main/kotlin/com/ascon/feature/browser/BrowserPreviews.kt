@@ -18,7 +18,7 @@ import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.Cover
 import java.math.BigDecimal
 
-// Paper tones of the stand-in page, as in screen 03.
+// Paper tones of the stand-in page, as in the Browser screen.
 private val PaperLight = Color(0xFFE8E4DC)
 private val PaperMid = Color(0xFFCFC8BA)
 private val PaperDark = Color(0xFFA99F8E)

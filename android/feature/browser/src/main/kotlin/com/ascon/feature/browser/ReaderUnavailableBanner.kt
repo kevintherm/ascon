@@ -29,7 +29,7 @@ import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconType
 
-// Sizes from screen 10. The icon tile nests inside the padding: 24 = 10 + 14.
+// Sizes from the BrowserFallback screen. The icon tile nests inside the padding: 24 = 10 + 14.
 private val BannerRadius = 24.dp
 private val BannerPadding = 14.dp
 private val TileSize = 36.dp

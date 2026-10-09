@@ -48,7 +48,7 @@ private val CardButtonShape = RoundedCornerShape(AsconRadius.nested(AsconRadius.
 
 private val CardTitle = AsconType.SectionTitle.copy(fontSize = 16.sp)
 
-/** The card that says what Ascon detected on the page, per screen 03. */
+/** The card that says what Ascon detected on the page, per the Browser screen. */
 @Composable
 internal fun DetectionCardView(card: DetectionCard, onOpenSeries: (String) -> Unit, onHide: () -> Unit) {
     Column(

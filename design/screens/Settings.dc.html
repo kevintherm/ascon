@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ascon · Settings</title>
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
 a{color:#15161A}a:hover{color:#000}
 </style>
-<style>html{background:#D9DBE0}body{display:flex;justify-content:center;padding:24px 0}</style>
-</head>
-<body>
+</helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F4F6; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15161A">
 
 <div style="padding: 20px 16px 120px 16px; display: flex; flex-direction: column; gap: 14px">
@@ -83,17 +85,25 @@ a{color:#15161A}a:hover{color:#000}
 
 <button style="min-height: 64px; border: 0; border-radius: 20px; background: #15161A; color: #fff; font: inherit; text-align: left; display: flex; align-items: center; gap: 12px; padding: 0 16px; cursor: pointer">
 <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 700">Ascon Plus</span><span style="font-size: 12px; color: rgba(255,255,255,0.7)">Bubble translation and AI features</span></span>
-<span style="height: 36px; padding: 0 14px; border-radius: 10px; background: linear-gradient(90deg, #F5A54A, #D9472B); font-size: 13px; font-weight: 700; display: flex; align-items: center">Upgrade</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 10px; background: linear-gradient(90deg, {{accent2}}, {{accent}}); font-size: 13px; font-weight: 700; display: flex; align-items: center">Upgrade</span>
 </button>
 </div>
 
 <nav style="position: absolute; left: 16px; right: 16px; bottom: 20px; height: 68px; border-radius: 28px; background: #15161A; display: flex; align-items: center; justify-content: space-around; padding: 10px; box-sizing: border-box; box-shadow: 0 12px 30px rgba(21,22,26,0.28)">
-<a href="01-home.html" aria-label="Home" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"></path><path d="M10 20v-5h4v5"></path></svg></a>
-<a href="06-library.html" aria-label="Library" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="16" rx="1.5"></rect><rect x="14" y="4" width="6" height="16" rx="1.5"></rect></svg></a>
-<a href="03-browser-detected.html" aria-label="Browse" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg></a>
+<a href="Main.dc.html" aria-label="Home" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"></path><path d="M10 20v-5h4v5"></path></svg></a>
+<a href="Library.dc.html" aria-label="Library" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="16" rx="1.5"></rect><rect x="14" y="4" width="6" height="16" rx="1.5"></rect></svg></a>
+<a href="Browser.dc.html" aria-label="Browse" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg></a>
 <a href="#" aria-label="Settings" style="width: 64px; height: 48px; border-radius: 18px; background: #fff; color: #15161A; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg></a>
 </nav>
 
 </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D9472B","options":["#D9472B","#2F55E4","#E08A00","#15161A"]},"accent2":{"editor":"color","default":"#F5A54A","section":"Gradient start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#D9472B', accent2: this.props.accent2 ?? '#F5A54A' };
+  }
+}
+</script>
 </body>
 </html>

@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ascon · Empty library</title>
+<title>Empty library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
 a{color:#15161A}a:hover{color:#000}
 </style>
-<style>html{background:#D9DBE0}body{display:flex;justify-content:center;padding:24px 0}</style>
-</head>
-<body>
+</helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F4F6; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15161A">
 
 <div style="padding: 20px 16px 0 16px">
@@ -28,7 +30,7 @@ a{color:#15161A}a:hover{color:#000}
 </div>
 <div style="position: absolute; left: 50%; top: 14px; width: 132px; height: 190px; margin-left: -66px; border-radius: 18px; background: linear-gradient(155deg, #2A2C33, #121317); box-shadow: 0 18px 40px rgba(21,22,26,0.25); display: flex; align-items: center; justify-content: center; overflow: hidden">
 <div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1.5px); background-size: 6px 6px; -webkit-mask-image: linear-gradient(215deg, #000 0%, transparent 65%); mask-image: linear-gradient(215deg, #000 0%, transparent 65%)"></div>
-<svg width="72" height="72" viewBox="0 0 100 100" aria-hidden="true" style="position: relative"><defs><linearGradient id="emptyG" gradientUnits="userSpaceOnUse" x1="34" y1="0" x2="56" y2="0"><stop offset="0" stop-color="#F5A54A"></stop><stop offset="1" stop-color="#D9472B"></stop></linearGradient></defs><path d="M24 84 L50 18 L76 84" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M39 63 H61" stroke="rgba(255,255,255,0.28)" stroke-width="10" stroke-linecap="round"></path><path d="M39 63 H51" stroke="url(#emptyG)" stroke-width="10" stroke-linecap="round"></path></svg>
+<svg width="72" height="72" viewBox="0 0 100 100" aria-hidden="true" style="position: relative"><defs><linearGradient id="emptyG" gradientUnits="userSpaceOnUse" x1="34" y1="0" x2="56" y2="0"><stop offset="0" stop-color="{{accent2}}"></stop><stop offset="1" stop-color="{{accent}}"></stop></linearGradient></defs><path d="M24 84 L50 18 L76 84" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path><path d="M39 63 H61" stroke="rgba(255,255,255,0.28)" stroke-width="10" stroke-linecap="round"></path><path d="M39 63 H51" stroke="url(#emptyG)" stroke-width="10" stroke-linecap="round"></path></svg>
 </div>
 </div>
 
@@ -38,17 +40,25 @@ a{color:#15161A}a:hover{color:#000}
 </div>
 
 <div style="padding: 28px 16px 0 16px; display: flex; flex-direction: column; gap: 8px">
-<a href="03-browser-detected.html" style="height: 54px; border-radius: 27px; background: #15161A; color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg>Open a site</a>
+<a href="Browser.dc.html" style="height: 54px; border-radius: 27px; background: #15161A; color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg>Open a site</a>
 <button style="height: 54px; border: 0; border-radius: 27px; background: #fff; color: #15161A; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer">Import from AniList or Mihon</button>
 </div>
 
 <nav style="position: absolute; left: 16px; right: 16px; bottom: 20px; height: 68px; border-radius: 28px; background: #15161A; display: flex; align-items: center; justify-content: space-around; padding: 10px; box-sizing: border-box; box-shadow: 0 12px 30px rgba(21,22,26,0.28)">
-<a href="01-home.html" aria-label="Home" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"></path><path d="M10 20v-5h4v5"></path></svg></a>
+<a href="Main.dc.html" aria-label="Home" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"></path><path d="M10 20v-5h4v5"></path></svg></a>
 <a href="#" aria-label="Library" style="width: 64px; height: 48px; border-radius: 18px; background: #fff; color: #15161A; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="16" rx="1.5"></rect><rect x="14" y="4" width="6" height="16" rx="1.5"></rect></svg></a>
-<a href="03-browser-detected.html" aria-label="Browse" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg></a>
-<a href="07-settings.html" aria-label="Settings" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg></a>
+<a href="Browser.dc.html" aria-label="Browse" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m15 9-2 4-4 2 2-4z"></path></svg></a>
+<a href="Settings.dc.html" aria-label="Settings" style="width: 64px; height: 48px; border-radius: 18px; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg></a>
 </nav>
 
 </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D9472B","options":["#D9472B","#2F55E4","#E08A00","#15161A"]},"accent2":{"editor":"color","default":"#F5A54A","section":"Gradient start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#D9472B', accent2: this.props.accent2 ?? '#F5A54A' };
+  }
+}
+</script>
 </body>
 </html>

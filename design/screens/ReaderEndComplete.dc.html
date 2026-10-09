@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chapter end series complete</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#fff}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0E0F12; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #fff">
+
+<div style="height: 250px; background: linear-gradient(180deg, #A3B3C9 0%, #5E6F87 100%); position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 40%, transparent 100%); mask-image: linear-gradient(180deg, #000 40%, transparent 100%)">
+<div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.16) 1px, transparent 1.5px); background-size: 6px 6px"></div>
+</div>
+
+<div style="padding: 0 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: -10px">
+<div style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg></div>
+<div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,255,255,0.6); margin-top: 6px">FINAL CHAPTER FINISHED</div>
+<div style="font-size: 14px; color: rgba(255,255,255,0.75)">Progress saved and synced</div>
+</div>
+
+<div style="margin: 28px 12px 0 12px; border-radius: 28px; padding: 16px; background: #1B1C21; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; gap: 14px; align-items: center">
+<div style="width: 64px; height: 90px; flex: none; border-radius: 12px; background: linear-gradient(170deg, #9FB6D8, #3C4F7A 60%, #1C2235); position: relative; overflow: hidden">
+<div style="position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.25) 1px, transparent 1.4px); background-size: 5px 5px"></div>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.55)">SERIES COMPLETE</div>
+<div style="font-size: 20px; line-height: 1.2; font-weight: 800; letter-spacing: -0.01em">The Last Lighthouse Keeper</div>
+<div style="font-size: 13px; color: rgba(255,255,255,0.7)">All 48 chapters read</div>
+</div>
+</div>
+<div style="height: 6px; border-radius: 3px; background: linear-gradient(90deg, {{accent2}}, {{accent}})"></div>
+<button style="height: 52px; border: 0; border-radius: 12px; background: {{accent}}; color: #fff; font: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>Move to Done</button>
+<div style="display: flex; gap: 8px">
+<a href="Series.dc.html" style="flex: 1; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.08); font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Back to series</a>
+<button style="flex: 1; height: 48px; border: 0; border-radius: 12px; background: rgba(255,255,255,0.08); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Rate on AniList</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D9472B","options":["#D9472B","#2F55E4","#E08A00","#15161A"]},"accent2":{"editor":"color","default":"#F5A54A","section":"Gradient start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#D9472B', accent2: this.props.accent2 ?? '#F5A54A' };
+  }
+}
+</script>
+</body>
+</html>

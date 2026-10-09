@@ -12,7 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ascon.core.designsystem.theme.AsconTheme
 import java.math.BigDecimal
 
-// Paper tones of the stand-in pages, as in screen 04.
+// Paper tones of the stand-in pages, as in the Reader screen.
 private val PaperLight = Color(0xFFECE8E0)
 private val PaperMid = Color(0xFFCFC8BA)
 private val PaperDark = Color(0xFF9E9483)

@@ -2,22 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ascon · Import library</title>
+<title>Import library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
 a{color:#15161A}a:hover{color:#000}
 </style>
-<style>html{background:#D9DBE0}body{display:flex;justify-content:center;padding:24px 0}</style>
-</head>
-<body>
+</helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F4F6; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15161A">
 
 <div style="padding: 16px 16px 0 16px; display: flex; flex-direction: column; gap: 20px">
 <div style="display: flex; align-items: center; justify-content: space-between">
-<a href="14-onboarding-welcome.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 22px; background: #fff; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<a href="Onboarding.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 22px; background: #fff; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
 <div style="display: flex; gap: 6px">
 <span style="width: 6px; height: 6px; border-radius: 3px; background: #C9CDD4"></span>
 <span style="width: 20px; height: 6px; border-radius: 3px; background: #15161A"></span>
@@ -39,7 +41,7 @@ a{color:#15161A}a:hover{color:#000}
 <span style="width: 24px; height: 24px; border-radius: 12px; background: #15161A; color: #fff; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg></span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 6px">
-<div style="height: 6px; border-radius: 3px; background: #ECEEF1; overflow: hidden"><div style="width: 64%; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #F5A54A, #D9472B)"></div></div>
+<div style="height: 6px; border-radius: 3px; background: #ECEEF1; overflow: hidden"><div style="width: 64%; height: 100%; border-radius: 3px; background: linear-gradient(90deg, {{accent2}}, {{accent}})"></div></div>
 <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5B5F69"><span>Matching titles</span><span>137 / 214</span></div>
 </div>
 </div>
@@ -66,10 +68,18 @@ a{color:#15161A}a:hover{color:#000}
 </div>
 
 <div style="position: absolute; left: 16px; right: 16px; bottom: 28px; display: flex; flex-direction: column; gap: 8px">
-<a href="01-home.html" style="height: 56px; border-radius: 28px; background: #15161A; color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">Continue</a>
-<a href="12-empty-library.html" style="height: 48px; border-radius: 24px; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Start fresh instead</a>
+<a href="Main.dc.html" style="height: 56px; border-radius: 28px; background: #15161A; color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">Continue</a>
+<a href="EmptyLibrary.dc.html" style="height: 48px; border-radius: 24px; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Start fresh instead</a>
 </div>
 
 </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D9472B","options":["#D9472B","#2F55E4","#E08A00","#15161A"]},"accent2":{"editor":"color","default":"#F5A54A","section":"Gradient start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#D9472B', accent2: this.props.accent2 ?? '#F5A54A' };
+  }
+}
+</script>
 </body>
 </html>

@@ -42,7 +42,7 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.toChapterLabel
 
-// Sizes from screen 04. The panel's buttons nest inside its padding: 28 = 14 + 14.
+// Sizes from the Reader screen. The panel's buttons nest inside its padding: 28 = 14 + 14.
 private val BarHeight = 56.dp
 private val BarRadius = 28.dp
 private val BarButton = 44.dp

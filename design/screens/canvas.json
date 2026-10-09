@@ -1,0 +1,298 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Browser.dc.html": {
+      "h": 844,
+      "title": "Browser · detected",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "BrowserFallback.dc.html": {
+      "h": 844,
+      "title": "Browser · reader unavailable",
+      "w": 390,
+      "x": 940,
+      "y": 4420
+    },
+    "BrowserShield.dc.html": {
+      "h": 844,
+      "title": "Browser · protection sheet",
+      "w": 390,
+      "x": 470,
+      "y": 4420
+    },
+    "BrowserTabs.dc.html": {
+      "h": 844,
+      "title": "Browser · tabs (dropped, browser is single-tab)",
+      "w": 390,
+      "x": 0,
+      "y": 4420
+    },
+    "BrowserV2Detected.dc.html": {
+      "h": 844,
+      "title": "Browser v2 · just detected",
+      "w": 390,
+      "x": 0,
+      "y": 8350
+    },
+    "BrowserV2Docked.dc.html": {
+      "h": 844,
+      "title": "Browser v2 · card docked",
+      "w": 390,
+      "x": 470,
+      "y": 8350
+    },
+    "BrowserV2Menu.dc.html": {
+      "h": 844,
+      "title": "Browser v2 · menu",
+      "w": 390,
+      "x": 1410,
+      "y": 8350
+    },
+    "BrowserV2Scrolling.dc.html": {
+      "h": 844,
+      "title": "Browser v2 · scrolling",
+      "w": 390,
+      "x": 940,
+      "y": 8350
+    },
+    "EmptyLibrary.dc.html": {
+      "h": 844,
+      "title": "Empty · library",
+      "w": 391,
+      "x": 1880,
+      "y": 4420
+    },
+    "FixDetection.dc.html": {
+      "h": 844,
+      "title": "Fix detection sheet",
+      "w": 390,
+      "x": 0,
+      "y": 5730
+    },
+    "Import.dc.html": {
+      "h": 844,
+      "title": "Onboarding · import",
+      "w": 390,
+      "x": 940,
+      "y": 5730
+    },
+    "Library.dc.html": {
+      "h": 844,
+      "title": "Library",
+      "w": 390,
+      "x": 940,
+      "y": 3110
+    },
+    "Logo.dc.html": {
+      "h": 760,
+      "title": "Ascon · logo concepts",
+      "w": 1330,
+      "x": 0,
+      "y": 1310
+    },
+    "LogoAB.dc.html": {
+      "h": 560,
+      "title": "Ascon · A + B combined",
+      "w": 1330,
+      "x": 0,
+      "y": 2190
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "paper": "a4",
+      "title": "Home",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Onboarding.dc.html": {
+      "h": 844,
+      "title": "Onboarding · welcome",
+      "w": 390,
+      "x": 470,
+      "y": 5730
+    },
+    "Reader.dc.html": {
+      "h": 844,
+      "title": "Reader · controls",
+      "w": 390,
+      "x": 0,
+      "y": 3110
+    },
+    "ReaderEnd.dc.html": {
+      "h": 844,
+      "title": "Reader · chapter end",
+      "w": 390,
+      "x": 470,
+      "y": 3110
+    },
+    "ReaderEndCaughtUp.dc.html": {
+      "h": 844,
+      "title": "Chapter end · caught up",
+      "w": 390,
+      "x": 940,
+      "y": 7040
+    },
+    "ReaderEndComplete.dc.html": {
+      "h": 844,
+      "title": "Chapter end · series complete",
+      "w": 390,
+      "x": 1410,
+      "y": 7040
+    },
+    "Series.dc.html": {
+      "h": 844,
+      "title": "Series",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "SeriesAhead.dc.html": {
+      "h": 844,
+      "title": "Series · newer on another source",
+      "w": 390,
+      "x": 470,
+      "y": 7040
+    },
+    "SeriesCaughtUp.dc.html": {
+      "h": 844,
+      "title": "Series · caught up",
+      "w": 390,
+      "x": 0,
+      "y": 7040
+    },
+    "Settings.dc.html": {
+      "h": 844,
+      "title": "Settings",
+      "w": 390,
+      "x": 1410,
+      "y": 3110
+    },
+    "SiteError.dc.html": {
+      "h": 844,
+      "title": "Error · site unreachable",
+      "w": 390,
+      "x": 1410,
+      "y": 4420
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-08T05:20:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "s1": {
+      "maxH": 844,
+      "text": "BROWSER V2 BEHAVIOR (supersedes the bar on Browser · detected)\n\nBar: Back · address pill (shield count, domain, reload) · Menu. No exit button in the bar, to avoid accidental taps. Ink pill, left/right 12, bottom 18, 68 tall, radius 34, padding 10, items 48 radius 24.\n\nBack: walks page history. On the first page of history it leaves the browser. Use predictive back.\nClose browser: last row of the menu. Leaves the browser in one tap, back to the screen that opened it. The page stays loaded and the Browse nav item returns to it.\n\nSingle tab only. No tab switcher. Opening a new site replaces the page; the previous page stays in Back history.\n\nDetection card: 5 s countdown line, then it docks into the full-width reader chip above the bar (8 s and an Add button if the series isn't in the library). Touch pauses the countdown, chevron docks now, scrolling one screen docks it. Shows again only when the chapter changes.\n\nReader chip: visible while on a detected chapter page. Reader opens that chapter at the current visible image. Reader back returns to this page and scroll position.\n\nScrolling down >24 px: bar and chip collapse to a 36-tall glass strip with the same left/right edges. Only height animates, 200 ms. Scroll up, tap, or page end expands it.\n\nMenu: Forward, Share, Find, Private toggle · Open in Reader, Go to series, Fix title or chapter (only when detected) · Protection (opens protection sheet), Desktop site, Open in another browser · Close browser, ink row at the bottom.\nShield chip and Protection row both open the protection sheet.",
+      "w": 460,
+      "x": 1880,
+      "y": 8350
+    },
+    "s2": {
+      "maxH": 844,
+      "text": "SERIES MAIN BUTTON: never disappears, never changes height. First match wins:\n1. Nothing read: accent Start reading\n2. Chapter in progress: accent Continue Ch. N, page subtext\n3. Unread chapter on this source: accent Read Ch. N+1\n4. All read here, another source is ahead: accent Read Ch. N+1, subtext Only on <source> so far; opens that source for that chapter only\n5. All read, ongoing: white status block, check, You're caught up, Ch. N is the latest, Reread chip (54 tall, radius 27, padding 8, inner 38 radius 19). Note line under it while alerts are on\n6. All read, completed: same block, Finished, All N chapters read\nStates 5 and 6 have no accent on screen.\n\nCHAPTER END CARD: next on this source, Read Chapter N+1. Next only elsewhere, Read on <source>. Caught up and alerts off, Notify me about Ch. N+1. Caught up and alerts on, no primary, status line. Final chapter of a completed series, gradient bar and Move to Done. No next chapter means no Keep scrolling hint.\n\nHome header never shows caught-up or finished series.",
+      "w": 460,
+      "x": 1880,
+      "y": 7040
+    },
+    "s3": {
+      "maxH": 844,
+      "text": "SETTINGS PERSISTENCE (backlog 12)\n\nOne DataStore-backed ProtectionSettingsRepository in core, exposed as a StateFlow, shared by Settings, the protection sheet and the browser. Delete the in-memory fake.\nKeys: adblock_enabled (true), block_popups (true), disabled_filter_lists (empty set), trusted_sites (empty set, registrable domains), secure_dns (cloudflare).\n\nBrowser reads settings.value synchronously in shouldInterceptRequest and shouldOverrideUrlLoading. No suspend, no runBlocking. Put the logic in pure decideRequest and decideNavigation functions with unit tests.\nOrder: 1 intent://, market:// and APK downloads are always blocked. 2 Trusted site skips everything else. 3 Adblock off skips engine and cosmetics. 4 Popups off allows window.open as same-tab navigation and gestureless redirects.\nNetwork rules apply on the next request. Cosmetics need a reload: auto-reload when toggled from the protection sheet, next load when toggled from Settings.\nFilter list toggles rebuild the engine in the background; keep the old engine until the new one is ready.\nRename the switch to Block popups and redirects, subtitle App links and APK downloads are always blocked.",
+      "w": 460,
+      "x": 1880,
+      "y": 3110
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Ink & Screentone",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Ascon identity",
+      "w": 240,
+      "x": 0,
+      "y": 1050
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Reader, library, settings",
+      "w": 240,
+      "x": 0,
+      "y": 2850
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Browser states, empty and error",
+      "w": 240,
+      "x": 0,
+      "y": 4160
+    },
+    "t5": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Detection fix and onboarding",
+      "w": 240,
+      "x": 0,
+      "y": 5470
+    },
+    "t6": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Caught up: the main action never disappears",
+      "w": 240,
+      "x": 0,
+      "y": 6780
+    },
+    "t7": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Browser v2: bar, docked reader chip, menu",
+      "w": 240,
+      "x": 0,
+      "y": 8090
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Series.dc.html",
+    "Browser.dc.html",
+    "Logo.dc.html",
+    "LogoAB.dc.html",
+    "Reader.dc.html",
+    "ReaderEnd.dc.html",
+    "Library.dc.html",
+    "Settings.dc.html",
+    "BrowserTabs.dc.html",
+    "BrowserShield.dc.html",
+    "BrowserFallback.dc.html",
+    "SiteError.dc.html",
+    "EmptyLibrary.dc.html",
+    "FixDetection.dc.html",
+    "Onboarding.dc.html",
+    "Import.dc.html",
+    "SeriesCaughtUp.dc.html",
+    "SeriesAhead.dc.html",
+    "ReaderEndCaughtUp.dc.html",
+    "ReaderEndComplete.dc.html",
+    "BrowserV2Detected.dc.html",
+    "BrowserV2Docked.dc.html",
+    "BrowserV2Scrolling.dc.html",
+    "BrowserV2Menu.dc.html"
+  ],
+  "pages": [],
+  "title": "Ascon UI direction"
+}

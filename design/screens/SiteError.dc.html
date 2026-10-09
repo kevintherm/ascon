@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ascon · Site unreachable</title>
+<title>Site unreachable</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
 a{color:#15161A}a:hover{color:#000}
 </style>
-<style>html{background:#D9DBE0}body{display:flex;justify-content:center;padding:24px 0}</style>
-</head>
-<body>
+</helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F4F6; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15161A">
 
 <div style="padding: 96px 24px 0 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px">
@@ -22,7 +24,7 @@ a{color:#15161A}a:hover{color:#000}
 </div>
 
 <div style="padding: 28px 16px 0 16px; display: flex; flex-direction: column; gap: 8px">
-<button style="height: 54px; border: 0; border-radius: 27px; background: #D9472B; color: #fff; font: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"></path></svg>Try with secure DNS</button>
+<button style="height: 54px; border: 0; border-radius: 27px; background: {{accent}}; color: #fff; font: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"></path></svg>Try with secure DNS</button>
 <button style="height: 54px; border: 0; border-radius: 27px; background: #fff; color: #15161A; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer">Retry</button>
 </div>
 
@@ -39,14 +41,22 @@ a{color:#15161A}a:hover{color:#000}
 </div>
 
 <nav style="position: absolute; left: 12px; right: 12px; bottom: 18px; height: 68px; border-radius: 34px; background: #15161A; display: flex; align-items: center; gap: 4px; padding: 0 10px; box-shadow: 0 12px 30px rgba(21,22,26,0.3)">
-<a href="01-home.html" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: #fff; display: flex; align-items: center; justify-content: center; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<a href="Main.dc.html" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: #fff; display: flex; align-items: center; justify-content: center; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
 <button style="flex: 1; min-width: 0; height: 48px; border: 0; border-radius: 24px; background: #26282E; color: #fff; font: inherit; display: flex; align-items: center; gap: 8px; padding: 0 14px; cursor: pointer">
 <span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">mangadex.org</span>
 </button>
-<a href="08-browser-tabs.html" aria-label="Tabs, 3 open" style="width: 48px; height: 48px; border-radius: 24px; color: #fff; display: flex; align-items: center; justify-content: center; flex: none"><span style="width: 22px; height: 22px; border: 2px solid currentColor; border-radius: 6px; box-sizing: border-box; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span></a>
+<a href="BrowserTabs.dc.html" aria-label="Tabs, 3 open" style="width: 48px; height: 48px; border-radius: 24px; color: #fff; display: flex; align-items: center; justify-content: center; flex: none"><span style="width: 22px; height: 22px; border: 2px solid currentColor; border-radius: 6px; box-sizing: border-box; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span></a>
 <button aria-label="More" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: #fff; display: flex; align-items: center; justify-content: center; flex: none; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button>
 </nav>
 
 </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D9472B","options":["#D9472B","#2F55E4","#E08A00","#15161A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#D9472B' };
+  }
+}
+</script>
 </body>
 </html>

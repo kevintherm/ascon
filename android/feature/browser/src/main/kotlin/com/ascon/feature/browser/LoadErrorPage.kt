@@ -31,7 +31,7 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.feature.browser.web.LoadErrorKind
 
-/** A page that failed to load, per screen 11. */
+/** A page that failed to load, per the SiteError screen. */
 @Composable
 internal fun LoadErrorPage(error: LoadError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     val (title, body) = when (error.kind) {
