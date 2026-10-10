@@ -52,6 +52,8 @@ object AsconIcons {
         "M3 3l18 18"
     )
     val Shield = stroked("Shield", "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z")
+    val Chapters = stroked("Chapters", "M4 6h16M4 12h16M4 18h10")
+    val ArrowRight = stroked("ArrowRight", "M5 12h14M13 6l6 6-6 6")
     val LongStrip = stroked("LongStrip", rect(7f, 2f, 10f, 20f, 2f), "M7 9h10M7 15h10")
     val LeftToRight = stroked("LeftToRight", rect(3f, 4f, 8f, 16f, 1.5f), "M15 12h6M18 9l3 3-3 3")
     val RightToLeft = stroked("RightToLeft", rect(13f, 4f, 8f, 16f, 1.5f), "M9 12H3M6 9l-3 3 3 3")

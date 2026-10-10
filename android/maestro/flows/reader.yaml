@@ -16,6 +16,10 @@ appId: com.ascon.app
 - tapOn: "None"
 - back
 - assertNotVisible: "Page gap"
+# Chapters lists the series' chapters with this one and its page marked.
+- tapOn: "Chapters"
+- assertVisible: "READING · P. 1 / 3"
+- back
 # Next chapter loads the site's next page in the browser, which opens the reader again.
 - tapOn: "Next chapter"
 - extendedWaitUntil:

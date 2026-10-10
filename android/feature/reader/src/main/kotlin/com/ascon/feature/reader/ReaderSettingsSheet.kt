@@ -42,8 +42,8 @@ import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.ReadingMode
 
 // Sizes and fills from ReaderSettings.
-private val SheetFill = Color(0xFF1B1C21)
-private val Grabber = Color(0x33FFFFFF)
+internal val SheetFill = Color(0xFF1B1C21)
+internal val Grabber = Color(0x33FFFFFF)
 private val Subtitle = Color(0x99FFFFFF)
 
 /** The scope switch nests its 12 radius buttons 4 inside a 16 radius track. */

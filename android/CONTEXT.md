@@ -282,6 +282,8 @@ object AsconIcons
     val Share
     val Offline
     val Shield
+    val Chapters
+    val ArrowRight
     val LongStrip
     val LeftToRight
     val RightToLeft

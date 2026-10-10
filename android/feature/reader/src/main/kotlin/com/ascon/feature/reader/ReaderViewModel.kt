@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ReaderSettingsRepository
+import com.ascon.core.model.Chapter
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.ReaderSettings
 import java.math.BigDecimal
 import java.net.URI
 import java.time.Clock
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +41,12 @@ data class ReaderUiState(
     val nextChapter: BigDecimal? = null,
     /** The series' own settings, or the ones for all series. */
     val settings: ReaderSettings = ReaderSettings(),
+    /** The series' chapters in the library, oldest first. Empty for a series outside it. */
+    val chapters: List<Chapter> = emptyList(),
+    /** Site names of the series' sources, by source id. */
+    val siteNames: Map<String, String> = emptyMap(),
+    /** Chapter dates are shown relative to this day. */
+    val today: LocalDate? = null,
     /** Where changes from the settings sheet go. Only all series without a series in the library. */
     val settingsScope: SettingsScope = if (seriesId != null) SettingsScope.Series else SettingsScope.AllSeries
 ) {
@@ -87,6 +95,9 @@ class ReaderViewModel(
                 library.series(seriesId).collect { series ->
                     _state.update {
                         it.copy(
+                            chapters = series?.chapters.orEmpty(),
+                            siteNames = series?.sources.orEmpty().associate { source -> source.id to source.siteName },
+                            today = LocalDate.now(clock),
                             cover = series?.cover,
                             nextChapter = number?.let { n ->
                                 nextAfter(n, series?.chapters.orEmpty().map { c -> c.number })

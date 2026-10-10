@@ -56,6 +56,7 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.model.PageFit
 import com.ascon.core.model.PageGap
 import com.ascon.core.model.ReaderSettings
+import java.math.BigDecimal
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -83,6 +84,9 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
             onToggleBars = viewModel::toggleBars,
             onNearEnd = viewModel::nearEnd,
             onOpenSeries = actions.onOpenSeries,
+            onOpenChapterNumber = { number ->
+                chapterUrl(state.url, state.chapter, number)?.let(actions.onOpenChapter)
+            },
             onSettingsScope = viewModel::setSettingsScope,
             onChangeSettings = viewModel::updateSettings
         )
@@ -109,6 +113,8 @@ data class ReaderCommands(
     /** The end of the last page is less than half a screen away. */
     val onNearEnd: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
+    /** A chapter picked in the chapters sheet. */
+    val onOpenChapterNumber: (BigDecimal) -> Unit = {},
     val onSettingsScope: (SettingsScope) -> Unit = {},
     val onChangeSettings: ((ReaderSettings) -> ReaderSettings) -> Unit = {}
 )
@@ -138,6 +144,7 @@ fun ReaderScreen(
     }
     val settings = state.settings
     var settingsOpen by remember { mutableStateOf(false) }
+    var chaptersOpen by remember { mutableStateOf(false) }
     KeepScreenOn(settings.keepScreenOn)
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
@@ -219,11 +226,21 @@ fun ReaderScreen(
                 onSeek = { index -> scope.launch { list.scrollToItem(index) } },
                 onPrevious = commands.onPrevious,
                 onNext = commands.onNext,
+                onChapters = { chaptersOpen = true },
                 modifier = Modifier
                     .navigationBarsPadding()
                     .padding(start = 12.dp, end = 12.dp, bottom = 18.dp)
             )
         }
+        ReaderChaptersSheet(
+            visible = chaptersOpen,
+            state = state,
+            onOpen = { number ->
+                chaptersOpen = false
+                commands.onOpenChapterNumber(number)
+            },
+            onDismiss = { chaptersOpen = false }
+        )
         ReaderSettingsSheet(
             visible = settingsOpen,
             state = state,

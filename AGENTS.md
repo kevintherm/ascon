@@ -237,7 +237,7 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 2. Done: the Browser v2 menu sheet. Find, Private, Desktop site and Fix title or chapter wait for their screens and settings.
 3. Done: the reader chip, which opens the reader at the page on screen.
 4. Done: Back to Ascon in the menu, and the Browse nav item returns to the loaded page.
-5. Partly done: the reader settings sheet from Aa, per ReaderSettings, saved with DataStore for the series or for all series. Fit, page gap, background, keep screen on and volume keys work in long strip. Still to build: the paged modes, shown but disabled; Crop borders and Show tap zones, left off the sheet until they exist; the Chapters sheet; gestures and zoom; the long-press menu; and the time left. Designed: ReaderSettings, ReaderChapters, and notes.md.
+5. Partly done: the reader settings sheet from Aa, per ReaderSettings, saved with DataStore for the series or for all series. Fit, page gap, background, keep screen on and volume keys work in long strip. The Chapters sheet, per ReaderChapters, lists the series' chapters and opens one by swapping the number in this chapter's address; the source switcher waits for chapter addresses on other sources. Still to build: the paged modes, shown but disabled; Crop borders and Show tap zones, left off the sheet until they exist; gestures and zoom; the long-press menu; and the time left. Designed: ReaderSettings, ReaderChapters, and notes.md.
 6. Done: the card counts down and docks into the reader chip.
 7. A caught-up series keeps its main button as a status block. Designed: SeriesCaughtUp, SeriesAhead, notes.md.
 8. Glass bars in the reader and over web content have the glass color but no background blur.

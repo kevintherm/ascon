@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -101,8 +103,9 @@ fun BottomSheet(
                     )
                     .clip(RoundedCornerShape(topStart = AsconRadius.Sheet, topEnd = AsconRadius.Sheet))
                     .background(container)
-                    // Taps inside the sheet must not reach the scrim.
-                    .clickable(remember { MutableInteractionSource() }, indication = null) {}
+                    // Taps inside the sheet must not reach the scrim. Not a click, so screen
+                    // readers still see the sheet's own rows one by one.
+                    .pointerInput(Unit) { detectTapGestures { } }
                     .navigationBarsPadding()
                     .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = bottomPadding),
                 verticalArrangement = Arrangement.spacedBy(spacing)

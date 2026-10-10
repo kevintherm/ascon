@@ -115,13 +115,14 @@ internal fun ReaderTopBar(
     }
 }
 
-/** The page counter with a track to drag through the chapter, and the chapter buttons. */
+/** The page counter with a track to drag through the chapter, the chapter buttons and Chapters. */
 @Composable
 internal fun ReaderPanel(
     state: ReaderUiState,
     onSeek: (Int) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onChapters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(PanelRadius)
@@ -145,19 +146,20 @@ internal fun ReaderPanel(
             PageTrack(state.page, state.pageCount, onSeek, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChapterButton(
-                text = stringResource(R.string.reader_previous),
-                icon = AsconIcons.PreviousChapter,
-                url = state.previous,
-                onClick = onPrevious,
-                primary = false
+            ChapterIconButton(
+                AsconIcons.PreviousChapter,
+                stringResource(R.string.reader_previous),
+                enabled = state.previous != null,
+                primary = false,
+                onClick = onPrevious
             )
-            ChapterButton(
-                text = stringResource(R.string.reader_next),
-                icon = AsconIcons.NextChapter,
-                url = state.next,
-                onClick = onNext,
-                primary = true
+            PanelButton(AsconIcons.Chapters, stringResource(R.string.reader_chapters), onChapters)
+            ChapterIconButton(
+                AsconIcons.NextChapter,
+                stringResource(R.string.reader_next),
+                enabled = state.next != null,
+                primary = true,
+                onClick = onNext
             )
         }
     }
@@ -196,33 +198,47 @@ private fun PageTrack(page: Int, pageCount: Int, onSeek: (Int) -> Unit, modifier
 private fun pageAt(x: Float, width: Int, pageCount: Int): Int =
     ((x / width) * pageCount).toInt().coerceIn(0, (pageCount - 1).coerceAtLeast(0))
 
+/** Previous or next chapter, per Reader: the next one is white, and a missing one is dimmed. */
 @Composable
-private fun RowScope.ChapterButton(
-    text: String,
+private fun ChapterIconButton(
     icon: ImageVector,
-    url: String?,
-    onClick: () -> Unit,
-    primary: Boolean
+    label: String,
+    enabled: Boolean,
+    primary: Boolean,
+    onClick: () -> Unit
 ) {
-    val enabled = url != null
     val content = when {
         !enabled -> AsconColors.OnDarkMuted.copy(alpha = 0.4f)
         primary -> AsconColors.Ink
         else -> Color.White
     }
+    Box(
+        Modifier
+            .size(PanelButton)
+            .clip(RoundedCornerShape(PanelButtonRadius))
+            .background(if (primary && enabled) Color.White else AsconColors.OnDarkFill)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = content)
+    }
+}
+
+@Composable
+private fun RowScope.PanelButton(icon: ImageVector, text: String, onClick: () -> Unit) {
     Row(
         Modifier
             .weight(1f)
             .height(PanelButton)
             .clip(RoundedCornerShape(PanelButtonRadius))
-            .background(if (primary && enabled) Color.White else AsconColors.OnDarkFill)
-            .clickable(enabled = enabled, onClick = onClick),
+            .background(AsconColors.OnDarkFill)
+            .clickable(role = Role.Button, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
     ) {
-        Icon(icon, null, Modifier.size(20.dp), tint = content)
-        Box(Modifier.width(8.dp))
-        Text(text, style = AsconType.ButtonSecondary, color = content)
+        Icon(icon, null, Modifier.size(18.dp), tint = Color.White)
+        Text(text, style = AsconType.ButtonSmall.copy(fontWeight = FontWeight.SemiBold), color = Color.White)
     }
 }
 
