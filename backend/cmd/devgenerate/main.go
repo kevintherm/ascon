@@ -26,19 +26,20 @@ import (
 
 func main() {
 	attempts := flag.Int("attempts", 2, "rules the model may offer")
+	raw := flag.Bool("raw", false, "send pages as they are instead of sanitizing them")
 	minImages := flag.Int("min-images", 3, "images each sample must yield")
 	flag.Parse()
 	if flag.NArg() == 0 {
-		fmt.Fprintln(os.Stderr, "usage: devgenerate [-attempts n] [-min-images n] url=page.html ...")
+		fmt.Fprintln(os.Stderr, "usage: devgenerate [-attempts n] [-min-images n] [-raw] url=page.html ...")
 		os.Exit(2)
 	}
-	if err := run(flag.Args(), *attempts, *minImages); err != nil {
+	if err := run(flag.Args(), *attempts, *minImages, *raw); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(args []string, attempts, minImages int) error {
+func run(args []string, attempts, minImages int, raw bool) error {
 	if err := dotenv.Load(".env"); err != nil {
 		return err
 	}
@@ -49,10 +50,18 @@ func run(args []string, attempts, minImages int) error {
 		return errors.New("set ASCON_LLM_BASE_URL, ASCON_LLM_API_KEY and ASCON_LLM_MODEL")
 	}
 
-	samples, site, err := readSamples(args)
+	samples, site, err := readSamples(args, raw)
 	if err != nil {
 		return err
 	}
+	var total llm.Usage
+	gen.OnUsage = func(u llm.Usage) {
+		fmt.Printf("tokens: %d in (%d cached), %d out (%d of them reasoning)\n",
+			u.Prompt, u.PromptDetails.Cached, u.Completion, u.Details.Reasoning)
+		total.Prompt += u.Prompt
+		total.Completion += u.Completion
+	}
+	defer func() { fmt.Printf("total tokens: %d in, %d out\n", total.Prompt, total.Completion) }()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
@@ -78,7 +87,7 @@ func run(args []string, attempts, minImages int) error {
 	return errors.New("REJECTED")
 }
 
-func readSamples(args []string) ([]rule.Sample, string, error) {
+func readSamples(args []string, unsanitized bool) ([]rule.Sample, string, error) {
 	var samples []rule.Sample
 	var site string
 	for _, arg := range args {
@@ -92,6 +101,13 @@ func readSamples(args []string) ([]rule.Sample, string, error) {
 		html, err := os.ReadFile(filepath.Clean(file))
 		if err != nil {
 			return nil, "", err
+		}
+		if !unsanitized {
+			before := len(html)
+			if html, err = sanitize(html); err != nil {
+				return nil, "", err
+			}
+			fmt.Printf("sample %d: %d KiB sanitized to %d KiB\n", len(samples)+1, before>>10, len(html)>>10)
 		}
 		site = u.Hostname()
 		samples = append(samples, rule.Sample{URL: raw, HTML: html})

@@ -37,6 +37,21 @@ type OpenAI struct {
 	// MaxSampleBytes caps each sample's HTML. Zero means
 	// DefaultMaxSampleBytes.
 	MaxSampleBytes int
+	// OnUsage, when set, is told the tokens each request used.
+	OnUsage func(Usage)
+}
+
+// Usage is what one request cost in tokens, as the provider reports it.
+// Reasoning tokens are part of Completion; Cached tokens are part of Prompt.
+type Usage struct {
+	Prompt     int `json:"prompt_tokens"`
+	Completion int `json:"completion_tokens"`
+	Details    struct {
+		Reasoning int `json:"reasoning_tokens"`
+	} `json:"completion_tokens_details"`
+	PromptDetails struct {
+		Cached int `json:"cached_tokens"`
+	} `json:"prompt_tokens_details"`
 }
 
 var _ rule.Generator = (*OpenAI)(nil)
@@ -55,6 +70,7 @@ type chatRequest struct {
 }
 
 type chatResponse struct {
+	Usage   *Usage `json:"usage"`
 	Choices []struct {
 		FinishReason string `json:"finish_reason"`
 		Message      struct {
@@ -137,6 +153,9 @@ func (o *OpenAI) complete(ctx context.Context, req chatRequest) (string, error) 
 	var chat chatResponse
 	if err := json.Unmarshal(data, &chat); err != nil {
 		return "", fmt.Errorf("llm response is not a chat completion: %w", err)
+	}
+	if chat.Usage != nil && o.OnUsage != nil {
+		o.OnUsage(*chat.Usage)
 	}
 	if len(chat.Choices) == 0 {
 		return "", errors.New("llm answered with no choices")

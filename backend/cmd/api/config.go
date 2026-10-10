@@ -69,7 +69,13 @@ func generator(logger *slog.Logger) rule.Generator {
 		return llm.Unconfigured{}
 	}
 	logger.Info("AI detection enabled", "model", model)
-	return &llm.OpenAI{BaseURL: baseURL, APIKey: key, Model: model}
+	return &llm.OpenAI{
+		BaseURL: baseURL, APIKey: key, Model: model,
+		OnUsage: func(u llm.Usage) {
+			logger.Info("llm usage", "prompt_tokens", u.Prompt, "completion_tokens", u.Completion,
+				"reasoning_tokens", u.Details.Reasoning, "cached_tokens", u.PromptDetails.Cached)
+		},
+	}
 }
 
 // signingSeed reads ASCON_SIGNING_KEY, a base64 Ed25519 seed. Without it the

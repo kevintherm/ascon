@@ -84,7 +84,7 @@ The server also reads a `.env` file in the directory it runs from, for developme
 
 `devaccount` stands in for sign-in, which is not built yet. Without the `ASCON_LLM_*` settings, AI rule generation is rejected and the quota refunded.
 
-To try generation without the app, give `devgenerate` saved chapter pages with the URLs they came from. It prints each rule the model offers and the server's verdict:
+To try generation without the app, give `devgenerate` saved chapter pages with the URLs they came from. It sanitizes raw pages first, unless given `-raw`, and prints each rule the model offers, the tokens it used and the server's verdict:
 
 ```sh
 go run ./cmd/devgenerate 'https://site.example/a/ch-1=ch1.html' 'https://site.example/a/ch-2=ch2.html'

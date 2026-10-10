@@ -31,7 +31,10 @@ func provider(t *testing.T, status int, finish, content string) (*OpenAI, *chatR
 			t.Error(err)
 		}
 		w.WriteHeader(status)
-		resp := map[string]any{"choices": []any{map[string]any{
+		resp := map[string]any{"usage": map[string]any{
+			"prompt_tokens": 900, "completion_tokens": 300,
+			"completion_tokens_details": map[string]any{"reasoning_tokens": 250},
+		}, "choices": []any{map[string]any{
 			"finish_reason": finish, "message": map[string]any{"content": content},
 		}}}
 		_ = json.NewEncoder(w).Encode(resp)
@@ -49,9 +52,14 @@ func TestGenerateSendsSamplesAndReadsTheRule(t *testing.T) {
 	o, got := provider(t, http.StatusOK, "stop",
 		"```json\n{\"chapterPage\":{\"url\":\"https://t\\\\.example/.*\",\"images\":{\"selector\":\"img\"}}}\n```")
 
+	var usage Usage
+	o.OnUsage = func(u Usage) { usage = u }
 	r, err := o.Generate(context.Background(), "t.example", "", samples, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if usage.Prompt != 900 || usage.Completion != 300 || usage.Details.Reasoning != 250 {
+		t.Errorf("usage = %+v", usage)
 	}
 	if r.ChapterPage.URL != `https://t\.example/.*` || r.ChapterPage.Images.Selector != "img" {
 		t.Fatalf("rule = %+v", r)
