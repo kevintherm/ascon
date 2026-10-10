@@ -39,7 +39,7 @@
     },
     "BrowserV2Docked.dc.html": {
       "h": 844,
-      "title": "Browser v2 · top toolbar with Reader button",
+      "title": "Browser v2 · bottom toolbar with Reader button",
       "w": 390,
       "x": 470,
       "y": 8350
@@ -219,6 +219,69 @@
       "w": 390,
       "x": 1410,
       "y": 4420
+    },
+    "SettingsSignedOut.dc.html": {
+      "h": 844,
+      "title": "Settings · signed out",
+      "w": 390,
+      "x": 0,
+      "y": 10960
+    },
+    "SettingsSigningIn.dc.html": {
+      "h": 844,
+      "title": "Settings · signing in",
+      "w": 390,
+      "x": 470,
+      "y": 10960
+    },
+    "SettingsSignInFailed.dc.html": {
+      "h": 844,
+      "title": "Settings · sign-in failed",
+      "w": 390,
+      "x": 940,
+      "y": 10960
+    },
+    "HomeSignedOut.dc.html": {
+      "h": 844,
+      "title": "Home · signed out",
+      "w": 390,
+      "x": 1410,
+      "y": 10960
+    },
+    "AccountSheet.dc.html": {
+      "h": 844,
+      "title": "Account sheet · Premium",
+      "w": 390,
+      "x": 0,
+      "y": 12270
+    },
+    "AccountSheetFree.dc.html": {
+      "h": 844,
+      "title": "Account sheet · Free",
+      "w": 390,
+      "x": 470,
+      "y": 12270
+    },
+    "AccountSignOut.dc.html": {
+      "h": 844,
+      "title": "Account · sign out confirm",
+      "w": 390,
+      "x": 940,
+      "y": 12270
+    },
+    "FixDetectionSignedOut.dc.html": {
+      "h": 844,
+      "title": "Fix detection · signed out, site has no rule",
+      "w": 390,
+      "x": 1410,
+      "y": 12270
+    },
+    "FixDetectionNoQuota.dc.html": {
+      "h": 844,
+      "title": "Fix detection · no AI detections left",
+      "w": 390,
+      "x": 1880,
+      "y": 12270
     }
   },
   "createdOnFiles": {
@@ -232,7 +295,7 @@
   "notes": {
     "s1": {
       "maxH": 844,
-      "text": "BROWSER V2 BEHAVIOR (supersedes every earlier browser bar, including Browser · detected and Browser · reader unavailable)\n\nRULE: nothing stays floating over the page while reading. The toolbar is docked at the TOP, like Chrome's. The WebView starts below it, so the site's own top and bottom bars stay reachable. Back sits top-left, the same place as the back button on every other Ascon screen.\n\nTOOLBAR: full width, ink, flat bottom edge, 64 tall below the status bar, padding 8 12. Left to right, gap 4: Back (bare icon, 40 wide), address box (shield count + domain, 44 tall, radius 12; shield chip 26 tall, radius 6; tap to edit the URL), Reader button (only on a detected chapter page: accent, 44 tall, radius 12, icon + Reader), Menu (bare icon, 40 wide). Address box and Reader button share height and radius on purpose. Reload lives in the menu. In page-as-is mode the Reader button becomes the neutral p. N tracking chip. No close or exit button in the toolbar, to avoid accidental taps.\n\nMENU FOOTER, two buttons side by side, 56 tall, radius 16:\nBack to Ascon (ink, app icon, wider): leaves the browser but keeps the page loaded, so the Browse tab returns to it exactly.\nClose (light, X): ends the browsing session. Returns to the screen that opened the browser, discards the page and its Back history, and shows a snackbar there: Browser closed · Undo. Undo reopens the same URL at the same scroll position within 5 s. Reading progress is already saved, so closing never loses progress.\nWhile a page loads, a 2 px accent progress line runs along the toolbar's bottom edge.\n\nSCROLL: scrolling down more than 24 px slides the toolbar up out of view; when the slide ends, the WebView grows to full height, once. Scrolling up, or reaching the top or end of the page, slides it back and the WebView shrinks back. Never resize mid-animation. While hidden, the only thing drawn is a 2 px reading progress line along the top edge, in the brand gradient, on detected chapter pages only. It ignores touches (pointer-events none) and tracks the visible image index, not raw scroll position.\n\nDETECTION CARD: the only overlay, and it is temporary. On a new detection a white card slides up at the BOTTOM (left/right 12, bottom 16 above the gesture area) with Open in Reader and Not right?, plus a 5 s countdown line. When it runs out, the card slides down and the Reader button in the toolbar pulses once to show where it went. Touch pauses the countdown; swipe down or the chevron dismisses early. 8 s and Add to library when the series is not in the library. Shows again only when the chapter changes.\n\nRETURN TO READER: the toolbar's Reader button, visible whenever the page is a detected chapter page. Opens the reader at the currently visible image. Reader back returns to this page and scroll position.\n\nPAGE AS-IS: the Reader button becomes a neutral Tracking chip with the page number. On the first load only, a dismissable notice row sits under the toolbar, inside the docked area, pushing the page down. Never a banner over the page.\n\nBack: walks page history; on the first page it leaves the browser. Predictive back.\nSingle tab only.\n\nMENU (bottom sheet): Forward, Reload, Share, Find · Open in Reader, Go to series, Fix title or chapter · Protection, Desktop site, Private browsing, Open in another browser · Back to Ascon and Close.",
+      "text": "BROWSER V2 BEHAVIOR (supersedes every earlier browser bar, including Browser · detected and Browser · reader unavailable)\n\nRULE: nothing stays floating over the page while reading. The toolbar is docked at the BOTTOM, in thumb reach. The WebView ends above it, so the site's own top and bottom bars stay reachable, and showing or hiding the toolbar only moves the WebView's bottom edge: content at the top never jumps.\n\nTOOLBAR: full width, ink, flat top edge, 72 tall above the gesture area, padding 8 12 20. Left to right, gap 4: Back (bare icon, 40 wide), address box (shield count + domain, 44 tall, radius 12; shield chip 26 tall, radius 6; tap to edit the URL), Reader button (only on a detected chapter page: accent, 44 tall, radius 12, icon + Reader), Menu (bare icon, 40 wide). Address box and Reader button share height and radius on purpose. Reload lives in the menu. In page-as-is mode the Reader button becomes the neutral p. N tracking chip. No close or exit button in the toolbar, to avoid accidental taps.\n\nMENU FOOTER, two buttons side by side, 56 tall, radius 16:\nBack to Ascon (ink, app icon, wider): leaves the browser but keeps the page loaded, so the Browse tab returns to it exactly.\nClose (light, X): ends the browsing session. Returns to the screen that opened the browser, discards the page and its Back history, and shows a snackbar there: Browser closed · Undo. Undo reopens the same URL at the same scroll position within 5 s. Reading progress is already saved, so closing never loses progress.\nWhile a page loads, a 2 px accent progress line runs along the toolbar's top edge.\n\nSCROLL: scrolling down more than 24 px slides the toolbar down out of view; when the slide ends, the WebView grows to full height, once. Scrolling up, or reaching the top or end of the page, slides it back and the WebView shrinks back. Never resize mid-animation. While hidden, the only thing drawn is a 2 px reading progress line along the top edge, in the brand gradient, on detected chapter pages only. It ignores touches (pointer-events none) and tracks the visible image index, not raw scroll position.\n\nDETECTION CARD: the only overlay, and it is temporary. On a new detection a white card slides up just above the toolbar (left/right 12, 12 above the toolbar) with Open in Reader and Not right?, plus a 5 s countdown line. When it runs out, the card slides down and the Reader button in the toolbar pulses once to show where it went. Touch pauses the countdown; swipe down or the chevron dismisses early. 8 s and Add to library when the series is not in the library. Shows again only when the chapter changes.\n\nRETURN TO READER: the toolbar's Reader button, visible whenever the page is a detected chapter page. Opens the reader at the currently visible image. Reader back returns to this page and scroll position.\n\nPAGE AS-IS: the Reader button becomes a neutral Tracking chip with the page number. On the first load only, a dismissable notice row sits above the toolbar, inside the docked area, shortening the page from the bottom. Never a banner over the page.\n\nBack: walks page history; on the first page it leaves the browser. Predictive back.\nSingle tab only.\n\nMENU (bottom sheet): Forward, Reload, Share, Find · Open in Reader, Go to series, Fix title or chapter · Protection, Desktop site, Private browsing, Open in another browser · Back to Ascon and Close.",
       "w": 460,
       "x": 2350,
       "y": 8350
@@ -309,10 +372,33 @@
     "t7": {
       "kind": "title1",
       "maxW": 1800,
-      "text": "Browser v2: toolbar docked at the top, card at the bottom",
+      "text": "Browser v2: toolbar docked at the bottom, card above it",
       "w": 240,
       "x": 0,
       "y": 8090
+    },
+    "s5": {
+      "maxH": 844,
+      "text": "ACCOUNT BEHAVIOR\n\nSIGNED OUT is a normal state, not an error. Library, progress and protection work fully on the phone. An account adds two things: sync across devices, and AI detection for sites Ascon has no rule for.\n\nSETTINGS HEADER: signed out shows a generic person icon, Not signed in, and the Sign in with Google button with one line on what an account unlocks. Signed in, the whole header row opens the Account sheet.\nSigning in: the button disables, shows a spinner and Signing in. Other settings stay usable.\nFailed: an inline message above the button, and the button reads Try again. Cancelling the Google picker is not a failure: return to the default state silently.\n\nHOME AVATAR: signed out, a generic person icon; tap goes to Settings with the sign-in row. Signed in, the initial (or Google photo); tap opens the Account sheet.\n\nACCOUNT SHEET: avatar, name, email. Plan row: Free (neutral chip + Upgrade) or Premium (brand gradient chip; the only place the gradient marks a tier). AI detections left this month, N of M · resets <date> (server config, starting at 10 Free and 200 Premium, reset the 1st at 00:00 UTC), meter in ink, turns accent at 0. AI translation row: Premium shows Included, no quota; Free shows a Premium lock and notes that on-device translation stays free. Last synced, with Sync now. Sign out opens a confirm dialog; the library stays on the phone.\n\nFIX DETECTION SHEET, same slot as the Teach Ascon switch, first match wins:\n1 Signed out and the site has no rule: Sign in to let Ascon learn this site.\n2 Signed in, quota 0: No AI detections left this month · resets <date>. Manual fix still saves.\n3 Otherwise: the Teach Ascon this site switch.",
+      "w": 460,
+      "x": 2350,
+      "y": 12270
+    },
+    "t9": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Account: signed out and signing in",
+      "w": 240,
+      "x": 0,
+      "y": 10700
+    },
+    "t10": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Account sheet and AI detection quota",
+      "w": 240,
+      "x": 0,
+      "y": 12010
     },
     "t8": {
       "kind": "title1",
@@ -354,7 +440,16 @@
     "FilterLists.dc.html",
     "Licenses.dc.html",
     "ReaderSettings.dc.html",
-    "ReaderChapters.dc.html"
+    "ReaderChapters.dc.html",
+    "SettingsSignedOut.dc.html",
+    "SettingsSigningIn.dc.html",
+    "SettingsSignInFailed.dc.html",
+    "HomeSignedOut.dc.html",
+    "AccountSheet.dc.html",
+    "AccountSheetFree.dc.html",
+    "AccountSignOut.dc.html",
+    "FixDetectionSignedOut.dc.html",
+    "FixDetectionNoQuota.dc.html"
   ],
   "pages": [],
   "title": "Ascon UI direction"

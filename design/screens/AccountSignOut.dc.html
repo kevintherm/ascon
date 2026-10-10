@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign out confirm</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#15161A}a:hover{color:#000}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F4F6; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15161A">
+
+<div aria-hidden="true" style="padding: 20px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Settings</div>
+<div style="height: 72px; border-radius: 20px; background: #fff"></div>
+<div style="height: 180px; border-radius: 20px; background: #fff"></div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(14,15,18,0.62)"></div>
+
+<div role="alertdialog" aria-labelledby="so-title" aria-describedby="so-body" style="position: absolute; left: 24px; right: 24px; top: 290px; background: #fff; border-radius: 28px; padding: 24px 20px 20px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.35)">
+<div id="so-title" style="font-size: 20px; font-weight: 800; letter-spacing: -0.01em">Sign out of Ascon?</div>
+<div id="so-body" style="font-size: 14px; line-height: 1.5; color: #5B5F69">Your library and progress stay on this phone. Sync and AI detection stop until you sign in again.</div>
+<div style="display: flex; gap: 8px; margin-top: 10px">
+<a href="AccountSheet.dc.html" style="flex: 1; height: 48px; border-radius: 14px; background: #F3F4F6; color: #15161A; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Cancel</a>
+<a href="SettingsSignedOut.dc.html" style="flex: 1; height: 48px; border-radius: 14px; background: #B42318; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">Sign out</a>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
