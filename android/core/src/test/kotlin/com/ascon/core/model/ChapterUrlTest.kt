@@ -45,4 +45,11 @@ class ChapterUrlTest {
         assertNull(chapterUrl("https://site.example/read/aztec", null, BigDecimal(3)))
         assertNull(chapterUrl("https://site.example/read/aztec/abc", BigDecimal(3), BigDecimal(4)))
     }
+
+    @Test
+    fun `the same chapter is the page itself, even with an id in its URL`() {
+        val url = "https://site.example/series/57/6c35d20862e3950a"
+        assertEquals(url, chapterUrl(url, BigDecimal(1), BigDecimal("1.0")))
+        assertNull(chapterUrl(url, BigDecimal(1), BigDecimal(2)))
+    }
 }
