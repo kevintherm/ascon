@@ -51,6 +51,7 @@ import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.model.PageFit
 import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.ReadingMode
+import com.ascon.core.model.chapterUrl
 import com.ascon.core.model.toChapterLabel
 import java.math.BigDecimal
 import kotlinx.coroutines.delay

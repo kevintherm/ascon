@@ -84,6 +84,7 @@ data class HomeActions(
     val onSearch: () -> Unit = {},
     val onProfile: () -> Unit = {},
     val onOpenSeries: (String) -> Unit = {},
+    val onOpenChapter: (url: String) -> Unit = {},
     val onSeeAll: () -> Unit = {},
     val onStatus: (ReadingStatus) -> Unit = {},
     val onOpenSite: (Site) -> Unit = {},
@@ -142,7 +143,8 @@ private fun Header(state: HomeUiState, actions: HomeActions, modifier: Modifier 
             }
             Spacer(Modifier.height(30.dp))
             if (hero != null) {
-                Hero(hero, onResume = { actions.onOpenSeries(hero.seriesId) })
+                // Resume opens the chapter itself once the library knows where it lives.
+                Hero(hero, onResume = { hero.url?.let(actions.onOpenChapter) ?: actions.onOpenSeries(hero.seriesId) })
             } else if (!state.loading) {
                 Welcome()
             }

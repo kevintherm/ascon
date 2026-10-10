@@ -85,13 +85,12 @@ import java.time.format.DateTimeFormatter
 data class SeriesActions(
     val onBack: () -> Unit = {},
     val onMore: () -> Unit = {},
-    val onPrimary: () -> Unit = {},
-    val onReread: () -> Unit = {},
     val onDownload: () -> Unit = {},
     val onAlerts: () -> Unit = {},
     val onSelectSource: (String) -> Unit = {},
     val onToggleOrder: () -> Unit = {},
-    val onOpenChapter: (String) -> Unit = {}
+    /** Opens a chapter page, from the main button, Reread or a chapter row. */
+    val onOpenChapter: (url: String) -> Unit = {}
 )
 
 @Composable
@@ -146,7 +145,7 @@ fun SeriesScreen(state: SeriesUiState, actions: SeriesActions) {
                         today = state.today,
                         first = index == 0,
                         last = index == state.chapters.lastIndex,
-                        onClick = { actions.onOpenChapter(row.number) }
+                        onClick = { row.url?.let(actions.onOpenChapter) }
                     )
                 }
             }
@@ -324,7 +323,7 @@ private fun ChapterListRow(row: ChapterRow, today: LocalDate, first: Boolean, la
             .padding(horizontal = 16.dp)
             .clip(shape)
             .background(AsconColors.Surface)
-            .clickable(onClick = onClick)
+            .clickable(enabled = row.url != null, onClick = onClick)
             .semantics { if (stateLabel != null) stateDescription = stateLabel }
             .padding(start = 16.dp, end = 16.dp, top = if (first) 2.dp else 0.dp, bottom = if (last) 2.dp else 0.dp)
     ) {

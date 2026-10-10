@@ -49,6 +49,7 @@ import com.ascon.core.designsystem.component.BottomSheet
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.Chapter
+import com.ascon.core.model.chapterUrl
 import com.ascon.core.model.toChapterLabel
 import java.math.BigDecimal
 

@@ -51,8 +51,8 @@ internal fun Actions(action: PrimaryAction?, actions: SeriesActions) {
     ) {
         when (action) {
             null -> Spacer(Modifier.weight(1f))
-            is PrimaryAction.CaughtUp -> CaughtUpBlock(action, actions.onReread)
-            else -> MainButton(action, actions.onPrimary)
+            is PrimaryAction.CaughtUp -> CaughtUpBlock(action) { action.url?.let(actions.onOpenChapter) }
+            else -> MainButton(action) { action.url?.let(actions.onOpenChapter) }
         }
         CircleIconButton(
             AsconIcons.Download,

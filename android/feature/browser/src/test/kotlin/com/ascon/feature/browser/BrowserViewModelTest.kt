@@ -322,6 +322,43 @@ class BrowserViewModelTest {
     }
 
     @Test
+    fun `a chapter page is kept on its source, so the library can open it again`() = runTest {
+        viewModel().onDetection(chapter())
+        val series = library.series("aztec-turning-of-heaven").first()!!
+        assertEquals(chapter14, series.source("mangafire.to")?.lastOpened?.url)
+    }
+
+    @Test
+    fun `a partly read chapter opens in the reader at its saved page`() = runTest {
+        // Aztec is at page 34 of 58 in chapter 12; the reader finds 29 images.
+        val chapter12 = "https://mangafire.to/read/aztec/chapter-12"
+        val vm = viewModel().also { it.onPageStarted(chapter12) }
+        vm.onDetection(chapter(url = chapter12, number = "12", images = (1..29).map { "https://cdn.example/$it.webp" }))
+        assertEquals(17, vm.state.value.reader?.startPage)
+    }
+
+    @Test
+    fun `a page the reader showed opens it again when asked for, not when gone back to`() = runTest {
+        val vm = viewModel()
+        val images = listOf("https://cdn.example/1.webp")
+        vm.onDetection(chapter(images = images))
+        vm.readerOpened()
+        vm.onDetection(chapter(images = images))
+        assertNull(vm.state.value.reader)
+
+        vm.allowReader(chapter14)
+        vm.onDetection(chapter(images = images))
+        assertEquals(chapter14, vm.state.value.reader?.url)
+    }
+
+    @Test
+    fun `a chapter not started opens at its first page`() = runTest {
+        val vm = viewModel()
+        vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp", "https://cdn.example/2.webp")))
+        assertEquals(1, vm.state.value.reader?.startPage)
+    }
+
+    @Test
     fun `leaving the page forgets its chapter`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp")))

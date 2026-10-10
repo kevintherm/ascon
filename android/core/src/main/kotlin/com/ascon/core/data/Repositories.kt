@@ -21,9 +21,10 @@ interface LibraryRepository {
     /**
      * The series [title] belongs to, matched by title. A title the library does not have
      * becomes a new series. Either way [host] becomes one of its sources, with a chapter
-     * range that takes in [chapter].
+     * range that takes in [chapter], and the chapter page [url] is kept so the library
+     * can open its chapters again.
      */
-    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
+    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
 
     /** Makes [sourceId] the source the user reads [seriesId] from. */
     suspend fun selectSource(seriesId: String, sourceId: String)

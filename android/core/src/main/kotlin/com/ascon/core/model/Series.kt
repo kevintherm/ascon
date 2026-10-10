@@ -34,6 +34,18 @@ data class Series(
     val newChapterCount: Int get() = chapters.count { it.isNew && !it.read }
 
     fun source(id: String): Source? = sources.firstOrNull { it.id == id }
+
+    /**
+     * The address of chapter [number], made from a chapter page the user opened. Sources
+     * known to have the chapter come first, [sourceId] before the others; then [sourceId]
+     * anyway, since a site may have chapters no one has seen yet. Null when no source has
+     * an address the number can be swapped into.
+     */
+    fun chapterUrl(number: BigDecimal, sourceId: String?): String? {
+        val (having, lacking) = sources.partition { number in it.firstChapter..it.lastChapter }
+        val tried = having.sortedByDescending { it.id == sourceId } + lacking.filter { it.id == sourceId }
+        return tried.firstNotNullOfOrNull { it.chapterUrl(number) }
+    }
 }
 
 /** A site that carries a series. */
@@ -42,8 +54,15 @@ data class Source(
     val siteName: String,
     val official: Boolean,
     val firstChapter: BigDecimal,
-    val lastChapter: BigDecimal
-)
+    val lastChapter: BigDecimal,
+    /** The latest chapter page opened on this site, for finding its other chapters. */
+    val lastOpened: ChapterLink? = null
+) {
+    fun chapterUrl(number: BigDecimal): String? = lastOpened?.let { chapterUrl(it.url, it.chapter, number) }
+}
+
+/** A chapter page's address and the chapter it shows. */
+data class ChapterLink(val url: String, val chapter: BigDecimal)
 
 data class Chapter(
     val number: BigDecimal,

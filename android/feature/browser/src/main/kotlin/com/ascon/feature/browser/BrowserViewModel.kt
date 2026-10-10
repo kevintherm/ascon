@@ -182,7 +182,8 @@ class BrowserViewModel(
                 saved = series != null && chapter != null
             )
             val available = detection.images.takeIf { it.isNotEmpty() }?.let { images ->
-                ReaderChapter(page, card.title, chapter, series?.id, images, detection.next, detection.previous)
+                val start = series?.progress?.let { resumePage(it, chapter, images.size) } ?: 1
+                ReaderChapter(page, card.title, chapter, series?.id, images, detection.next, detection.previous, start)
             }
             // add() is false for a page the reader already showed, such as one reached with back.
             val reader = available?.takeIf { readerOpenedFor.add(page) }
@@ -227,7 +228,7 @@ class BrowserViewModel(
     private suspend fun seriesOf(page: String, title: String?, chapter: BigDecimal?): Series? = when {
         title == null -> null
         chapter == null -> matchSeries(library.series.first(), title)
-        else -> library.seriesFor(title, displayHost(page), chapter)
+        else -> library.seriesFor(title, displayHost(page), chapter, page)
     }
 
     /** Saves the page on screen of a chapter read as the site shows it, and shows it on the card. */
@@ -249,6 +250,11 @@ class BrowserViewModel(
                 library.recordPageRead(seriesId, chapter, position.page, position.pageCount, clock.instant())
             }
         }
+    }
+
+    /** Lets the reader open by itself on [url] again, for a page the user asked for rather than went back to. */
+    fun allowReader(url: String) {
+        readerOpenedFor -= url.withoutFragment()
     }
 
     fun dismissReaderUnavailable() {

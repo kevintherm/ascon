@@ -6,6 +6,7 @@ import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.ReadingStatus
 import com.ascon.core.model.Series
 import com.ascon.core.model.toChapterLabel
+import java.math.BigDecimal
 import java.time.LocalDate
 
 data class SeriesUiState(
@@ -28,16 +29,23 @@ data class SeriesHeader(
     val status: ReadingStatus
 )
 
+/** The main button. [url] is the chapter page it opens, null while no source has a page to start from. */
 sealed interface PrimaryAction {
-    data class Continue(val chapter: String, val page: Int, val pageCount: Int) : PrimaryAction
+    val url: String?
 
-    data class Start(val chapter: String) : PrimaryAction
+    data class Continue(val chapter: String, val page: Int, val pageCount: Int, override val url: String? = null) :
+        PrimaryAction
+
+    data class Start(val chapter: String, override val url: String? = null) : PrimaryAction
 
     /** Every chapter on this source is read, and [sourceName] already has [chapter]. */
-    data class Ahead(val chapter: String, val sourceName: String) : PrimaryAction
+    data class Ahead(val chapter: String, val sourceName: String, override val url: String? = null) : PrimaryAction
 
-    /** Every chapter Ascon knows of is read. Not a button: a status block with Reread. */
-    data class CaughtUp(val latest: String) : PrimaryAction
+    /**
+     * Every chapter Ascon knows of is read. Not a button: a status block with Reread,
+     * which opens the first chapter at [url].
+     */
+    data class CaughtUp(val latest: String, override val url: String? = null) : PrimaryAction
 }
 
 data class SourceCard(
@@ -48,7 +56,13 @@ data class SourceCard(
     val selected: Boolean
 )
 
-data class ChapterRow(val number: String, val state: ChapterState, val trailing: ChapterTrailing)
+/** A chapter in the list. [url] opens it, null while no source has a page to start from. */
+data class ChapterRow(
+    val number: String,
+    val state: ChapterState,
+    val trailing: ChapterTrailing,
+    val url: String? = null
+)
 
 sealed interface ChapterState {
     data object New : ChapterState
@@ -76,7 +90,7 @@ fun seriesUiState(series: Series?, newestFirst: Boolean, today: LocalDate): Seri
     if (series == null) return SeriesUiState(loading = false, notFound = true, today = today)
     val progress = series.progress
     val currentSource = progress?.sourceId ?: series.sources.firstOrNull()?.id
-    val rows = series.chapters.map { it.toRow(series, progress) }
+    val rows = series.chapters.map { it.toRow(series, progress, currentSource) }
     return SeriesUiState(
         loading = false,
         header = SeriesHeader(
@@ -112,17 +126,24 @@ private fun primaryAction(series: Series, currentSource: String?): PrimaryAction
     val next = series.upNext.firstOrNull() ?: series.chapters.firstOrNull { !it.read }
     val here = currentSource?.let(series::source)
     val ahead = next?.let { n -> series.sources.firstOrNull { it.lastChapter >= n.number } }
+    fun url(number: BigDecimal, source: String? = currentSource) = series.chapterUrl(number, source)
     return when {
-        progress != null && progress.page < progress.pageCount ->
-            PrimaryAction.Continue(progress.chapter.toChapterLabel(), progress.page, progress.pageCount)
-        next == null -> series.latestChapter?.let { PrimaryAction.CaughtUp(it.number.toChapterLabel()) }
+        progress != null && progress.page < progress.pageCount -> PrimaryAction.Continue(
+            progress.chapter.toChapterLabel(),
+            progress.page,
+            progress.pageCount,
+            url(progress.chapter)
+        )
+        next == null -> series.latestChapter?.let { latest ->
+            PrimaryAction.CaughtUp(latest.number.toChapterLabel(), url(series.chapters.first().number))
+        }
         here != null && here.lastChapter < next.number && ahead != null ->
-            PrimaryAction.Ahead(next.number.toChapterLabel(), ahead.siteName)
-        else -> PrimaryAction.Start(next.number.toChapterLabel())
+            PrimaryAction.Ahead(next.number.toChapterLabel(), ahead.siteName, url(next.number, ahead.id))
+        else -> PrimaryAction.Start(next.number.toChapterLabel(), url(next.number))
     }
 }
 
-private fun Chapter.toRow(series: Series, progress: ReadingProgress?): ChapterRow {
+private fun Chapter.toRow(series: Series, progress: ReadingProgress?, currentSource: String?): ChapterRow {
     val state = when {
         progress != null && progress.chapter.compareTo(number) == 0 && !read ->
             ChapterState.InProgress(progress.page, progress.pageCount)
@@ -139,5 +160,5 @@ private fun Chapter.toRow(series: Series, progress: ReadingProgress?): ChapterRo
         date != null -> ChapterTrailing.Date(date)
         else -> ChapterTrailing.None
     }
-    return ChapterRow(number.toChapterLabel(), state, trailing)
+    return ChapterRow(number.toChapterLabel(), state, trailing, series.chapterUrl(number, currentSource))
 }

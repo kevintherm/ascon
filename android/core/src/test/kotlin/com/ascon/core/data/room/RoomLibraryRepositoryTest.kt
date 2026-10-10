@@ -3,6 +3,7 @@ package com.ascon.core.data.room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.data.fake.FakeLibrary
+import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.Series
 import java.math.BigDecimal
 import java.time.Clock
@@ -95,13 +96,23 @@ class RoomLibraryRepositoryTest {
     @Test
     fun `an unknown title becomes a new series read on the site`() = runBlocking {
         val repo = repo(seed = null)
-        val found = repo.seriesFor("Moonlit Ferry", "asurascans.com", BigDecimal(203))
+        val found = repo.seriesFor(
+            "Moonlit Ferry",
+            "asurascans.com",
+            BigDecimal(203),
+            "https://asurascans.com/ferry/203"
+        )
         assertEquals("new-1", found.id)
         assertEquals(listOf("asurascans.com"), found.sources.map { it.id })
         assertEquals(BigDecimal(203), found.sources.single().lastChapter)
 
         repo.recordChapterOpened(found.id, BigDecimal(203), clock.instant())
-        val again = repo.seriesFor("moonlit ferry!", "asurascans.com", BigDecimal(204))
+        val again = repo.seriesFor(
+            "moonlit ferry!",
+            "asurascans.com",
+            BigDecimal(204),
+            "https://asurascans.com/ferry/204"
+        )
         assertEquals("new-1", again.id)
         assertEquals(BigDecimal(204), again.sources.single().lastChapter)
         assertEquals(1, repo.series.first().size)
@@ -109,9 +120,34 @@ class RoomLibraryRepositoryTest {
     }
 
     @Test
+    fun `the chapter page last opened on a site is kept, so its chapters can open again`() = runBlocking {
+        val repo = repo(seed = null)
+        val found = repo.seriesFor(
+            "Moonlit Ferry",
+            "asurascans.com",
+            BigDecimal(203),
+            "https://asurascans.com/ferry/203"
+        )
+        repo.seriesFor("Moonlit Ferry", "asurascans.com", BigDecimal(204), "https://asurascans.com/ferry/204")
+        closeAll()
+
+        val saved = repo(seed = null).series(found.id).first()!!
+        assertEquals(
+            ChapterLink("https://asurascans.com/ferry/204", BigDecimal(204)),
+            saved.sources.single().lastOpened
+        )
+        assertEquals("https://asurascans.com/ferry/150", saved.chapterUrl(BigDecimal(150), "asurascans.com"))
+    }
+
+    @Test
     fun `a known series read on a new site gains it as a source`() = runBlocking {
         val repo = repo()
-        val found = repo.seriesFor("Aztec Turning of Heaven", "komiku.org", BigDecimal(12))
+        val found = repo.seriesFor(
+            "Aztec Turning of Heaven",
+            "komiku.org",
+            BigDecimal(12),
+            "https://komiku.org/aztec-12/"
+        )
         assertEquals(aztec, found.id)
         assertEquals(listOf("mangaplus", "mangafire", "komiku.org"), repo.aztec().sources.map { it.id })
         assertNull(repo.series("new-1").first())

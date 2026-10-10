@@ -25,7 +25,9 @@ data class ContinueReading(
     val chapter: String,
     val page: Int,
     val pageCount: Int,
-    val sourceName: String
+    val sourceName: String,
+    /** The chapter page Resume opens, null while no source has a page to start from. */
+    val url: String? = null
 ) {
     val fraction: Float get() = if (pageCount == 0) 0f else page.toFloat() / pageCount
 }
@@ -96,7 +98,8 @@ fun homeUiState(series: List<Series>, sites: List<Site>, account: AccountState):
                 chapter = progress.chapter.toChapterLabel(),
                 page = progress.page,
                 pageCount = progress.pageCount,
-                sourceName = hero.source(progress.sourceId)?.siteName.orEmpty()
+                sourceName = hero.source(progress.sourceId)?.siteName.orEmpty(),
+                url = hero.chapterUrl(progress.chapter, progress.sourceId)
             )
         },
         statusCounts = ReadingStatus.entries.map { status -> status to series.count { it.status == status } },

@@ -1,4 +1,4 @@
-package com.ascon.feature.reader
+package com.ascon.core.model
 
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals

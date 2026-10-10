@@ -1,0 +1,37 @@
+# The core loop's last step: a chapter read on a site opens again from the library, at
+# the page the reader reached. Pages come from maestro/serve.py.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/aztec-turning-of-heaven/chapter-14/"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- repeat:
+    while:
+      notVisible: "2 / 3"
+    times: 6
+    commands:
+      - tapOn:
+          point: "85%,50%"
+- assertVisible: "2 / 3"
+# From the series screen opened over the browser, Continue loads the chapter in that browser.
+- back
+- tapOn: "Menu"
+- tapOn: "Go to series"
+- tapOn: "Continue Ch. 14.*"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- assertVisible: "2 / 3"
+# From Home, Resume opens it too.
+- back
+- tapOn: "Menu"
+- tapOn: "Back to Ascon"
+- tapOn: "Resume"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- assertVisible: "2 / 3"

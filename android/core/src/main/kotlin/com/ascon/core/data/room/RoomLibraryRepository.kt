@@ -38,9 +38,9 @@ class RoomLibraryRepository(
 
     override fun series(id: String): Flow<Series?> = ready(dao.observe(id).map { it?.toModel() })
 
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series {
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series {
         ensureSeeded()
-        return dao.seriesFor(title, host, chapter, newId)
+        return dao.seriesFor(title, host, chapter, url, newId)
     }
 
     override suspend fun selectSource(seriesId: String, sourceId: String) = change(seriesId) {

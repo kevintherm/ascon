@@ -74,9 +74,15 @@ internal abstract class LibraryDao {
 
     /** See [com.ascon.core.data.LibraryRepository.seriesFor]. */
     @Transaction
-    open suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, newId: () -> String): Series {
-        val found = matchSeries(all().map { it.toModel() }, title)?.withSite(host, chapter)
-            ?: newSeries(newId(), title, host, chapter)
+    open suspend fun seriesFor(
+        title: String,
+        host: String,
+        chapter: BigDecimal,
+        url: String,
+        newId: () -> String
+    ): Series {
+        val found = matchSeries(all().map { it.toModel() }, title)?.withSite(host, chapter, url)
+            ?: newSeries(newId(), title, host, chapter, url)
         save(found)
         return found
     }

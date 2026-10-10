@@ -5,6 +5,7 @@ import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeLibraryRepository
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.Chapter
+import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.Series
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -93,6 +94,40 @@ class SeriesUiStateTest {
     fun `a next chapter on the current source starts it`() {
         val onMangafire = AheadAztec.copy(progress = AheadAztec.progress?.copy(sourceId = "mangafire"))
         assertEquals(PrimaryAction.Start("15"), seriesUiState(onMangafire, true, Today).primaryAction)
+    }
+
+    /** Aztec with a chapter page opened on each source. */
+    private fun Series.linked() = copy(
+        sources = listOf(
+            sources[0].copy(lastOpened = ChapterLink("https://plus.example/viewer/12", BigDecimal(12))),
+            sources[1].copy(lastOpened = ChapterLink("https://fire.example/read/aztec/chapter-13", BigDecimal(13)))
+        )
+    )
+
+    @Test
+    fun `the main button and rows open chapter pages on the current source`() {
+        val state = seriesUiState(Aztec.linked(), true, Today)
+        assertEquals("https://plus.example/viewer/12", state.primaryAction?.url)
+        assertEquals("https://plus.example/viewer/3", state.chapters.first { it.number == "3" }.url)
+    }
+
+    @Test
+    fun `read chapter N opens the source that is ahead, and reread opens chapter 1`() {
+        assertEquals(
+            "https://fire.example/read/aztec/chapter-15",
+            seriesUiState(AheadAztec.linked(), true, Today).primaryAction?.url
+        )
+        assertEquals(
+            "https://plus.example/viewer/1",
+            seriesUiState(CaughtUpAztec.linked(), true, Today).primaryAction?.url
+        )
+    }
+
+    @Test
+    fun `nothing opens before any chapter page was seen`() {
+        val state = seriesUiState(Aztec, true, Today)
+        assertEquals(null, state.primaryAction?.url)
+        assertTrue(state.chapters.all { it.url == null })
     }
 
     @Test

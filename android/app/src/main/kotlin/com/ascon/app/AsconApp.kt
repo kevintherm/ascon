@@ -116,6 +116,11 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     }
     // A chapter picked in the reader, for the browser tab under it to load.
     var browserLoad by rememberSaveable { mutableStateOf<String?>(null) }
+    // A chapter from the library opens in the browser, which finds its pages for the reader.
+    val openChapter: (String) -> Unit = { url ->
+        if (!backStack.popToBrowser()) openUrl(url)
+        browserLoad = url
+    }
     val openLibrary: (ReadingStatus) -> Unit = { status ->
         library.selectFilter(status)
         tab = Tab.Library
@@ -134,6 +139,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                             onSearch = { tab = Tab.Browse },
                             onProfile = { tab = Tab.Settings },
                             onOpenSeries = openSeries,
+                            onOpenChapter = openChapter,
                             onSeeAll = { openLibrary(ReadingStatus.Reading) },
                             onStatus = openLibrary,
                             onOpenSite = { site -> openUrl("https://${site.domain}/") },
@@ -169,7 +175,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     entry<Route.Series> { key ->
                         SeriesRoute(
                             viewModel = viewModel { SeriesViewModel(container.library, key.id, container.clock) },
-                            actions = SeriesActions(onBack = { backStack.pop() })
+                            actions = SeriesActions(onBack = { backStack.pop() }, onOpenChapter = openChapter)
                         )
                     }
                     entry<Route.Browser> { key ->

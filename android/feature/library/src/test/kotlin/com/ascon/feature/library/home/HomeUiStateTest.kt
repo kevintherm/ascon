@@ -2,8 +2,10 @@ package com.ascon.feature.library.home
 
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.model.AccountState
+import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.ReadingStatus
 import com.ascon.feature.library.FixedClock
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -20,6 +22,27 @@ class HomeUiStateTest {
         assertEquals("12", hero.chapter)
         assertEquals("MANGA Plus", hero.sourceName)
         assertEquals(34f / 58f, hero.fraction, 0.0001f)
+    }
+
+    @Test
+    fun `resume opens the chapter in progress once a page of it was seen`() {
+        assertNull(homeUiState(series, emptyList(), AccountState.SignedOut).continueReading?.url)
+
+        val linked = series.map { s ->
+            if (s.id != "aztec-turning-of-heaven") {
+                s
+            } else {
+                s.copy(
+                    sources = s.sources.map {
+                        it.copy(lastOpened = ChapterLink("https://plus.example/v/9", BigDecimal(9)))
+                    }
+                )
+            }
+        }
+        assertEquals(
+            "https://plus.example/v/12",
+            homeUiState(linked, emptyList(), AccountState.SignedOut).continueReading?.url
+        )
     }
 
     @Test

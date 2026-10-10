@@ -1,6 +1,7 @@
 package com.ascon.core.data.room
 
 import com.ascon.core.model.Chapter
+import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.Series
@@ -17,7 +18,12 @@ internal fun SeriesRecord.toModel(): Series {
         status = series.status,
         linkedToAniList = series.linkedToAniList,
         sources = sources.sortedBy { it.position }.map {
-            Source(it.id, it.siteName, it.official, it.firstChapter, it.lastChapter)
+            val link = if (it.lastOpenedUrl != null && it.lastOpenedChapter != null) {
+                ChapterLink(it.lastOpenedUrl, it.lastOpenedChapter)
+            } else {
+                null
+            }
+            Source(it.id, it.siteName, it.official, it.firstChapter, it.lastChapter, link)
         },
         chapters = chapters.sortedBy { it.number }.map {
             Chapter(it.number, it.publishedOn, it.read, it.isNew, it.downloaded, it.readOnSourceId)
@@ -50,7 +56,9 @@ internal fun Series.toRecord(): SeriesRecord {
                 source.siteName,
                 source.official,
                 source.firstChapter,
-                source.lastChapter
+                source.lastChapter,
+                source.lastOpened?.url,
+                source.lastOpened?.chapter
             )
         },
         chapters = chapters.map {

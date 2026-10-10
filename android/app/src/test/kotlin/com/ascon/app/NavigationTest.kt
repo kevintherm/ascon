@@ -38,6 +38,14 @@ class NavigationTest {
         s.push(Route.Series("a"))
         assertEquals(listOf(Route.Root, Route.Series("a")), s)
     }
+
+    @Test
+    fun `a chapter goes back to the open browser instead of stacking another`() {
+        val s = stack(Route.Root, Route.Browser("https://a.example/1"), Route.Series("a"))
+        assertTrue(s.popToBrowser())
+        assertEquals(listOf(Route.Root, Route.Browser("https://a.example/1")), s)
+        assertFalse(stack(Route.Root, Route.Series("a")).popToBrowser())
+    }
 }
 
 class SlideDirectionTest {

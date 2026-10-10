@@ -9,7 +9,7 @@ interface LibraryRepository
     val series: Flow<List<Series>>
     val sites: Flow<List<Site>>
     fun series(id: String): Flow<Series?>
-    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
+    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
@@ -60,7 +60,7 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override val series: StateFlow<List<Series>>
     override val sites: Flow<List<Site>>
     override fun series(id: String): Flow<Series?>
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
@@ -119,7 +119,7 @@ class RoomLibraryRepository(database: AsconDatabase, private val seed: Seed? = n
     override val series: Flow<List<Series>>
     override val sites: Flow<List<Site>>
     override fun series(id: String): Flow<Series?>
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
@@ -394,6 +394,12 @@ sealed interface AccountState
     data class SignedIn(val displayName: String, val premium: Boolean, val lastSyncedAt: Instant?) : AccountState
 ```
 
+## core/src/main/kotlin/com/ascon/core/model/ChapterUrl.kt
+
+```kotlin
+fun chapterUrl(url: String, current: BigDecimal?, target: BigDecimal): String?
+```
+
 ## core/src/main/kotlin/com/ascon/core/model/ProtectionSettings.kt
 
 ```kotlin
@@ -427,7 +433,10 @@ data class Series(val id: String, val title: String, val altTitles: List<String>
     val upNext: List<Chapter>
     val newChapterCount: Int get()
     fun source(id: String): Source?
-data class Source(val id: String, val siteName: String, val official: Boolean, val firstChapter: BigDecimal, val lastChapter: BigDecimal)
+    fun chapterUrl(number: BigDecimal, sourceId: String?): String?
+data class Source(val id: String, val siteName: String, val official: Boolean, val firstChapter: BigDecimal, val lastChapter: BigDecimal, val lastOpened: ChapterLink? = null)
+    fun chapterUrl(number: BigDecimal): String?
+data class ChapterLink(val url: String, val chapter: BigDecimal)
 data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null)
 data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String)
     val fraction: Float get()

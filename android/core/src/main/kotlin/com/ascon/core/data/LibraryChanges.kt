@@ -1,6 +1,7 @@
 package com.ascon.core.data
 
 import com.ascon.core.model.Chapter
+import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.ReadingStatus
@@ -59,18 +60,24 @@ private fun Series.withChapter(number: BigDecimal): List<Chapter> =
         (chapters + Chapter(number, publishedOn = null, read = false)).sortedBy { it.number }
     }
 
-/** The series with [host] as a source whose chapter range takes in [chapter]. */
-internal fun Series.withSite(host: String, chapter: BigDecimal): Series {
-    val known = source(host) ?: return copy(sources = sources + Source(host, host, official = false, chapter, chapter))
+/**
+ * The series with [host] as a source whose chapter range takes in [chapter], and [url] as
+ * the chapter page last opened there.
+ */
+internal fun Series.withSite(host: String, chapter: BigDecimal, url: String): Series {
+    val link = ChapterLink(url, chapter)
+    val known = source(host)
+        ?: return copy(sources = sources + Source(host, host, official = false, chapter, chapter, link))
     val widened = known.copy(
         firstChapter = known.firstChapter.min(chapter),
-        lastChapter = known.lastChapter.max(chapter)
+        lastChapter = known.lastChapter.max(chapter),
+        lastOpened = link
     )
     return copy(sources = sources.map { if (it.id == host) widened else it })
 }
 
-/** A series first seen on [host] at [chapter], with nothing read yet. */
-internal fun newSeries(id: String, title: String, host: String, chapter: BigDecimal): Series = Series(
+/** A series first seen on [host] at [chapter], page [url], with nothing read yet. */
+internal fun newSeries(id: String, title: String, host: String, chapter: BigDecimal, url: String): Series = Series(
     id = id,
     title = title,
     altTitles = emptyList(),
@@ -81,7 +88,7 @@ internal fun newSeries(id: String, title: String, host: String, chapter: BigDeci
     chapters = emptyList(),
     progress = null,
     lastReadAt = null
-).withSite(host, chapter)
+).withSite(host, chapter, url)
 
 // Until covers load, a series gets one of these, picked by its title so it stays the same.
 private val PlaceholderCovers = listOf(

@@ -32,11 +32,12 @@ class FakeLibraryRepository(
 
     override fun series(id: String): Flow<Series?> = state.map { all -> all.firstOrNull { it.id == id } }
 
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal): Series {
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series {
         lateinit var found: Series
         state.updateAndGet { all ->
             val match = matchSeries(all, title)
-            found = match?.withSite(host, chapter) ?: newSeries(UUID.randomUUID().toString(), title, host, chapter)
+            found = match?.withSite(host, chapter, url)
+                ?: newSeries(UUID.randomUUID().toString(), title, host, chapter, url)
             if (match == null) all + found else all.map { if (it.id == found.id) found else it }
         }
         return found

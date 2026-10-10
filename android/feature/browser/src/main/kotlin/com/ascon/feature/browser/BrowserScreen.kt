@@ -72,7 +72,8 @@ data class BrowserActions(
  * The browser screen over the one browser tab. [openUrl] is the page this screen was
  * opened for: it loads once, unless the tab already shows it, as when the Browse tab
  * returns to it. [loadUrl], when set, is loaded too, for example the next chapter picked
- * in the reader.
+ * in the reader or a chapter opened from the library. It loads even when the tab shows it,
+ * and opens the reader again if it finds pages.
  */
 @Composable
 fun BrowserRoute(
@@ -92,11 +93,13 @@ fun BrowserRoute(
     LaunchedEffect(openUrl) {
         if (!opened) {
             opened = true
-            if (session.isEmpty || openUrl.withoutFragment() != state.url.withoutFragment()) session.load(openUrl)
+            val shown = !session.isEmpty && openUrl.withoutFragment() == state.url.withoutFragment()
+            if (!shown && openUrl != loadUrl) session.load(openUrl)
         }
     }
     LaunchedEffect(loadUrl) {
         loadUrl?.let {
+            viewModel.allowReader(it)
             session.load(it)
             actions.onUrlLoaded()
         }

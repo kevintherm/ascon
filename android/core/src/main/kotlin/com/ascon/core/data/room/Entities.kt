@@ -43,7 +43,10 @@ internal data class SourceEntity(
     @ColumnInfo(name = "site_name") val siteName: String,
     val official: Boolean,
     @ColumnInfo(name = "first_chapter") val firstChapter: BigDecimal,
-    @ColumnInfo(name = "last_chapter") val lastChapter: BigDecimal
+    @ColumnInfo(name = "last_chapter") val lastChapter: BigDecimal,
+    /** The chapter page last opened on this site, and its chapter. Added in version 2. */
+    @ColumnInfo(name = "last_opened_url") val lastOpenedUrl: String? = null,
+    @ColumnInfo(name = "last_opened_chapter") val lastOpenedChapter: BigDecimal? = null
 )
 
 @Entity(

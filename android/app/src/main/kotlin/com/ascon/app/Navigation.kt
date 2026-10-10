@@ -14,6 +14,17 @@ fun MutableList<NavKey>.pop(): Boolean {
     return true
 }
 
+/**
+ * Pops back to the browser screen when one is open under the top, and returns true.
+ * The browser has one live page, so it must never be on the stack twice.
+ */
+fun MutableList<NavKey>.popToBrowser(): Boolean {
+    val at = indexOfLast { it is Route.Browser }
+    if (at < 0) return false
+    while (size > at + 1) removeAt(lastIndex)
+    return true
+}
+
 /** True when no detail screen covers the tabs, so the floating nav is shown. */
 fun List<NavKey>.showsTabs(): Boolean = size <= 1
 
