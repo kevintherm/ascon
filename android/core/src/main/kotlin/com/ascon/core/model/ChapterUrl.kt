@@ -11,6 +11,5 @@ import java.math.BigDecimal
 fun chapterUrl(url: String, current: BigDecimal?, target: BigDecimal): String? {
     if (current != null && current.compareTo(target) == 0) return url
     val number = current?.let { Regex("(?<![0-9.])${Regex.escape(it.toChapterLabel())}(?![0-9]|\\.[0-9])") }
-    val match = number?.findAll(url)?.lastOrNull() ?: return null
-    return url.replaceRange(match.range, target.toChapterLabel())
+    return number?.findAll(url)?.lastOrNull()?.let { url.replaceRange(it.range, target.toChapterLabel()) }
 }
