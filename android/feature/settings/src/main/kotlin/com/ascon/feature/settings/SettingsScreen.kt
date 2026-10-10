@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +63,8 @@ data class SettingsActions(
     val onAccount: () -> Unit = {},
     val onSignIn: () -> Unit = {},
     val onSignOut: () -> Unit = {},
+    /** Whether the account sheet or the sign-out dialog is open, so the app can hide its nav bar. */
+    val onOverlay: (Boolean) -> Unit = {},
     val onBlockAds: (Boolean) -> Unit = {},
     val onBlockPopups: (Boolean) -> Unit = {},
     val onFilterLists: () -> Unit = {},
@@ -108,6 +111,11 @@ fun SettingsScreen(
     val signedIn = state.account as? AccountState.SignedIn
     // Signing out, here or because the token stopped working, closes what was open.
     if (signedIn == null) overlay = AccountOverlay.None
+    val open = overlay != AccountOverlay.None
+    DisposableEffect(open) {
+        actions.onOverlay(open)
+        onDispose { actions.onOverlay(false) }
+    }
     Box(Modifier.fillMaxSize().background(AsconColors.Ground)) {
         Column(
             Modifier

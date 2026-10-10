@@ -79,6 +79,9 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     val cover = remember { CoverState() }
     val tabsShown = backStack.showsTabs()
+
+    // A tab's sheet or dialog covers the nav bar, so the bar steps aside while one is open.
+    var tabOverlay by remember { mutableStateOf(false) }
     val bottomPadding = FloatingNavBarClearance + NavBarGap +
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
@@ -163,7 +166,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     Tab.Browse -> BrowseRoute(browse, onOpen = openUrl, bottomPadding = bottomPadding)
                     Tab.Settings -> SettingsRoute(
                         viewModel = settings,
-                        actions = SettingsActions(),
+                        actions = SettingsActions(onOverlay = { tabOverlay = it }),
                         bottomPadding = bottomPadding
                     )
                 }
@@ -231,6 +234,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
             )
             NavBar(
                 visible = tabsShown,
+                covered = tabOverlay,
                 selected = tab,
                 onSelect = {
                     if (it == Tab.Browse && !browserSession.isEmpty && closed.url == null) {
@@ -307,7 +311,13 @@ private fun ClosedSnackbar(visible: Boolean, above: Dp, onUndo: () -> Unit, modi
 }
 
 @Composable
-private fun NavBar(visible: Boolean, selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
+private fun NavBar(
+    visible: Boolean,
+    covered: Boolean,
+    selected: Tab,
+    onSelect: (Tab) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val items = listOf(
         NavItem(AsconIcons.Home, stringResource(R.string.nav_home)),
         NavItem(AsconIcons.Library, stringResource(R.string.nav_library)),
@@ -315,7 +325,7 @@ private fun NavBar(visible: Boolean, selected: Tab, onSelect: (Tab) -> Unit, mod
         NavItem(AsconIcons.Settings, stringResource(R.string.nav_settings))
     )
     AnimatedVisibility(
-        visible = visible,
+        visible = visible && !covered,
         modifier = modifier,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically { it } + fadeOut()
