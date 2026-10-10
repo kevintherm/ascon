@@ -5,8 +5,10 @@ import android.content.pm.ApplicationInfo
 import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ProtectionSettingsRepository
+import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.SettingsRepository
 import com.ascon.core.data.datastore.DataStoreProtectionSettings
+import com.ascon.core.data.datastore.DataStoreReaderSettings
 import com.ascon.core.data.fake.FakeAccountRepository
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeSettingsRepository
@@ -53,6 +55,7 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val protection: ProtectionSettingsRepository = DataStoreProtectionSettings.open(app, background)
+    val reader: ReaderSettingsRepository = DataStoreReaderSettings.open(app, background)
     val accounts: AccountRepository = FakeAccountRepository(
         AccountState.SignedIn(
             displayName = "Kevin",

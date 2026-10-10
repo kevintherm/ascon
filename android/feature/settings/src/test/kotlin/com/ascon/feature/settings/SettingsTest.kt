@@ -4,12 +4,14 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.data.fake.FakeAccountRepository
 import com.ascon.core.data.fake.FakeProtectionSettings
+import com.ascon.core.data.fake.FakeReaderSettings
 import com.ascon.core.data.fake.FakeSettingsRepository
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.AccountState
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -36,7 +38,13 @@ class SettingsViewModelTest {
     @Test
     fun `toggles write through to settings`() = runTest {
         val protection = FakeProtectionSettings()
-        val vm = SettingsViewModel(FakeSettingsRepository(), protection, FakeAccountRepository(AccountState.SignedOut))
+        val reader = FakeReaderSettings()
+        val vm = SettingsViewModel(
+            FakeSettingsRepository(),
+            protection,
+            reader,
+            FakeAccountRepository(AccountState.SignedOut)
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
 
         assertTrue(vm.state.value.protection.adblockEnabled)
@@ -45,7 +53,7 @@ class SettingsViewModelTest {
         vm.setKeepScreenOn(true)
         assertFalse(vm.state.value.protection.adblockEnabled)
         assertFalse(protection.settings.value.blockPopups)
-        assertTrue(vm.state.value.settings.keepScreenOn)
+        assertTrue(reader.allSeries.first().keepScreenOn)
         assertEquals(AccountState.SignedOut, vm.state.value.account)
     }
 }

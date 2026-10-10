@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,25 +24,38 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.designsystem.theme.AsconColors
+import com.ascon.core.model.PageFit
+import com.ascon.core.model.PageGap
+import com.ascon.core.model.ReaderSettings
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -67,10 +82,20 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
             onPageShown = viewModel::onPageShown,
             onToggleBars = viewModel::toggleBars,
             onNearEnd = viewModel::nearEnd,
-            onOpenSeries = actions.onOpenSeries
+            onOpenSeries = actions.onOpenSeries,
+            onSettingsScope = viewModel::setSettingsScope,
+            onChangeSettings = viewModel::updateSettings
         )
     ) { index, url, modifier ->
-        PageImage(index, url, referer = state.url, images = images, onSize = { sizes[index] = it }, modifier = modifier)
+        PageImage(
+            index,
+            url,
+            referer = state.url,
+            images = images,
+            onSize = { sizes[index] = it },
+            modifier = modifier,
+            fitScreen = state.settings.fit == PageFit.Screen
+        )
     }
 }
 
@@ -83,7 +108,9 @@ data class ReaderCommands(
     val onToggleBars: () -> Unit = {},
     /** The end of the last page is less than half a screen away. */
     val onNearEnd: () -> Unit = {},
-    val onOpenSeries: (String) -> Unit = {}
+    val onOpenSeries: (String) -> Unit = {},
+    val onSettingsScope: (SettingsScope) -> Unit = {},
+    val onChangeSettings: ((ReaderSettings) -> ReaderSettings) -> Unit = {}
 )
 
 internal const val PAGES_TAG = "reader-pages"
@@ -109,6 +136,11 @@ fun ReaderScreen(
     LaunchedEffect(list) {
         snapshotFlow { list.isNearEnd() }.distinctUntilChanged().filter { it }.collect { commands.onNearEnd() }
     }
+    val settings = state.settings
+    var settingsOpen by remember { mutableStateOf(false) }
+    KeepScreenOn(settings.keepScreenOn)
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     // Room after the last page, so the panel shown at the end never covers it.
     var panelHeight by remember { mutableIntStateOf(0) }
     val endSpace = with(LocalDensity.current) { panelHeight.toDp() }
@@ -116,7 +148,19 @@ fun ReaderScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(AsconColors.ReaderGround)
+            .background(settings.background.color())
+            .focusRequester(focus)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                // Volume keys scroll most of a screen, down or up, when the setting is on.
+                val down = event.key == Key.VolumeDown
+                if (!settings.volumeKeys || !(down || event.key == Key.VolumeUp)) return@onPreviewKeyEvent false
+                if (event.type == KeyEventType.KeyDown) {
+                    val step = list.layoutInfo.viewportSize.height * VOLUME_SCROLL
+                    scope.launch { list.animateScrollBy(if (down) step else -step) }
+                }
+                true
+            }
     ) {
         LazyColumn(
             state = list,
@@ -130,11 +174,21 @@ fun ReaderScreen(
                 Column {
                     page(index, url, Modifier.fillMaxWidth())
                     if (index < state.pages.lastIndex) {
-                        Spacer(Modifier.height(autoPageGap(pageSizes[index], pageSizes[index + 1])))
+                        val gap = when (settings.gap) {
+                            PageGap.Auto -> autoPageGap(pageSizes[index], pageSizes[index + 1])
+                            PageGap.None -> 0.dp
+                            PageGap.Small -> SmallPageGap
+                        }
+                        Spacer(Modifier.height(gap))
                     }
                 }
             }
-            item(key = END_KEY) { ChapterEnd(state, commands.onNext, commands.onOpenSeries) }
+            item(key = END_KEY) {
+                // The chapter end is drawn for a dark ground, whatever the page background.
+                Box(Modifier.background(AsconColors.ReaderGround)) {
+                    ChapterEnd(state, commands.onNext, commands.onOpenSeries)
+                }
+            }
         }
         AnimatedVisibility(
             visible = state.barsVisible,
@@ -145,6 +199,7 @@ fun ReaderScreen(
             ReaderTopBar(
                 state = state,
                 onBack = commands.onBack,
+                onSettings = { settingsOpen = true },
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(start = 12.dp, end = 12.dp, top = 12.dp)
@@ -169,6 +224,12 @@ fun ReaderScreen(
                     .padding(start = 12.dp, end = 12.dp, bottom = 18.dp)
             )
         }
+        ReaderSettingsSheet(
+            visible = settingsOpen,
+            state = state,
+            commands = ReaderSettingsCommands(commands.onSettingsScope, commands.onChangeSettings),
+            onDismiss = { settingsOpen = false }
+        )
     }
 }
 
@@ -191,3 +252,16 @@ private fun LazyListState.pageOnScreen(pageCount: Int): Int {
 }
 
 private const val END_KEY = "end"
+
+/** Volume keys scroll this share of the screen. */
+private const val VOLUME_SCROLL = 0.8f
+
+/** Keeps the screen on while the reader shows, when [on]. */
+@Composable
+private fun KeepScreenOn(on: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, on) {
+        view.keepScreenOn = on
+        onDispose { view.keepScreenOn = false }
+    }
+}

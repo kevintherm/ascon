@@ -8,6 +8,26 @@
     <string name="reader_previous">Previous</string>
     <string name="reader_next">Next chapter</string>
     <string name="reader_progress">Reading progress</string>
+    <string name="reader_settings_open">Reader settings</string>
+    <string name="reader_settings_title">Reader settings</string>
+    <string name="reader_settings_this_series">This series</string>
+    <string name="reader_settings_all_series">All series</string>
+    <string name="reader_settings_long_strip">Long strip</string>
+    <string name="reader_settings_left_to_right">Left to right</string>
+    <string name="reader_settings_right_to_left">Right to left</string>
+    <string name="reader_settings_fit">Fit</string>
+    <string name="reader_settings_fit_width">Width</string>
+    <string name="reader_settings_fit_screen">Screen</string>
+    <string name="reader_settings_gap">Page gap</string>
+    <string name="reader_settings_gap_auto">Auto</string>
+    <string name="reader_settings_gap_none">None</string>
+    <string name="reader_settings_gap_small">Small</string>
+    <string name="reader_settings_background">Background</string>
+    <string name="reader_settings_black">Black</string>
+    <string name="reader_settings_gray">Gray</string>
+    <string name="reader_settings_white">White</string>
+    <string name="reader_settings_keep_screen_on">Keep screen on</string>
+    <string name="reader_settings_volume_keys">Volume keys turn pages</string>
 
     <!-- Chapter end -->
     <string name="reader_end_finished">Chapter %1$s finished</string>

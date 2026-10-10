@@ -3,14 +3,18 @@ package com.ascon.feature.reader
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
+import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
+import com.ascon.core.model.ReaderSettings
 import java.math.BigDecimal
 import java.net.URI
 import java.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -32,16 +36,23 @@ data class ReaderUiState(
     val seriesId: String? = null,
     val cover: Cover? = null,
     /** The next chapter's number, when the library knows it or it follows a whole number. */
-    val nextChapter: BigDecimal? = null
+    val nextChapter: BigDecimal? = null,
+    /** The series' own settings, or the ones for all series. */
+    val settings: ReaderSettings = ReaderSettings(),
+    /** Where changes from the settings sheet go. Only all series without a series in the library. */
+    val settingsScope: SettingsScope = if (seriesId != null) SettingsScope.Series else SettingsScope.AllSeries
 ) {
     val pageCount: Int get() = pages.size
 }
+
+enum class SettingsScope { Series, AllSeries }
 
 /** One chapter in the native reader. Saves the page on screen when the series is in the library. */
 class ReaderViewModel(
     private val library: LibraryRepository,
     private val clock: Clock,
-    private val chapter: ReaderChapter
+    private val chapter: ReaderChapter,
+    private val readerSettings: ReaderSettingsRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         ReaderUiState(
@@ -58,6 +69,15 @@ class ReaderViewModel(
         )
     )
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
+
+    init {
+        val own = chapter.seriesId?.let(readerSettings::forSeries) ?: flowOf(null)
+        viewModelScope.launch {
+            combine(readerSettings.allSeries, own) { all, series -> series ?: all }.collect { settings ->
+                _state.update { it.copy(settings = settings) }
+            }
+        }
+    }
 
     init {
         val seriesId = chapter.seriesId
@@ -102,6 +122,27 @@ class ReaderViewModel(
     /** Shows the bars as the end of the chapter comes up, for the next chapter. A tap hides them again. */
     fun nearEnd() {
         _state.update { it.copy(barsVisible = true) }
+    }
+
+    /**
+     * This series saves changes for the series alone. All series makes the series follow
+     * the settings for all series again, and saves changes there.
+     */
+    fun setSettingsScope(scope: SettingsScope) {
+        val seriesId = chapter.seriesId ?: return
+        _state.update { it.copy(settingsScope = scope) }
+        if (scope == SettingsScope.AllSeries) viewModelScope.launch { readerSettings.clearSeries(seriesId) }
+    }
+
+    fun updateSettings(transform: (ReaderSettings) -> ReaderSettings) {
+        val seriesId = chapter.seriesId
+        viewModelScope.launch {
+            if (seriesId != null && state.value.settingsScope == SettingsScope.Series) {
+                readerSettings.updateSeries(seriesId, transform)
+            } else {
+                readerSettings.updateAllSeries(transform)
+            }
+        }
     }
 
     private companion object {

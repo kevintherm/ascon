@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.Cover
+import com.ascon.core.model.ReaderSettings
 import com.github.takahirom.roborazzi.captureRoboImage
 import java.math.BigDecimal
 import org.junit.Test
@@ -36,6 +37,25 @@ class Screenshots {
     @Test
     fun readerEndCaughtUp() = capture("reader_end_caught_up") {
         end(PreviewReaderState.copy(next = null, nextChapter = BigDecimal(13)))
+    }
+
+    @Test
+    fun readerSettings() = capture("reader_settings") {
+        val state = PreviewReaderState.copy(
+            seriesId = "aztec",
+            settingsScope = SettingsScope.Series,
+            settings = ReaderSettings(keepScreenOn = true)
+        )
+        Box {
+            reader(state)
+            ReaderSettingsSheet(
+                visible = true,
+                state = state,
+                commands = ReaderSettingsCommands({
+                }, {}),
+                onDismiss = {}
+            )
+        }
     }
 
     @Composable

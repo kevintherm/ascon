@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
@@ -46,8 +47,8 @@ private const val DISMISS_FRACTION = 0.3f
 private const val DISMISS_VELOCITY = 1200f
 
 /**
- * A sheet from design/tokens.md: white, top radius 28, a 40×5 grabber, 16 side padding,
- * over the scrim. A tap on the scrim, back, or dragging it down closes it.
+ * A sheet from design/tokens.md: white unless [container] says otherwise, top radius 28,
+ * a 40×5 grabber, 16 side padding, over the scrim. A tap on the scrim, back, or dragging it down closes it.
  */
 @Composable
 fun BottomSheet(
@@ -56,6 +57,8 @@ fun BottomSheet(
     modifier: Modifier = Modifier,
     spacing: Dp = 16.dp,
     bottomPadding: Dp = 28.dp,
+    container: Color = AsconColors.Surface,
+    grabber: Color = AsconColors.Border,
     content: @Composable ColumnScope.() -> Unit
 ) {
     BackHandler(enabled = visible, onBack = onDismiss)
@@ -97,7 +100,7 @@ fun BottomSheet(
                         }
                     )
                     .clip(RoundedCornerShape(topStart = AsconRadius.Sheet, topEnd = AsconRadius.Sheet))
-                    .background(AsconColors.Surface)
+                    .background(container)
                     // Taps inside the sheet must not reach the scrim.
                     .clickable(remember { MutableInteractionSource() }, indication = null) {}
                     .navigationBarsPadding()
@@ -109,7 +112,7 @@ fun BottomSheet(
                         .align(Alignment.CenterHorizontally)
                         .size(width = 40.dp, height = 5.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(AsconColors.Border)
+                        .background(grabber)
                 )
                 content()
             }

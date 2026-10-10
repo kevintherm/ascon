@@ -4,10 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.ProtectionSettingsRepository
+import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.SettingsRepository
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.ProtectionSettings
-import com.ascon.core.model.Settings
+import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.SettingsSummary
 import java.time.Clock
 import java.time.Instant
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val loading: Boolean = true,
     val account: AccountState = AccountState.SignedOut,
-    val settings: Settings = Settings(),
+    /** The reader settings for all series. */
+    val reader: ReaderSettings = ReaderSettings(),
     val protection: ProtectionSettings = ProtectionSettings(),
     val summary: SettingsSummary? = null,
     /** Sync times are shown relative to this moment. */
@@ -28,22 +30,23 @@ data class SettingsUiState(
 )
 
 class SettingsViewModel(
-    private val settings: SettingsRepository,
+    settings: SettingsRepository,
     private val protection: ProtectionSettingsRepository,
+    private val reader: ReaderSettingsRepository,
     accounts: AccountRepository,
     private val clock: Clock = Clock.systemDefaultZone()
 ) : ViewModel() {
     val state: StateFlow<SettingsUiState> =
         combine(
-            settings.settings,
+            reader.allSeries,
             protection.settings,
             settings.summary,
             accounts.account
-        ) { values, protection, summary, account ->
+        ) { reader, protection, summary, account ->
             SettingsUiState(
                 loading = false,
                 account = account,
-                settings = values,
+                reader = reader,
                 protection = protection,
                 summary = summary,
                 now = clock.instant()
@@ -54,10 +57,8 @@ class SettingsViewModel(
 
     fun setBlockPopups(enabled: Boolean) = updateProtection { it.copy(blockPopups = enabled) }
 
-    fun setKeepScreenOn(enabled: Boolean) = update { it.copy(keepScreenOn = enabled) }
-
-    private fun update(transform: (Settings) -> Settings) {
-        viewModelScope.launch { settings.update(transform) }
+    fun setKeepScreenOn(enabled: Boolean) {
+        viewModelScope.launch { reader.updateAllSeries { it.copy(keepScreenOn = enabled) } }
     }
 
     private fun updateProtection(transform: (ProtectionSettings) -> ProtectionSettings) {

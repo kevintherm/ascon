@@ -52,8 +52,8 @@ import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.AccountState
+import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.ReadingMode
-import com.ascon.core.model.Settings
 import java.text.NumberFormat
 import java.time.Duration
 import java.time.Instant
@@ -108,7 +108,7 @@ fun SettingsScreen(state: SettingsUiState, actions: SettingsActions, bottomPaddi
             )
             AccountCard(state.account, state.now, actions.onAccount)
             Protection(state, actions)
-            Reading(state.settings, actions)
+            Reading(state.reader, actions)
             Library(state, actions)
             PlusCard(premium = (state.account as? AccountState.SignedIn)?.premium == true, onClick = actions.onPlus)
         }
@@ -243,14 +243,15 @@ private fun Protection(state: SettingsUiState, actions: SettingsActions) {
 }
 
 @Composable
-private fun Reading(settings: Settings, actions: SettingsActions) {
+private fun Reading(reader: ReaderSettings, actions: SettingsActions) {
     Group(stringResource(R.string.settings_reading)) {
         ListRow(
             title = stringResource(R.string.settings_default_mode),
             value = stringResource(
-                when (settings.readingMode) {
+                when (reader.mode) {
                     ReadingMode.LongStrip -> R.string.settings_mode_long_strip
-                    ReadingMode.Paged -> R.string.settings_mode_paged
+                    ReadingMode.LeftToRight -> R.string.settings_mode_left_to_right
+                    ReadingMode.RightToLeft -> R.string.settings_mode_right_to_left
                 }
             ),
             onClick = actions.onReadingMode
@@ -258,7 +259,7 @@ private fun Reading(settings: Settings, actions: SettingsActions) {
         RowDivider()
         SwitchRow(
             title = stringResource(R.string.settings_keep_screen_on),
-            checked = settings.keepScreenOn,
+            checked = reader.keepScreenOn,
             onCheckedChange = actions.onKeepScreenOn
         )
     }
@@ -344,7 +345,7 @@ internal fun previewSettingsState(signedIn: Boolean = true): SettingsUiState {
         } else {
             AccountState.SignedOut
         },
-        settings = Settings(),
+        reader = ReaderSettings(),
         summary = FakeLibrary.settingsSummary,
         now = now
     )

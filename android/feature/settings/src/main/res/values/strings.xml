@@ -30,7 +30,8 @@
     <string name="settings_reading">Reading</string>
     <string name="settings_default_mode">Default mode</string>
     <string name="settings_mode_long_strip">Long strip</string>
-    <string name="settings_mode_paged">Paged</string>
+    <string name="settings_mode_left_to_right">Left to right</string>
+    <string name="settings_mode_right_to_left">Right to left</string>
     <string name="settings_keep_screen_on">Keep screen on</string>
 
     <string name="settings_library">Library</string>

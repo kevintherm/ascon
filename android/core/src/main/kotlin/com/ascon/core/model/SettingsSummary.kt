@@ -1,10 +1,5 @@
 package com.ascon.core.model
 
-enum class ReadingMode { LongStrip, Paged }
-
-/** User settings shown on the settings screen. */
-data class Settings(val keepScreenOn: Boolean = false, val readingMode: ReadingMode = ReadingMode.LongStrip)
-
 /** Numbers the settings screen reports but does not own. */
 data class SettingsSummary(
     val blockedThisWeek: Int,

@@ -2,8 +2,8 @@ package com.ascon.core.data
 
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.ProtectionSettings
+import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.Series
-import com.ascon.core.model.Settings
 import com.ascon.core.model.SettingsSummary
 import com.ascon.core.model.Site
 import java.math.BigDecimal
@@ -58,10 +58,26 @@ interface ProtectionSettingsRepository {
 }
 
 interface SettingsRepository {
-    val settings: Flow<Settings>
     val summary: Flow<SettingsSummary>
+}
 
-    suspend fun update(transform: (Settings) -> Settings)
+/**
+ * Reader settings for all series, and for each series given its own. A series without
+ * its own reads with [allSeries].
+ */
+interface ReaderSettingsRepository {
+    val allSeries: Flow<ReaderSettings>
+
+    /** The series' own settings, or null while it follows [allSeries]. */
+    fun forSeries(seriesId: String): Flow<ReaderSettings?>
+
+    suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
+
+    /** Changes the series' own settings, starting from [allSeries] when it has none yet. */
+    suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
+
+    /** The series follows [allSeries] again. */
+    suspend fun clearSeries(seriesId: String)
 }
 
 interface AccountRepository {

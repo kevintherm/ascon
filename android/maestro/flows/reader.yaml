@@ -11,6 +11,11 @@ appId: com.ascon.app
     timeout: 15000
 - assertVisible: "Aztec Turning of Heaven"
 - assertVisible: "1 / 3"
+# Aa opens the reader settings, and back closes them.
+- tapOn: "Reader settings"
+- tapOn: "None"
+- back
+- assertNotVisible: "Page gap"
 # Next chapter loads the site's next page in the browser, which opens the reader again.
 - tapOn: "Next chapter"
 - extendedWaitUntil:

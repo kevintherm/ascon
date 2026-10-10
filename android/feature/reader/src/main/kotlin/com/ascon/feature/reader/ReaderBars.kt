@@ -31,9 +31,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ascon.core.designsystem.component.ProgressTrack
@@ -54,9 +56,14 @@ private val TrackHeight = 6.dp
 private val Knob = 20.dp
 private val TrackFill = Color(0x29FFFFFF)
 
-/** Back, the series title, and the chapter with the site it is read on. */
+/** Back, the series title, the chapter with the site it is read on, and Aa for the settings. */
 @Composable
-internal fun ReaderTopBar(state: ReaderUiState, onBack: () -> Unit, modifier: Modifier = Modifier) {
+internal fun ReaderTopBar(
+    state: ReaderUiState,
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val shape = RoundedCornerShape(BarRadius)
     Row(
         modifier
@@ -93,6 +100,17 @@ internal fun ReaderTopBar(state: ReaderUiState, onBack: () -> Unit, modifier: Mo
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+        val settings = stringResource(R.string.reader_settings_open)
+        Box(
+            Modifier
+                .size(BarButton)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onSettings)
+                .semantics { contentDescription = settings },
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Aa", style = AsconType.Button.copy(fontWeight = FontWeight.Bold), color = Color.White)
         }
     }
 }

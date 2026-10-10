@@ -18,9 +18,13 @@ interface ProtectionSettingsRepository
     suspend fun load(): ProtectionSettings
     suspend fun update(transform: (ProtectionSettings) -> ProtectionSettings)
 interface SettingsRepository
-    val settings: Flow<Settings>
     val summary: Flow<SettingsSummary>
-    suspend fun update(transform: (Settings) -> Settings)
+interface ReaderSettingsRepository
+    val allSeries: Flow<ReaderSettings>
+    fun forSeries(seriesId: String): Flow<ReaderSettings?>
+    suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
+    suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
+    suspend fun clearSeries(seriesId: String)
 interface AccountRepository
     val account: Flow<AccountState>
 ```
@@ -29,6 +33,19 @@ interface AccountRepository
 
 ```kotlin
 class DataStoreProtectionSettings(private val store: DataStore<Preferences>, scope: CoroutineScope) :
+```
+
+## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreReaderSettings.kt
+
+```kotlin
+class DataStoreReaderSettings(private val store: DataStore<Preferences>) : ReaderSettingsRepository
+    override val allSeries: Flow<ReaderSettings>
+    override fun forSeries(seriesId: String): Flow<ReaderSettings?>
+    override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
+    override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
+    override suspend fun clearSeries(seriesId: String)
+    companion object
+        fun open(context: Context, scope: CoroutineScope)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeLibrary.kt
@@ -62,10 +79,22 @@ class FakeProtectionSettings(initial: ProtectionSettings = ProtectionSettings())
     override suspend fun update(transform: (ProtectionSettings) -> ProtectionSettings)
 ```
 
+## core/src/main/kotlin/com/ascon/core/data/fake/FakeReaderSettings.kt
+
+```kotlin
+class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderSettingsRepository
+    override val allSeries: Flow<ReaderSettings>
+    override fun forSeries(seriesId: String): Flow<ReaderSettings?>
+    override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
+    override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
+    override suspend fun clearSeries(seriesId: String)
+```
+
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeSettingsRepository.kt
 
 ```kotlin
-class FakeSettingsRepository(initial: Settings = Settings(), summary: SettingsSummary = FakeLibrary.settingsSummary) :
+class FakeSettingsRepository(summary: SettingsSummary = FakeLibrary.settingsSummary) : SettingsRepository
+    override val summary: Flow<SettingsSummary>
 class FakeAccountRepository(initial: AccountState) : AccountRepository
     override val account: Flow<AccountState>
 ```
@@ -175,7 +204,7 @@ fun Modifier.overlapAbove(amount: Dp): Modifier
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Sheet.kt
 
 ```kotlin
-@Composable fun BottomSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier, spacing: Dp = 16.dp, bottomPadding: Dp = 28.dp, content: @Composable ColumnScope.() -> Unit)
+@Composable fun BottomSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier, spacing: Dp = 16.dp, bottomPadding: Dp = 28.dp, container: Color = AsconColors.Surface, grabber: Color = AsconColors.Border, content: @Composable ColumnScope.() -> Unit)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Snackbar.kt
@@ -253,6 +282,9 @@ object AsconIcons
     val Share
     val Offline
     val Shield
+    val LongStrip
+    val LeftToRight
+    val RightToLeft
     val Play
     val More
     val Mark
@@ -369,6 +401,16 @@ data class ProtectionSettings(val adblockEnabled: Boolean = true, val blockPopup
 data class ReaderChapter(val url: String, val title: String?, val chapter: BigDecimal?, val seriesId: String?, val pages: List<String>, val next: String?, val previous: String?, val startPage: Int = 1)
 ```
 
+## core/src/main/kotlin/com/ascon/core/model/ReaderSettings.kt
+
+```kotlin
+enum class ReadingMode
+enum class PageFit
+enum class PageGap
+enum class ReaderBackground
+data class ReaderSettings(val mode: ReadingMode = ReadingMode.LongStrip, val fit: PageFit = PageFit.Width, val gap: PageGap = PageGap.Auto, val background: ReaderBackground = ReaderBackground.Black, val keepScreenOn: Boolean = false, val volumeKeys: Boolean = false)
+```
+
 ## core/src/main/kotlin/com/ascon/core/model/Series.kt
 
 ```kotlin
@@ -387,11 +429,9 @@ sealed interface Cover
 fun BigDecimal.toChapterLabel(): String
 ```
 
-## core/src/main/kotlin/com/ascon/core/model/Settings.kt
+## core/src/main/kotlin/com/ascon/core/model/SettingsSummary.kt
 
 ```kotlin
-enum class ReadingMode
-data class Settings(val keepScreenOn: Boolean = false, val readingMode: ReadingMode = ReadingMode.LongStrip)
 data class SettingsSummary(val blockedThisWeek: Int, val activeFilterLists: Int, val hiddenSeriesLocked: Boolean, val downloadsBytes: Long)
 ```
 

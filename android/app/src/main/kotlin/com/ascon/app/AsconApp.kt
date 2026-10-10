@@ -86,7 +86,15 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     val home = viewModel { HomeViewModel(container.library, container.accounts) }
     val library = viewModel { LibraryViewModel(container.library, ReadingStatus.Reading) }
     val settings =
-        viewModel { SettingsViewModel(container.settings, container.protection, container.accounts, container.clock) }
+        viewModel {
+            SettingsViewModel(
+                container.settings,
+                container.protection,
+                container.reader,
+                container.accounts,
+                container.clock
+            )
+        }
     val browse = viewModel { BrowseViewModel(container.library) }
     // The browser is single-tab and outlives its screen: closing it keeps the page loaded,
     // and the Browse nav item returns to it.
@@ -186,7 +194,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     entry<Route.Reader> { key ->
                         ReaderRoute(
                             viewModel = viewModel {
-                                ReaderViewModel(container.library, container.clock, key.toChapter())
+                                ReaderViewModel(container.library, container.clock, key.toChapter(), container.reader)
                             },
                             images = container.pageImages,
                             actions = ReaderActions(
