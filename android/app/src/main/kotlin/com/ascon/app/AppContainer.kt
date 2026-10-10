@@ -6,6 +6,7 @@ import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ProtectionSettingsRepository
 import com.ascon.core.data.ReaderSettingsRepository
+import com.ascon.core.data.ReadingPaceRepository
 import com.ascon.core.data.SettingsRepository
 import com.ascon.core.data.datastore.DataStoreProtectionSettings
 import com.ascon.core.data.datastore.DataStoreReaderSettings
@@ -55,7 +56,9 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val protection: ProtectionSettingsRepository = DataStoreProtectionSettings.open(app, background)
-    val reader: ReaderSettingsRepository = DataStoreReaderSettings.open(app, background)
+    private val readerStore = DataStoreReaderSettings.open(app, background)
+    val reader: ReaderSettingsRepository = readerStore
+    val readingPace: ReadingPaceRepository = readerStore
     val accounts: AccountRepository = FakeAccountRepository(
         AccountState.SignedIn(
             displayName = "Kevin",

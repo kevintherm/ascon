@@ -42,4 +42,19 @@ class ZoomTest {
         assertEquals(TapZone.Middle, tapZone(x = 450f, width = 900f))
         assertEquals(TapZone.Forward, tapZone(x = 800f, width = 900f))
     }
+
+    @Test
+    fun `paged modes zoom and pan in both directions`() {
+        val zoom = Zoom().zoomBy(2f, focusX = 300f, width = width, focusY = 400f, height = 1600f)
+        assertEquals(Zoom(2f, 300f, 400f), zoom)
+        assertEquals(1600f, zoom.panBy(0f, width, dy = -5000f, height = 1600f).panY)
+    }
+
+    @Test
+    fun `right to left mirrors the side taps`() {
+        assertEquals(-1, pageTurn(TapZone.Back, rightToLeft = false))
+        assertEquals(1, pageTurn(TapZone.Forward, rightToLeft = false))
+        assertEquals(1, pageTurn(TapZone.Back, rightToLeft = true))
+        assertEquals(0, pageTurn(TapZone.Middle, rightToLeft = true))
+    }
 }

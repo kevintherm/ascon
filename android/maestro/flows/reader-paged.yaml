@@ -1,0 +1,28 @@
+# Item 5: paged modes turn one page per side tap, mirrored right to left, and tap zones name each third.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/aztec-turning-of-heaven/chapter-14/"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- tapOn: "Reader settings"
+- tapOn: "Left to right"
+- tapOn: "Show tap zones"
+- back
+- assertVisible: "Next page"
+- tapOn:
+    point: "90%,50%"
+- assertVisible: "2 / 3"
+- tapOn: "Reader settings"
+- tapOn: "Right to left"
+- back
+# Right to left: the left third turns forward.
+- tapOn:
+    point: "10%,50%"
+- assertVisible: "3 / 3"
+- tapOn:
+    point: "90%,50%"
+- assertVisible: "2 / 3"

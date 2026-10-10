@@ -73,7 +73,7 @@ internal fun ReaderPages(
             .onSizeChanged { width = it.width.toFloat() }
             .pinchAndPan(
                 zoomed = { zoom.zoomed },
-                onPan = { dx -> zoom = zoom.panBy(dx, width) },
+                onPan = { delta -> zoom = zoom.panBy(delta.x, width) },
                 onPinch = { factor, centroid, pan ->
                     zoomTo(zoom.zoomBy(factor, centroid.x, width).panBy(pan.x, width), centroid)
                     list.dispatchRawDelta(-pan.y)

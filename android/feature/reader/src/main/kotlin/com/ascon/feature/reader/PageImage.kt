@@ -29,6 +29,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
+import coil3.request.transformations
 import coil3.size.Dimension
 import coil3.size.Size
 import com.ascon.core.designsystem.theme.AsconColors
@@ -40,7 +41,7 @@ internal const val PENDING_PAGE_RATIO = 1.4f
 /**
  * One page, fetched with [referer] and decoded at the window's width. Until it loads it
  * takes a page-shaped space with its number; if it fails, a tap tries again. [onSize]
- * gets the image's size once it loads.
+ * gets the image's size once it loads. [crop] trims plain margins as the page decodes.
  */
 @Composable
 internal fun PageImage(
@@ -50,7 +51,8 @@ internal fun PageImage(
     images: ReaderImages,
     onSize: (IntSize) -> Unit,
     modifier: Modifier = Modifier,
-    fitScreen: Boolean = false
+    fitScreen: Boolean = false,
+    crop: CropBorders? = null
 ) {
     val context = LocalPlatformContext.current
     val window = LocalWindowInfo.current.containerSize
@@ -61,12 +63,13 @@ internal fun PageImage(
 
     Box(modifier.fillMaxWidth()) {
         key(attempt) {
-            val request = remember(url, referer, width) {
+            val request = remember(url, referer, width, crop) {
                 ImageRequest.Builder(context)
                     .data(url)
                     .httpHeaders(NetworkHeaders.Builder().set("Referer", referer).build())
                     // Fit the width; long strips keep their full height.
                     .size(Size(Dimension(width.coerceAtLeast(1)), Dimension.Undefined))
+                    .apply { if (crop != null) transformations(crop) }
                     .build()
             }
             AsyncImage(

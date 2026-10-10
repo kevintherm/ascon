@@ -1,5 +1,8 @@
 package com.ascon.feature.reader
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -13,6 +16,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ascon.core.designsystem.theme.AsconTheme
+import com.ascon.core.model.ReaderSettings
+import com.ascon.core.model.ReadingMode
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -104,6 +109,37 @@ class ReaderScreenTest {
     fun `hidden bars leave only the pages`() {
         show(state.copy(barsVisible = false))
         compose.onNodeWithText("Aztec Turning of Heaven").assertDoesNotExist()
+    }
+
+    @Test
+    fun `paged modes turn a page per side tap, mirrored right to left`() {
+        val shown = mutableListOf<Int>()
+        val ltr = state.copy(settings = ReaderSettings(mode = ReadingMode.LeftToRight))
+        var current by mutableStateOf(ltr)
+        compose.setContent {
+            AsconTheme {
+                ReaderScreen(current, ReaderCommands(onPageShown = { shown += it })) { index, _, modifier ->
+                    PendingPage("${index + 1}", modifier)
+                }
+            }
+        }
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(centerRight - Offset(10f, 0f)) }
+        compose.waitForIdle()
+        assertEquals(1, shown.last())
+
+        current = ltr.copy(settings = ReaderSettings(mode = ReadingMode.RightToLeft), page = 2)
+        compose.waitForIdle()
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(centerLeft + Offset(10f, 0f)) }
+        compose.waitForIdle()
+        assertEquals(2, shown.last())
+    }
+
+    @Test
+    fun `tap zones name what each third does`() {
+        show(state.copy(settings = ReaderSettings(mode = ReadingMode.RightToLeft, showTapZones = true)))
+        compose.onNodeWithText("Next page").assertExists()
+        compose.onNodeWithText("Menu").assertExists()
+        compose.onNodeWithText("Previous page").assertExists()
     }
 }
 

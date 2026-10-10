@@ -4,6 +4,16 @@
     <string name="reader_subtitle">Chapter %1$s · %2$s</string>
     <string name="reader_page_count">%1$d / %2$d</string>
     <string name="reader_page">Page %1$d</string>
+    <string name="reader_minutes_left">%1$d min</string>
+    <plurals name="reader_minutes_left_spoken">
+        <item quantity="one">About %1$d minute left</item>
+        <item quantity="other">About %1$d minutes left</item>
+    </plurals>
+    <string name="reader_zone_scroll_up">Scroll up</string>
+    <string name="reader_zone_scroll_down">Scroll down</string>
+    <string name="reader_zone_previous">Previous page</string>
+    <string name="reader_zone_next">Next page</string>
+    <string name="reader_zone_menu">Menu</string>
     <string name="reader_page_save">Save image</string>
     <string name="reader_page_share">Share image</string>
     <string name="reader_page_saved">Page %1$d saved to Pictures</string>
@@ -47,6 +57,8 @@
     <string name="reader_settings_black">Black</string>
     <string name="reader_settings_gray">Gray</string>
     <string name="reader_settings_white">White</string>
+    <string name="reader_settings_crop_borders">Crop borders</string>
+    <string name="reader_settings_show_tap_zones">Show tap zones</string>
     <string name="reader_settings_keep_screen_on">Keep screen on</string>
     <string name="reader_settings_volume_keys">Volume keys turn pages</string>
 

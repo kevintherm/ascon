@@ -1,6 +1,5 @@
 package com.ascon.feature.reader
 
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,6 +11,7 @@ import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.PageGap
 import com.ascon.core.model.ReaderBackground
 import com.ascon.core.model.ReaderSettings
+import com.ascon.core.model.ReadingMode
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -71,13 +71,18 @@ class ReaderSettingsSheetTest {
     }
 
     @Test
-    fun `only long strip can be picked for now`() {
+    fun `modes, crop borders and tap zones change the settings`() {
         show(state)
         compose.onNodeWithContentDescription("Reader settings").performClick()
 
         compose.onNodeWithText("Long strip").assertIsSelected()
-        compose.onNodeWithText("Left to right").assertIsNotEnabled()
-        compose.onNodeWithText("Right to left").assertIsNotEnabled()
+        compose.onNodeWithText("Right to left").performClick()
+        compose.onNodeWithText("Crop borders").performClick()
+        compose.onNodeWithText("Show tap zones").performClick()
+        assertEquals(
+            ReaderSettings(mode = ReadingMode.RightToLeft, cropBorders = true, showTapZones = true),
+            settings
+        )
     }
 
     @Test

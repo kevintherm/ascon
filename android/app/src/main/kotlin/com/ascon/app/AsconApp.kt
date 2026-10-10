@@ -194,7 +194,13 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                     entry<Route.Reader> { key ->
                         ReaderRoute(
                             viewModel = viewModel {
-                                ReaderViewModel(container.library, container.clock, key.toChapter(), container.reader)
+                                ReaderViewModel(
+                                    container.library,
+                                    container.clock,
+                                    key.toChapter(),
+                                    container.reader,
+                                    container.readingPace
+                                )
                             },
                             images = container.pageImages,
                             actions = ReaderActions(

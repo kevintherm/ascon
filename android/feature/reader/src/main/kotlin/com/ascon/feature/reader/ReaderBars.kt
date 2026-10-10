@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
@@ -144,6 +145,17 @@ internal fun ReaderPanel(
                 color = Color.White
             )
             PageTrack(state.page, state.pageCount, onSeek, Modifier.weight(1f))
+            state.minutesLeft?.let {
+                val spoken = pluralStringResource(R.plurals.reader_minutes_left_spoken, it, it)
+                Text(
+                    stringResource(R.string.reader_minutes_left, it),
+                    style = AsconType.Meta,
+                    color = Muted,
+                    modifier = Modifier.semantics {
+                        contentDescription = spoken
+                    }
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ChapterIconButton(

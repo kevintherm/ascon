@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.ascon.core.data.ReaderSettingsRepository
+import com.ascon.core.data.ReadingPaceRepository
 import com.ascon.core.model.ReaderSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +19,16 @@ import kotlinx.coroutines.flow.map
  * [ReaderSettings] in a Preferences DataStore: one entry for all series and one for each
  * series with its own, each as `name=value` pairs. Make one per file, for the whole app.
  */
-class DataStoreReaderSettings(private val store: DataStore<Preferences>) : ReaderSettingsRepository {
+class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
+    ReaderSettingsRepository,
+    ReadingPaceRepository {
+    override val secondsPerImage: Flow<List<Float>> =
+        store.data.map { decodePace(it[Pace]) }.distinctUntilChanged()
+
+    override suspend fun recordSecondsPerImage(seconds: Float) {
+        store.edit { it[Pace] = encodePace((decodePace(it[Pace]) + seconds).takeLast(PACE_SAMPLES)) }
+    }
+
     override val allSeries: Flow<ReaderSettings> =
         store.data.map { decode(it[AllSeries]) ?: ReaderSettings() }.distinctUntilChanged()
 
@@ -52,13 +62,25 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) : Reade
 
         private fun seriesKey(seriesId: String) = stringPreferencesKey("series:$seriesId")
 
+        private val Pace = stringPreferencesKey("pace")
+
+        /** The reading pace keeps this many recent images. */
+        private const val PACE_SAMPLES = 200
+
+        internal fun encodePace(samples: List<Float>): String = samples.joinToString(",")
+
+        internal fun decodePace(text: String?): List<Float> =
+            text.orEmpty().split(',').mapNotNull { it.toFloatOrNull() }
+
         internal fun encode(settings: ReaderSettings): String = listOf(
             "mode" to settings.mode.name,
             "fit" to settings.fit.name,
             "gap" to settings.gap.name,
             "background" to settings.background.name,
+            "crop_borders" to settings.cropBorders.toString(),
             "keep_screen_on" to settings.keepScreenOn.toString(),
-            "volume_keys" to settings.volumeKeys.toString()
+            "volume_keys" to settings.volumeKeys.toString(),
+            "show_tap_zones" to settings.showTapZones.toString()
         ).joinToString(";") { (name, value) -> "$name=$value" }
 
         /** Unknown or missing values take their defaults, so older and newer entries both read. */
@@ -73,8 +95,10 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) : Reade
                 fit = enumOf(values["fit"], defaults.fit),
                 gap = enumOf(values["gap"], defaults.gap),
                 background = enumOf(values["background"], defaults.background),
+                cropBorders = values["crop_borders"]?.toBooleanStrictOrNull() ?: defaults.cropBorders,
                 keepScreenOn = values["keep_screen_on"]?.toBooleanStrictOrNull() ?: defaults.keepScreenOn,
-                volumeKeys = values["volume_keys"]?.toBooleanStrictOrNull() ?: defaults.volumeKeys
+                volumeKeys = values["volume_keys"]?.toBooleanStrictOrNull() ?: defaults.volumeKeys,
+                showTapZones = values["show_tap_zones"]?.toBooleanStrictOrNull() ?: defaults.showTapZones
             )
         }
 

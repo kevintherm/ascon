@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -67,7 +66,7 @@ internal class ReaderSettingsCommands(
 
 /**
  * The reader settings sheet, per ReaderSettings, from the Aa button. Changes save for the
- * series or for all series, as the switch at the top says. Paged modes are not built yet.
+ * series or for all series, as the switch at the top says.
  */
 @Composable
 internal fun ReaderSettingsSheet(
@@ -88,7 +87,7 @@ internal fun ReaderSettingsSheet(
     ) {
         Header(state.title)
         if (state.seriesId != null) ScopeSwitch(state.settingsScope, commands.onScope)
-        ModeTiles(settings.mode)
+        ModeTiles(settings.mode) { mode -> change { it.copy(mode = mode) } }
         SettingsGroup {
             ChoiceRow(
                 stringResource(R.string.reader_settings_fit),
@@ -112,12 +111,20 @@ internal fun ReaderSettingsSheet(
             BackgroundRow(settings.background) { background -> change { it.copy(background = background) } }
         }
         SettingsGroup {
+            SettingsSwitchRow(stringResource(R.string.reader_settings_crop_borders), settings.cropBorders) { on ->
+                change { it.copy(cropBorders = on) }
+            }
+            SettingsDivider()
             SettingsSwitchRow(stringResource(R.string.reader_settings_keep_screen_on), settings.keepScreenOn) { on ->
                 change { it.copy(keepScreenOn = on) }
             }
             SettingsDivider()
             SettingsSwitchRow(stringResource(R.string.reader_settings_volume_keys), settings.volumeKeys) { on ->
                 change { it.copy(volumeKeys = on) }
+            }
+            SettingsDivider()
+            SettingsSwitchRow(stringResource(R.string.reader_settings_show_tap_zones), settings.showTapZones) { on ->
+                change { it.copy(showTapZones = on) }
             }
         }
     }
@@ -188,41 +195,40 @@ private fun RowScope.Segment(text: String, selected: Boolean, height: Dp, onClic
     }
 }
 
-/** Long strip, Left to right, Right to left. Only long strip is built. */
+/** Long strip, Left to right, Right to left. */
 @Composable
-private fun ModeTiles(mode: ReadingMode) {
+private fun ModeTiles(mode: ReadingMode, onMode: (ReadingMode) -> Unit) {
     Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ModeTile(
             AsconIcons.LongStrip,
             stringResource(R.string.reader_settings_long_strip),
             mode == ReadingMode.LongStrip
-        )
+        ) {
+            onMode(ReadingMode.LongStrip)
+        }
         ModeTile(
             AsconIcons.LeftToRight,
             stringResource(R.string.reader_settings_left_to_right),
-            mode == ReadingMode.LeftToRight,
-            enabled = false
-        )
+            mode == ReadingMode.LeftToRight
+        ) { onMode(ReadingMode.LeftToRight) }
         ModeTile(
             AsconIcons.RightToLeft,
             stringResource(R.string.reader_settings_right_to_left),
-            mode == ReadingMode.RightToLeft,
-            enabled = false
-        )
+            mode == ReadingMode.RightToLeft
+        ) { onMode(ReadingMode.RightToLeft) }
     }
 }
 
 @Composable
-private fun RowScope.ModeTile(icon: ImageVector, text: String, selected: Boolean, enabled: Boolean = true) {
+private fun RowScope.ModeTile(icon: ImageVector, text: String, selected: Boolean, onClick: () -> Unit) {
     val content = if (selected) AsconColors.Ink else Color.White
     Column(
         Modifier
             .weight(1f)
             .height(76.dp)
-            .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .clip(RoundedCornerShape(16.dp))
             .background(if (selected) Color.White else Tile)
-            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = {}),
+            .selectable(selected, role = Role.RadioButton, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -234,5 +240,3 @@ private fun RowScope.ModeTile(icon: ImageVector, text: String, selected: Boolean
         )
     }
 }
-
-private const val DISABLED_ALPHA = 0.4f

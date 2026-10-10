@@ -54,8 +54,10 @@ class DataStoreReaderSettingsTest {
             fit = PageFit.Screen,
             gap = PageGap.Small,
             background = ReaderBackground.White,
+            cropBorders = true,
             keepScreenOn = true,
-            volumeKeys = true
+            volumeKeys = true,
+            showTapZones = true
         )
         val first = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         open(file, first).updateSeries("aztec") { changed }
@@ -72,5 +74,16 @@ class DataStoreReaderSettingsTest {
             ReaderSettings(gap = PageGap.None),
             DataStoreReaderSettings.decode("mode=Sideways;gap=None;keep_screen_on=maybe;extra=1")
         )
+    }
+
+    @Test
+    fun `the reading pace keeps the latest 200 images`() = runTest {
+        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val store = open(folder.newFile("pace.preferences_pb").also { it.delete() }, scope)
+        repeat(201) { store.recordSecondsPerImage(it.toFloat()) }
+        val samples = store.secondsPerImage.first()
+        assertEquals(200, samples.size)
+        assertEquals(1f, samples.first())
+        scope.cancel()
     }
 }

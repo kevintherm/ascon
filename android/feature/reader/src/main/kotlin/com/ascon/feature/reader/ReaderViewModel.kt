@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ReaderSettingsRepository
+import com.ascon.core.data.ReadingPaceRepository
 import com.ascon.core.model.Chapter
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
@@ -47,6 +48,8 @@ data class ReaderUiState(
     val siteNames: Map<String, String> = emptyMap(),
     /** Chapter dates are shown relative to this day. */
     val today: LocalDate? = null,
+    /** Minutes to the chapter's end at this user's pace, once a few images are read. */
+    val minutesLeft: Int? = null,
     /** Where changes from the settings sheet go. Only all series without a series in the library. */
     val settingsScope: SettingsScope = if (seriesId != null) SettingsScope.Series else SettingsScope.AllSeries
 ) {
@@ -60,7 +63,8 @@ class ReaderViewModel(
     private val library: LibraryRepository,
     private val clock: Clock,
     private val chapter: ReaderChapter,
-    private val readerSettings: ReaderSettingsRepository
+    private val readerSettings: ReaderSettingsRepository,
+    private val pace: ReadingPaceRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         ReaderUiState(
@@ -110,13 +114,35 @@ class ReaderViewModel(
     }
 
     private var shownPage = 0
+    private var shownAt = 0L
+    private var paceSamples = emptyList<Float>()
+
+    /** Images read in this chapter at a reading pace. */
+    private var imagesRead = 0
+
+    init {
+        viewModelScope.launch {
+            pace.secondsPerImage.collect { samples ->
+                paceSamples = samples
+                _state.update { it.withTimeLeft() }
+            }
+        }
+    }
 
     /** [index] counts from 0, as the list does. */
     fun onPageShown(index: Int) {
         val page = index + 1
         if (page == shownPage) return
+        val now = clock.millis()
+        // One image forward, after a reading pace's worth of time on the last one.
+        val seconds = (now - shownAt) / MILLIS_PER_SECOND
+        if (shownPage > 0 && page == shownPage + 1 && countsTowardPace(seconds)) {
+            imagesRead++
+            viewModelScope.launch { pace.recordSecondsPerImage(seconds) }
+        }
         shownPage = page
-        _state.update { it.copy(page = page) }
+        shownAt = now
+        _state.update { it.copy(page = page).withTimeLeft() }
         val seriesId = chapter.seriesId
         val number = chapter.chapter
         if (seriesId != null && number != null) {
@@ -125,6 +151,10 @@ class ReaderViewModel(
             }
         }
     }
+
+    private fun ReaderUiState.withTimeLeft() = copy(
+        minutesLeft = if (imagesRead >= IMAGES_BEFORE_TIME_LEFT) minutesLeft(paceSamples, pageCount - page) else null
+    )
 
     fun toggleBars() {
         _state.update { it.copy(barsVisible = !it.barsVisible) }
@@ -157,6 +187,8 @@ class ReaderViewModel(
     }
 
     private companion object {
+        const val MILLIS_PER_SECOND = 1000f
+
         /** The first known chapter after [number], or the next whole number after a whole one. */
         fun nextAfter(number: BigDecimal, known: List<BigDecimal>): BigDecimal? =
             known.filter { it > number }.minOrNull()

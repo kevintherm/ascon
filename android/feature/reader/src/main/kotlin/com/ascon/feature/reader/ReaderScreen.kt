@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +50,7 @@ import com.ascon.core.designsystem.component.Snackbar
 import com.ascon.core.designsystem.component.StatusBarIcons
 import com.ascon.core.model.PageFit
 import com.ascon.core.model.ReaderSettings
+import com.ascon.core.model.ReadingMode
 import com.ascon.core.model.toChapterLabel
 import java.math.BigDecimal
 import kotlinx.coroutines.delay
@@ -127,7 +131,12 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
                 images = images,
                 onSize = { sizes[index] = it },
                 modifier = modifier,
-                fitScreen = state.settings.fit == PageFit.Screen
+                fitScreen = state.settings.fit == PageFit.Screen,
+                crop = if (state.settings.cropBorders) {
+                    CropBorders(vertical = state.settings.mode != ReadingMode.LongStrip)
+                } else {
+                    null
+                }
             )
         }
         message?.let {
@@ -167,8 +176,8 @@ data class ReaderCommands(
 internal const val PAGES_TAG = "reader-pages"
 
 /**
- * The native reader: pages in one long strip on the reader ground, with glass bars that a
- * tap shows or hides. [page] draws one page; previews and tests pass a stand-in.
+ * The native reader: pages in one long strip or one per screen on the reader ground,
+ * with glass bars that a tap shows or hides. [page] draws one page; previews and tests pass a stand-in.
  */
 @Composable
 fun ReaderScreen(
@@ -178,16 +187,21 @@ fun ReaderScreen(
     page: @Composable (index: Int, url: String, modifier: Modifier) -> Unit
 ) {
     StatusBarIcons(darkIcons = false)
-    // Opens at the page the chapter starts on, such as the one on screen in the browser.
-    val list = rememberLazyListState(initialFirstVisibleItemIndex = state.page - 1)
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(list) {
-        snapshotFlow { list.pageOnScreen(state.pageCount) }.collect { commands.onPageShown(it) }
-    }
-    LaunchedEffect(list) {
-        snapshotFlow { list.isNearEnd() }.distinctUntilChanged().filter { it }.collect { commands.onNearEnd() }
-    }
     val settings = state.settings
+    val paged = settings.mode != ReadingMode.LongStrip
+    // Opens at the page the chapter starts on, such as the one on screen in the browser,
+    // and at the page on screen when the mode changes.
+    val list = key(paged) { rememberLazyListState(initialFirstVisibleItemIndex = state.page - 1) }
+    val pager = key(paged) { rememberPagerState(initialPage = state.page - 1) { state.pageCount + 1 } }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(list, paged) {
+        if (!paged) snapshotFlow { list.pageOnScreen(state.pageCount) }.collect { commands.onPageShown(it) }
+    }
+    LaunchedEffect(list, paged) {
+        if (!paged) {
+            snapshotFlow { list.isNearEnd() }.distinctUntilChanged().filter { it }.collect { commands.onNearEnd() }
+        }
+    }
     var settingsOpen by remember { mutableStateOf(false) }
     var chaptersOpen by remember { mutableStateOf(false) }
     var menuPage by remember { mutableStateOf<Int?>(null) }
@@ -205,25 +219,37 @@ fun ReaderScreen(
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { event ->
-                // Volume keys scroll most of a screen, down or up, when the setting is on.
+                // Volume keys turn the page, or scroll most of a screen, when the setting is on.
                 val down = event.key == Key.VolumeDown
                 if (!settings.volumeKeys || !(down || event.key == Key.VolumeUp)) return@onPreviewKeyEvent false
                 if (event.type == KeyEventType.KeyDown) {
-                    val step = list.layoutInfo.viewportSize.height * TURN_SCROLL
-                    scope.launch { list.animateScrollBy(if (down) step else -step) }
+                    scope.launch { if (paged) pager.turn(down) else list.turn(down) }
                 }
                 true
             }
     ) {
-        ReaderPages(
-            state = state,
-            list = list,
-            commands = commands,
-            pageSizes = pageSizes,
-            endSpace = endSpace,
-            onLongPress = { menuPage = it },
-            page = page
-        )
+        if (paged) {
+            ReaderPaged(
+                state = state,
+                pager = pager,
+                rightToLeft = settings.mode == ReadingMode.RightToLeft,
+                commands = commands,
+                endSpace = endSpace,
+                onLongPress = { menuPage = it },
+                page = page
+            )
+        } else {
+            ReaderPages(
+                state = state,
+                list = list,
+                commands = commands,
+                pageSizes = pageSizes,
+                endSpace = endSpace,
+                onLongPress = { menuPage = it },
+                page = page
+            )
+        }
+        TapZones(visible = settings.showTapZones && state.barsVisible, mode = settings.mode)
         AnimatedVisibility(
             visible = state.barsVisible,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -250,7 +276,9 @@ fun ReaderScreen(
         ) {
             ReaderPanel(
                 state = state,
-                onSeek = { index -> scope.launch { list.scrollToItem(index) } },
+                onSeek = { index ->
+                    scope.launch { if (paged) pager.scrollToPage(index) else list.scrollToItem(index) }
+                },
                 onPrevious = commands.onPrevious,
                 onNext = commands.onNext,
                 onChapters = { chaptersOpen = true },
@@ -299,6 +327,16 @@ private fun LazyListState.pageOnScreen(pageCount: Int): Int {
     // Before the first layout the list has no items and cannot scroll either.
     val laidOut = layoutInfo.totalItemsCount > 0
     return if (laidOut && pageCount > 0 && !canScrollForward) last else firstVisibleItemIndex.coerceAtMost(last)
+}
+
+/** A volume key: the next page, or the previous one. */
+private suspend fun PagerState.turn(forward: Boolean) =
+    animateScrollToPage((currentPage + if (forward) 1 else -1).coerceIn(0, pageCount - 1))
+
+/** A volume key: most of a screen down, or up. */
+private suspend fun LazyListState.turn(forward: Boolean) {
+    val step = layoutInfo.viewportSize.height * TURN_SCROLL
+    animateScrollBy(if (forward) step else -step)
 }
 
 /** Keeps the screen on while the reader shows, when [on]. */

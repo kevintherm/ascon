@@ -21,23 +21,31 @@ internal const val DOUBLE_TAP_ZOOM = 2f
  * How far the pages are zoomed, and [pan], how far the zoomed pages' left edge sits left
  * of the screen's. Vertical position is the list's own scroll.
  */
-internal data class Zoom(val scale: Float = 1f, val pan: Float = 0f) {
+internal data class Zoom(val scale: Float = 1f, val pan: Float = 0f, val panY: Float = 0f) {
     val zoomed: Boolean get() = scale > 1f
 
-    /** Scales by [factor], within 1x to 4x, keeping [focusX] on a [width] wide screen in place. */
-    fun zoomBy(factor: Float, focusX: Float, width: Float): Zoom {
+    /**
+     * Scales by [factor], within 1x to 4x, keeping [focusX] on a [width] wide screen in
+     * place. Paged modes pass [focusY] and [height] too; long strip scrolls instead.
+     */
+    fun zoomBy(factor: Float, focusX: Float, width: Float, focusY: Float = 0f, height: Float = 0f): Zoom {
         val next = (scale * factor).coerceIn(1f, MAX_ZOOM)
-        return Zoom(next, (pan + focusX) * (next / scale) - focusX).clamped(width)
+        val grown = next / scale
+        return Zoom(next, (pan + focusX) * grown - focusX, (panY + focusY) * grown - focusY).clamped(width, height)
     }
 
-    /** Follows a finger that moved [dx] sideways. */
-    fun panBy(dx: Float, width: Float): Zoom = copy(pan = pan - dx).clamped(width)
+    /** Follows a finger that moved [dx] sideways and, in paged modes, [dy] down. */
+    fun panBy(dx: Float, width: Float, dy: Float = 0f, height: Float = 0f): Zoom =
+        copy(pan = pan - dx, panY = panY - dy).clamped(width, height)
 
     /** A double tap: 2x at the point, or back to 1x. */
-    fun toggled(focusX: Float, width: Float): Zoom =
-        if (zoomed) Zoom() else zoomBy(DOUBLE_TAP_ZOOM / scale, focusX, width)
+    fun toggled(focusX: Float, width: Float, focusY: Float = 0f, height: Float = 0f): Zoom =
+        if (zoomed) Zoom() else zoomBy(DOUBLE_TAP_ZOOM / scale, focusX, width, focusY, height)
 
-    private fun clamped(width: Float) = copy(pan = pan.coerceIn(0f, width * (scale - 1)))
+    private fun clamped(width: Float, height: Float) = copy(
+        pan = pan.coerceIn(0f, width * (scale - 1)),
+        panY = panY.coerceIn(0f, height * (scale - 1))
+    )
 }
 
 internal enum class TapZone { Back, Middle, Forward }
@@ -49,16 +57,31 @@ internal fun tapZone(x: Float, width: Float): TapZone = when {
     else -> TapZone.Middle
 }
 
+/**
+ * Pages a tap in [zone] turns in paged modes: -1, 0 or 1. Right to left mirrors the
+ * sides, so the left third turns forward.
+ */
+internal fun pageTurn(zone: TapZone, rightToLeft: Boolean): Int {
+    val forward = when (zone) {
+        TapZone.Back -> -1
+        TapZone.Middle -> 0
+        TapZone.Forward -> 1
+    }
+    return if (rightToLeft) -forward else forward
+}
+
 /** Each side zone's share of the screen's width. */
 private const val SIDE_ZONE = 1 / 3f
 
 /**
  * Two fingers pinch and pan, and take the gesture from the list. One finger on zoomed
- * pages pans sideways while the list scrolls with it. Reads events before the list does.
+ * pages pans; it takes the gesture too when [ownsPan], or else the list scrolls with it.
+ * Reads events before the list does.
  */
 internal fun Modifier.pinchAndPan(
     zoomed: () -> Boolean,
-    onPan: (dx: Float) -> Unit,
+    ownsPan: Boolean = false,
+    onPan: (Offset) -> Unit,
     onPinch: (factor: Float, centroid: Offset, pan: Offset) -> Unit
 ): Modifier = pointerInput(Unit) {
     awaitEachGesture {
@@ -71,7 +94,10 @@ internal fun Modifier.pinchAndPan(
                     onPinch(event.calculateZoom(), event.calculateCentroid(useCurrent = true), event.calculatePan())
                     event.changes.forEach { it.consume() }
                 }
-                pressed.size == 1 && zoomed() -> onPan(pressed.first().positionChange().x)
+                pressed.size == 1 && zoomed() -> {
+                    onPan(pressed.first().positionChange())
+                    if (ownsPan) pressed.first().consume()
+                }
             }
         } while (event.changes.any { it.pressed })
     }

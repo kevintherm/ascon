@@ -80,6 +80,14 @@ interface ReaderSettingsRepository {
     suspend fun clearSeries(seriesId: String)
 }
 
+/** How long this user looks at each image, learned across chapters for the time left. */
+interface ReadingPaceRepository {
+    /** Recent seconds spent on an image, oldest first. */
+    val secondsPerImage: Flow<List<Float>>
+
+    suspend fun recordSecondsPerImage(seconds: Float)
+}
+
 interface AccountRepository {
     val account: Flow<AccountState>
 }

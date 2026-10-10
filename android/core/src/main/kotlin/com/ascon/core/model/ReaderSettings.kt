@@ -16,6 +16,10 @@ data class ReaderSettings(
     val fit: PageFit = PageFit.Width,
     val gap: PageGap = PageGap.Auto,
     val background: ReaderBackground = ReaderBackground.Black,
+    /** Trims plain margins from each page: the sides in long strip, all four edges in paged modes. */
+    val cropBorders: Boolean = false,
     val keepScreenOn: Boolean = false,
-    val volumeKeys: Boolean = false
+    val volumeKeys: Boolean = false,
+    /** Shades the tap zones while the bars show. */
+    val showTapZones: Boolean = false
 )
