@@ -4,10 +4,14 @@ import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.newSeries
 import com.ascon.core.data.onPage
 import com.ascon.core.data.opened
+import com.ascon.core.data.pulled
+import com.ascon.core.data.stamped
+import com.ascon.core.data.syncRecords
 import com.ascon.core.data.withProgressSource
 import com.ascon.core.data.withSite
 import com.ascon.core.model.Series
 import com.ascon.core.model.Site
+import com.ascon.core.model.SyncRecord
 import com.ascon.core.model.matchSeries
 import java.math.BigDecimal
 import java.time.Clock
@@ -23,7 +27,8 @@ import kotlinx.coroutines.flow.updateAndGet
 /** An in-memory library seeded with [FakeLibrary]. Changes last until the process dies. */
 class FakeLibraryRepository(
     initial: List<Series> = FakeLibrary.series(Clock.systemDefaultZone()),
-    sites: List<Site> = FakeLibrary.sites
+    sites: List<Site> = FakeLibrary.sites,
+    private val clock: Clock = Clock.systemUTC()
 ) : LibraryRepository {
     private val state = MutableStateFlow(initial)
 
@@ -36,8 +41,8 @@ class FakeLibraryRepository(
         lateinit var found: Series
         state.updateAndGet { all ->
             val match = matchSeries(all, title)
-            found = match?.withSite(host, chapter, url)
-                ?: newSeries(UUID.randomUUID().toString(), title, host, chapter, url)
+            found = (match?.withSite(host, chapter, url) ?: newSeries(newId(), title, host, chapter, url))
+                .stamped(match, clock.instant())
             if (match == null) all + found else all.map { if (it.id == found.id) found else it }
         }
         return found
@@ -60,7 +65,19 @@ class FakeLibraryRepository(
         pageOffset: Float
     ) = change(seriesId) { it.opened(chapter, at).onPage(chapter, page, pageCount, pageOffset) }
 
-    private fun change(seriesId: String, transform: (Series) -> Series) {
-        state.update { all -> all.map { if (it.id == seriesId) transform(it) else it } }
+    override suspend fun syncRecords(since: Instant?): List<SyncRecord> = state.value.flatMap { it.syncRecords(since) }
+
+    override suspend fun applyPulled(records: List<SyncRecord>) {
+        state.update { all ->
+            val changed = pulled(all, records, ::newId).associateBy { it.id }
+            all.map { changed[it.id] ?: it } + changed.values.filter { new -> all.none { it.id == new.id } }
+        }
     }
+
+    private fun change(seriesId: String, transform: (Series) -> Series) {
+        val now = clock.instant()
+        state.update { all -> all.map { if (it.id == seriesId) transform(it).stamped(it, now) else it } }
+    }
+
+    private fun newId() = UUID.randomUUID().toString()
 }

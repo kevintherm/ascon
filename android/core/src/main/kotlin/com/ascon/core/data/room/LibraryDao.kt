@@ -6,10 +6,15 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
 import com.ascon.core.data.newSeries
+import com.ascon.core.data.pulled
+import com.ascon.core.data.stamped
+import com.ascon.core.data.syncRecords
 import com.ascon.core.data.withSite
 import com.ascon.core.model.Series
+import com.ascon.core.model.SyncRecord
 import com.ascon.core.model.matchSeries
 import java.math.BigDecimal
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 // Room needs one declared function per query, so a DAO grows past the usual limit.
@@ -66,10 +71,23 @@ internal abstract class LibraryDao {
         record.progress?.let { upsertProgress(it) } ?: deleteProgress(series.id)
     }
 
-    /** Reads, changes and writes one series as one transaction, so changes never interleave. */
+    /**
+     * Reads, changes and writes one series as one transaction, so changes never interleave.
+     * The parts that changed are stamped with [now] for sync.
+     */
     @Transaction
-    open suspend fun change(id: String, transform: (Series) -> Series) {
-        one(id)?.toModel()?.let { save(transform(it)) }
+    open suspend fun change(id: String, now: Instant, transform: (Series) -> Series) {
+        one(id)?.toModel()?.let { save(transform(it).stamped(it, now)) }
+    }
+
+    /** See [com.ascon.core.data.LibraryRepository.syncRecords]. */
+    @Transaction
+    open suspend fun syncRecords(since: Instant?): List<SyncRecord> = all().flatMap { it.toModel().syncRecords(since) }
+
+    /** See [com.ascon.core.data.LibraryRepository.applyPulled]. */
+    @Transaction
+    open suspend fun applyPulled(records: List<SyncRecord>, newId: () -> String) {
+        pulled(all().map { it.toModel() }, records, newId).forEach { save(it) }
     }
 
     /** See [com.ascon.core.data.LibraryRepository.seriesFor]. */
@@ -79,10 +97,12 @@ internal abstract class LibraryDao {
         host: String,
         chapter: BigDecimal,
         url: String,
+        now: Instant,
         newId: () -> String
     ): Series {
-        val found = matchSeries(all().map { it.toModel() }, title)?.withSite(host, chapter, url)
-            ?: newSeries(newId(), title, host, chapter, url)
+        val match = matchSeries(all().map { it.toModel() }, title)
+        val found = (match?.withSite(host, chapter, url) ?: newSeries(newId(), title, host, chapter, url))
+            .stamped(match, now)
         save(found)
         return found
     }

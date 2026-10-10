@@ -25,7 +25,10 @@ internal data class SeriesEntity(
     @ColumnInfo(name = "cover_bottom") val coverBottom: Long,
     val status: ReadingStatus,
     @ColumnInfo(name = "linked_to_anilist") val linkedToAniList: Boolean,
-    @ColumnInfo(name = "last_read_at") val lastReadAt: Instant?
+    @ColumnInfo(name = "last_read_at") val lastReadAt: Instant?,
+    /** Sync, added in version 6. */
+    @ColumnInfo(name = "sync_id") val syncId: String? = null,
+    @ColumnInfo(name = "status_updated_at") val statusUpdatedAt: Instant? = null
 )
 
 private const val SERIES_ID = "series_id"
@@ -46,7 +49,9 @@ internal data class SourceEntity(
     @ColumnInfo(name = "last_chapter") val lastChapter: BigDecimal,
     /** The chapter page last opened on this site, and its chapter. Added in version 2. */
     @ColumnInfo(name = "last_opened_url") val lastOpenedUrl: String? = null,
-    @ColumnInfo(name = "last_opened_chapter") val lastOpenedChapter: BigDecimal? = null
+    @ColumnInfo(name = "last_opened_chapter") val lastOpenedChapter: BigDecimal? = null,
+    /** Added in version 6. */
+    @ColumnInfo(name = "updated_at") val updatedAt: Instant? = null
 )
 
 @Entity(
@@ -77,7 +82,9 @@ internal data class ProgressEntity(
     val page: Int,
     @ColumnInfo(name = "page_count") val pageCount: Int,
     @ColumnInfo(name = "source_id") val sourceId: String,
-    @ColumnInfo(name = "page_offset", defaultValue = "0") val pageOffset: Float
+    @ColumnInfo(name = "page_offset", defaultValue = "0") val pageOffset: Float,
+    /** Added in version 6. */
+    @ColumnInfo(name = "updated_at") val updatedAt: Instant? = null
 )
 
 @Entity(tableName = "site", indices = [Index("position")])

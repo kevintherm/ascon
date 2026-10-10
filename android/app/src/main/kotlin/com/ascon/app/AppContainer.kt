@@ -6,6 +6,7 @@ import com.ascon.core.data.AccountBackend
 import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.GoogleAccounts
 import com.ascon.core.data.LibraryRepository
+import com.ascon.core.data.LibrarySyncer
 import com.ascon.core.data.ProtectionSettingsRepository
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.ReadingPaceRepository
@@ -27,6 +28,7 @@ import com.ascon.engine.detection.DetectionHost
 import com.ascon.engine.detection.HttpAccountBackend
 import com.ascon.engine.detection.HttpGenerationBackend
 import com.ascon.engine.detection.HttpRuleBackend
+import com.ascon.engine.detection.HttpSyncBackend
 import com.ascon.engine.detection.RuleBackend
 import com.ascon.engine.detection.RuleGeneration
 import com.ascon.engine.detection.RuleHealth
@@ -96,6 +98,12 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     /** Null when this build has no backend, so it can't sign in. */
     val accountBackend: AccountBackend? = BackendConfig.BASE_URL?.let {
         HttpAccountBackend(it.toHttpUrl(), backendClient)
+    }
+
+    /** Library sync with the signed-in account, for builds with a backend. */
+    val sync: LibrarySyncer? = BackendConfig.BASE_URL?.let {
+        LibrarySyncer(library, accounts, HttpSyncBackend(it.toHttpUrl(), backendClient), clock)
+            .also { syncer -> syncer.runIn(background) }
     }
 
     /** Null when this build has no Google client ID, so it can't sign in. */

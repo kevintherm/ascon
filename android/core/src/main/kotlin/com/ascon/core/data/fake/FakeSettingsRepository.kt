@@ -5,8 +5,10 @@ import com.ascon.core.data.SettingsRepository
 import com.ascon.core.model.AccountSession
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.SettingsSummary
+import com.ascon.core.model.SyncPosition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 
 class FakeSettingsRepository(summary: SettingsSummary = FakeLibrary.settingsSummary) : SettingsRepository {
     override val summary: Flow<SettingsSummary> = MutableStateFlow(summary)
@@ -24,5 +26,16 @@ class FakeAccountRepository(initial: AccountState = AccountState.SignedOut, toke
     override suspend fun signedOut() {
         token.value = null
         account.value = AccountState.SignedOut
+        position = SyncPosition()
+    }
+
+    private var position = SyncPosition()
+
+    override suspend fun syncPosition() = position
+
+    override suspend fun synced(token: String, position: SyncPosition) {
+        if (this.token.value != token) return
+        this.position = position
+        account.update { if (it is AccountState.SignedIn) it.copy(lastSyncedAt = position.syncedAt) else it }
     }
 }

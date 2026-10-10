@@ -128,4 +128,22 @@ class MigrationTest {
         assertEquals("site.example", chapter.readOnSourceId)
         assertNull(chapter.openedUrl)
     }
+
+    @Test
+    fun `version 5 to 6 keeps the library, with nothing synced yet`() = runBlocking {
+        create(5) {
+            execSQL("INSERT INTO series VALUES ('aztec', 'Aztec', '[]', 1, 2, 3, 'Reading', 0, NULL)")
+            execSQL("INSERT INTO source VALUES ('aztec', 'site.example', 0, 'site.example', 0, '1', '12', NULL, NULL)")
+            execSQL("INSERT INTO progress VALUES ('aztec', '12', 5, 40, 'site.example', 0.5)")
+        }
+
+        val db = AsconDatabase.open(context, name)
+        val series = RoomLibraryRepository(db).series("aztec").first()!!
+        db.close()
+
+        assertEquals(5, series.progress?.page)
+        assertNull(series.syncId)
+        assertNull(series.progress?.updatedAt)
+        assertNull(series.sources.single().updatedAt)
+    }
 }

@@ -97,7 +97,8 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                 container.accounts,
                 container.clock,
                 container.accountBackend,
-                container.google
+                container.google,
+                container.sync
             )
         }
     val browse = viewModel { BrowseViewModel(container.library) }

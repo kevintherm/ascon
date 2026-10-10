@@ -6,7 +6,9 @@ import com.ascon.core.data.opened
 import com.ascon.core.data.withProgressSource
 import com.ascon.core.model.Series
 import com.ascon.core.model.Site
+import com.ascon.core.model.SyncRecord
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -23,7 +25,8 @@ import kotlinx.coroutines.sync.withLock
 class RoomLibraryRepository(
     database: AsconDatabase,
     private val seed: Seed? = null,
-    private val newId: () -> String = { UUID.randomUUID().toString() }
+    private val newId: () -> String = { UUID.randomUUID().toString() },
+    private val clock: Clock = Clock.systemUTC()
 ) : LibraryRepository {
     /** Series and sites to start an empty library with. */
     class Seed(val series: List<Series>, val sites: List<Site>)
@@ -40,7 +43,7 @@ class RoomLibraryRepository(
 
     override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series {
         ensureSeeded()
-        return dao.seriesFor(title, host, chapter, url, newId)
+        return dao.seriesFor(title, host, chapter, url, clock.instant(), newId)
     }
 
     override suspend fun selectSource(seriesId: String, sourceId: String) = change(seriesId) {
@@ -62,7 +65,17 @@ class RoomLibraryRepository(
 
     private suspend fun change(seriesId: String, transform: (Series) -> Series) {
         ensureSeeded()
-        dao.change(seriesId, transform)
+        dao.change(seriesId, clock.instant(), transform)
+    }
+
+    override suspend fun syncRecords(since: Instant?): List<SyncRecord> {
+        ensureSeeded()
+        return dao.syncRecords(since)
+    }
+
+    override suspend fun applyPulled(records: List<SyncRecord>) {
+        ensureSeeded()
+        dao.applyPulled(records, newId)
     }
 
     private fun <T> ready(flow: Flow<T>): Flow<T> = flow {

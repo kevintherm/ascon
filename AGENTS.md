@@ -160,13 +160,14 @@ docs/               ADRs and longer notes
 
 ### Sync
 
-Being built from 2026-10-10, step 2 of Next steps. Decided while planning:
+Built on 2026-10-10, step 2 of Next steps. Decided while planning:
 
 - A signed-in phone syncs the library with `/v1/sync/changes`: series, sources, progress and the library entry's status. Chapter read flags aren't sent; a phone marks the chapters before the synced place read, and the place's chapter once its last page is reached, as reading does.
 - Each series has a sync id, a name-based UUID from its title key, so the same series found on two phones before syncing becomes one. Sources, progress and the library entry take ids made from the series' sync id, and the source's domain.
 - Progress carries `page`, `pageCount` and `pageOffset` beside `pagePosition`, and sources carry `lastChapter`, added to the contract for this.
 - Fields of one entity change together and share one `updatedAt`. The phone pushes entities changed since its last push, pulls from its own cursor, and applies a pulled field only when it is newer than the phone's own.
-- The phone syncs when the app starts, a few seconds after the library changes, and from Sync now in the account sheet, which shows Last synced. Series can't be removed yet, so there are no tombstones from the phone.
+- The phone syncs when the app starts signed in or an account signs in, 5 seconds after the library last changed, and from Sync now in the account sheet, which shows Last synced. Another phone's changes arrive on those syncs; there is no push message or periodic job yet. Series can't be removed yet, so there are no tombstones from the phone, and pulled tombstones are ignored. A series another phone dropped shows as paused, since the app has no Dropped status.
+- `LibrarySyncer` in `core/data` runs a sync, `LibrarySync.kt` holds the rules shared by Room and the fake, and `HttpSyncBackend` in `engine/detection` speaks the contract. The pull cursor, last push and last sync are kept with the account in DataStore and forgotten on sign-out. A token the server refuses signs the phone out, as the quota call does.
 
 ### Reader mode
 
@@ -241,7 +242,7 @@ AI detection means asking the server to generate a rule for a site that has none
 - The account also carries billing and the premium entitlement.
 - Sign-in is OAuth, Google first. On Android use Credential Manager to get a Google ID token; the server verifies it and issues its own account token. Other providers come later, and email with a password is not planned.
 - Built on 2026-10-10: the app asks Credential Manager's Sign in with Google option for an ID token issued to the OAuth Web client, `ascon.googleWebClientId` in the untracked `local.properties`. `POST /v1/sessions` checks it against Google's published keys, its issuer, its audience `ASCON_GOOGLE_CLIENT_ID` and its expiry, and finds or creates the account by Google's user id. The server stores only that id; the name and email stay on the phone. Each sign-in gets its own account token, kept in app-private DataStore with backups off. Signing out forgets the account on the phone first, so it works offline, then ends the token with `DELETE /v1/sessions/current`. A token the server refuses when the account sheet loads the quota signs the phone out. Debug builds need the debug signing certificate's SHA-1 on the Android OAuth client, and release builds will need theirs.
-- Settings follows SettingsSignedOut, SettingsSigningIn, SettingsSignInFailed, AccountSheet, AccountSheetFree and AccountSignOut. Not built yet: the sheet's Upgrade button, AI translation row and Last synced row, which wait for billing, translation and sync; and FixDetectionSignedOut and FixDetectionNoQuota, which wait for the fix-detection sheet. Until sync exists, the Settings header shows the account's email in place of the sync time. Before release, the Sign in with Google button needs Google's own G logo, as Google's branding guidelines ask.
+- Settings follows SettingsSignedOut, SettingsSigningIn, SettingsSignInFailed, AccountSheet, AccountSheetFree and AccountSignOut. Not built yet: the sheet's Upgrade button and AI translation row, which wait for billing and translation; and FixDetectionSignedOut and FixDetectionNoQuota, which wait for the fix-detection sheet. The Settings header shows the account's email until the first sync finishes, then the sync time. Before release, the Sign in with Google button needs Google's own G logo, as Google's branding guidelines ask.
 - Brand gradient marks premium in the UI.
 
 ## Design
@@ -293,7 +294,7 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 Proposed on 2026-10-10 after sign-in was built; the owner has not confirmed the order yet.
 
 1. Done: progress follows what the user reads, per Series identity.
-2. Cloud sync in the app. The backend's sync endpoints exist; the app side, the account sheet's Last synced row and Sync now are not built.
+2. Done: cloud sync in the app, per Sync.
 3. Series matching through AniList and MangaUpdates search, with the fix-detection sheet. Build the report protections in Detection and the daily AI limit in Backend with it.
 4. Still open after those: new-chapter alerts, downloads, deploying the backend, billing and Premium, then translation.
 

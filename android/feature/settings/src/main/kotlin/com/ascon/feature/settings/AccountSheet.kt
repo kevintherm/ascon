@@ -20,7 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,8 +31,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.ascon.core.data.SyncStatus
 import com.ascon.core.designsystem.component.BottomSheet
 import com.ascon.core.designsystem.component.ConfirmDialog
+import com.ascon.core.designsystem.component.Dot
 import com.ascon.core.designsystem.component.ProgressTrack
 import com.ascon.core.designsystem.component.solidFill
 import com.ascon.core.designsystem.icon.AsconIcons
@@ -37,12 +42,14 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconRadius
 import com.ascon.core.designsystem.theme.AsconType
 import com.ascon.core.model.AccountState
+import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /** The badge and sheet buttons share no corner with what holds them, so they keep the drawn radii. */
 private val BadgeShape = RoundedCornerShape(9.dp)
 private val ButtonShape = RoundedCornerShape(14.dp)
+private val SmallButtonShape = RoundedCornerShape(12.dp)
 
 private val GroupShape = RoundedCornerShape(AsconRadius.Card)
 
@@ -50,13 +57,16 @@ private val GroupShape = RoundedCornerShape(AsconRadius.Card)
 private val ResetDate = DateTimeFormatter.ofPattern("MMM d").withZone(ZoneOffset.UTC)
 
 /**
- * The account sheet, per AccountSheet and AccountSheetFree. The Upgrade button, AI
- * translation and sync rows wait for billing, translation and sync.
+ * The account sheet, per AccountSheet and AccountSheetFree. The Upgrade button and AI
+ * translation row wait for billing and translation.
  */
 @Composable
 internal fun AccountSheet(
     account: AccountState.SignedIn?,
     quota: QuotaState,
+    sync: SyncStatus?,
+    now: Instant,
+    onSyncNow: () -> Unit,
     onDismiss: () -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -100,6 +110,10 @@ internal fun AccountSheet(
             PlanRow(account.premium)
             Box(Modifier.fillMaxWidth().height(1.dp).background(AsconColors.DividerOnGround))
             DetectionsRow(quota)
+            if (sync != null) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(AsconColors.DividerOnGround))
+                SyncRow(account.lastSyncedAt, sync, now, onSyncNow)
+            }
         }
         Row(
             Modifier
@@ -178,6 +192,59 @@ private fun DetectionsRow(quota: QuotaState) {
             )
         } else if (meta != null) {
             Text(meta, style = AsconType.Meta, color = AsconColors.TextMuted)
+        }
+    }
+}
+
+/** Last synced and Sync now, per AccountSheet. */
+@Composable
+private fun SyncRow(syncedAt: Instant?, sync: SyncStatus, now: Instant, onSyncNow: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.account_last_synced), style = AsconType.RowTitleRead)
+            Row(
+                Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                when {
+                    sync == SyncStatus.Failed -> Dot(AsconColors.Danger)
+                    sync == SyncStatus.Idle && syncedAt != null -> Dot(AsconColors.Success)
+                }
+                Text(
+                    when {
+                        sync == SyncStatus.Syncing -> stringResource(R.string.account_syncing)
+                        sync == SyncStatus.Failed -> stringResource(R.string.account_sync_failed)
+                        syncedAt != null -> syncedText(syncedAt, now, short = true)
+                        else -> stringResource(R.string.account_not_synced)
+                    },
+                    style = AsconType.Meta,
+                    color = AsconColors.TextMuted
+                )
+            }
+        }
+        val syncing = sync == SyncStatus.Syncing
+        Row(
+            Modifier
+                .height(40.dp)
+                .clip(SmallButtonShape)
+                .background(AsconColors.Surface)
+                .clickable(enabled = !syncing, role = Role.Button, onClick = onSyncNow)
+                .padding(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val ink = if (syncing) AsconColors.TextSubtle else AsconColors.Ink
+            Icon(AsconIcons.Reload, null, tint = ink, modifier = Modifier.size(16.dp))
+            Text(
+                stringResource(R.string.account_sync_now),
+                style = AsconType.Button.copy(fontSize = 14.sp),
+                color = ink
+            )
         }
     }
 }

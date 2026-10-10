@@ -58,7 +58,7 @@ internal fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int, pageO
 }
 
 /** The chapters with those before [chapter] read if [before], and [chapter] itself if [it]. */
-private fun List<Chapter>.markedRead(chapter: BigDecimal, before: Boolean, it: Boolean): List<Chapter> = map { c ->
+internal fun List<Chapter>.markedRead(chapter: BigDecimal, before: Boolean, it: Boolean): List<Chapter> = map { c ->
     val read = (before && c.number < chapter) || (it && c.number.compareTo(chapter) == 0)
     if (read) c.copy(read = true, isNew = false) else c
 }
@@ -84,7 +84,7 @@ internal fun Series.opened(chapter: BigDecimal, at: Instant): Series {
 }
 
 /** The chapter list with [number] in it. A chapter the user opened on a site exists, even if no check found it yet. */
-private fun Series.withChapter(number: BigDecimal): List<Chapter> =
+internal fun Series.withChapter(number: BigDecimal): List<Chapter> =
     if (chapters.any { it.number.compareTo(number) == 0 }) {
         chapters
     } else {
@@ -117,7 +117,11 @@ private fun Series.withSource(host: String, chapter: BigDecimal, url: String): S
 }
 
 /** A series first seen on [host] at [chapter], page [url], with nothing read yet. */
-internal fun newSeries(id: String, title: String, host: String, chapter: BigDecimal, url: String): Series = Series(
+internal fun newSeries(id: String, title: String, host: String, chapter: BigDecimal, url: String): Series =
+    newSeries(id, title).withSite(host, chapter, url)
+
+/** A series titled [title] with no sources and nothing read yet. */
+internal fun newSeries(id: String, title: String): Series = Series(
     id = id,
     title = title,
     altTitles = emptyList(),
@@ -128,7 +132,7 @@ internal fun newSeries(id: String, title: String, host: String, chapter: BigDeci
     chapters = emptyList(),
     progress = null,
     lastReadAt = null
-).withSite(host, chapter, url)
+)
 
 // Until covers load, a series gets one of these, picked by its title so it stays the same.
 private val PlaceholderCovers = listOf(

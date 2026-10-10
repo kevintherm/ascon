@@ -22,7 +22,11 @@ data class Series(
     /** Every known chapter, oldest first. */
     val chapters: List<Chapter>,
     val progress: ReadingProgress?,
-    val lastReadAt: Instant?
+    val lastReadAt: Instant?,
+    /** The id the series syncs under, see [seriesSyncId]. Null until the series is first saved. */
+    val syncId: String? = null,
+    /** When [status] last changed on this phone, or the change synced from another. */
+    val statusUpdatedAt: Instant? = null
 ) {
     val latestChapter: Chapter? get() = chapters.lastOrNull()
 
@@ -60,7 +64,9 @@ data class Source(
     val firstChapter: BigDecimal,
     val lastChapter: BigDecimal,
     /** The latest chapter page opened on this site, for finding its other chapters. */
-    val lastOpened: ChapterLink? = null
+    val lastOpened: ChapterLink? = null,
+    /** When [lastOpened] last changed, for sync. */
+    val updatedAt: Instant? = null
 ) {
     fun chapterUrl(number: BigDecimal): String? = lastOpened?.let { chapterUrl(it.url, it.chapter, number) }
 }
@@ -92,7 +98,9 @@ data class ReadingProgress(
     val page: Int,
     val pageCount: Int,
     val sourceId: String,
-    val pageOffset: Float = 0f
+    val pageOffset: Float = 0f,
+    /** When the place last changed, for sync. */
+    val updatedAt: Instant? = null
 ) {
     val fraction: Float get() = if (pageCount <= 0) 0f else page.toFloat() / pageCount
 }

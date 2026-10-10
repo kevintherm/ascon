@@ -22,6 +22,11 @@
     <string name="account_detections_resets">resets %1$s</string>
     <string name="account_detections_loading">Checking…</string>
     <string name="account_detections_failed">Couldn\'t check. Open this again to retry.</string>
+    <string name="account_last_synced">Last synced</string>
+    <string name="account_sync_now">Sync now</string>
+    <string name="account_syncing">Syncing…</string>
+    <string name="account_sync_failed">Couldn\'t sync. Check your connection.</string>
+    <string name="account_not_synced">Not synced yet</string>
     <string name="account_sign_out">Sign out</string>
     <string name="account_sign_out_title">Sign out of Ascon?</string>
     <string name="account_sign_out_body">Your library and progress stay on this phone. Sync and AI detection stop until you sign in again.</string>
@@ -36,6 +41,16 @@
         <item quantity="other">Synced %d h ago</item>
     </plurals>
     <string name="settings_synced_on">Synced %1$s</string>
+    <!-- Under Last synced in the account sheet, which already says synced. -->
+    <string name="account_synced_now">Just now</string>
+    <plurals name="account_synced_minutes">
+        <item quantity="one">%d min ago</item>
+        <item quantity="other">%d min ago</item>
+    </plurals>
+    <plurals name="account_synced_hours">
+        <item quantity="one">%d h ago</item>
+        <item quantity="other">%d h ago</item>
+    </plurals>
 
     <string name="settings_protection">Protection</string>
     <string name="settings_block_ads">Block ads and trackers</string>

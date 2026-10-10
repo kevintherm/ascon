@@ -23,7 +23,7 @@ internal fun SeriesRecord.toModel(): Series {
             } else {
                 null
             }
-            Source(it.id, it.siteName, it.official, it.firstChapter, it.lastChapter, link)
+            Source(it.id, it.siteName, it.official, it.firstChapter, it.lastChapter, link, it.updatedAt)
         },
         chapters = chapters.sortedBy { it.number }.map {
             Chapter(
@@ -37,8 +37,12 @@ internal fun SeriesRecord.toModel(): Series {
                 it.openedOnSourceId
             )
         },
-        progress = progress?.let { ReadingProgress(it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset) },
-        lastReadAt = series.lastReadAt
+        progress = progress?.let {
+            ReadingProgress(it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset, it.updatedAt)
+        },
+        lastReadAt = series.lastReadAt,
+        syncId = series.syncId,
+        statusUpdatedAt = series.statusUpdatedAt
     )
 }
 
@@ -55,7 +59,9 @@ internal fun Series.toRecord(): SeriesRecord {
             placeholder.bottom,
             status,
             linkedToAniList,
-            lastReadAt
+            lastReadAt,
+            syncId,
+            statusUpdatedAt
         ),
         sources = sources.mapIndexed { position, source ->
             SourceEntity(
@@ -67,7 +73,8 @@ internal fun Series.toRecord(): SeriesRecord {
                 source.firstChapter,
                 source.lastChapter,
                 source.lastOpened?.url,
-                source.lastOpened?.chapter
+                source.lastOpened?.chapter,
+                source.updatedAt
             )
         },
         chapters = chapters.map {
@@ -83,7 +90,9 @@ internal fun Series.toRecord(): SeriesRecord {
                 it.openedOnSourceId
             )
         },
-        progress = progress?.let { ProgressEntity(id, it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset) }
+        progress = progress?.let {
+            ProgressEntity(id, it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset, it.updatedAt)
+        }
     )
 }
 

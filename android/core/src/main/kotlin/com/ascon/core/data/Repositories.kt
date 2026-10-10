@@ -9,6 +9,9 @@ import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.Series
 import com.ascon.core.model.SettingsSummary
 import com.ascon.core.model.Site
+import com.ascon.core.model.SyncPage
+import com.ascon.core.model.SyncPosition
+import com.ascon.core.model.SyncRecord
 import java.math.BigDecimal
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
@@ -33,9 +36,8 @@ interface LibraryRepository {
     suspend fun selectSource(seriesId: String, sourceId: String)
 
     /**
-     * Records that the user opened [chapter] of [seriesId]. Earlier chapters count as read
-     * and progress moves to [chapter]. Opening an older chapter again never moves
-     * progress back.
+     * Records that the user opened [chapter] of [seriesId]. Progress moves to it only while
+     * the chapter in progress wasn't read into, as LibraryChanges.kt says.
      */
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
 
@@ -53,6 +55,12 @@ interface LibraryRepository {
         at: Instant,
         pageOffset: Float = 0f
     )
+
+    /** What to push for sync: the parts changed after [since], or everything when it is null. */
+    suspend fun syncRecords(since: Instant?): List<SyncRecord>
+
+    /** Applies [records] pulled from the server, keeping parts this phone changed later. */
+    suspend fun applyPulled(records: List<SyncRecord>)
 }
 
 /**
@@ -121,9 +129,27 @@ interface AccountRepository {
 
     suspend fun signedIn(session: AccountSession)
 
-    /** Forgets the account on this device. The library stays. */
+    /** Forgets the account on this device, and where sync stood. The library stays. */
     suspend fun signedOut()
+
+    /** Where sync stands for the account signed in now. */
+    suspend fun syncPosition(): SyncPosition
+
+    /** Saves [position], unless the account signed in now is no longer [token]'s. */
+    suspend fun synced(token: String, position: SyncPosition)
 }
+
+/** The sync calls of the Ascon backend, contracts/openapi.yaml. */
+interface SyncBackend {
+    /** Throws [AccountRefused] when [token] no longer works and [java.io.IOException] on other failures. */
+    suspend fun push(token: String, records: List<SyncRecord>)
+
+    /** Throws [SyncCursorExpired] when [cursor] is too old, else as [push] does. */
+    suspend fun pull(token: String, cursor: String?): SyncPage
+}
+
+/** The pull cursor is too old; pull everything again. */
+class SyncCursorExpired : java.io.IOException("sync cursor expired")
 
 /** The account calls of the Ascon backend, contracts/openapi.yaml. */
 interface AccountBackend {

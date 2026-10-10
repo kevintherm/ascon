@@ -253,14 +253,24 @@ private const val MINUTES_PER_HOUR = 60L
 private const val HOURS_PER_DAY = 24L
 private val SyncDate = DateTimeFormatter.ofPattern("MMM d")
 
+/** How long ago [at] was, as "Synced 2 min ago", or "2 min ago" when [short] for a row that names it. */
 @Composable
-private fun syncedText(at: Instant, now: Instant): String {
+internal fun syncedText(at: Instant, now: Instant, short: Boolean = false): String {
     val minutes = Duration.between(at, now).toMinutes().coerceAtLeast(0)
     val hours = minutes / MINUTES_PER_HOUR
     return when {
-        minutes < 1 -> stringResource(R.string.settings_synced_now)
-        hours < 1 -> pluralStringResource(R.plurals.settings_synced_minutes, minutes.toInt(), minutes.toInt())
-        hours < HOURS_PER_DAY -> pluralStringResource(R.plurals.settings_synced_hours, hours.toInt(), hours.toInt())
+        minutes < 1 -> stringResource(if (short) R.string.account_synced_now else R.string.settings_synced_now)
+        hours < 1 -> pluralStringResource(
+            if (short) R.plurals.account_synced_minutes else R.plurals.settings_synced_minutes,
+            minutes.toInt(),
+            minutes.toInt()
+        )
+        hours < HOURS_PER_DAY -> pluralStringResource(
+            if (short) R.plurals.account_synced_hours else R.plurals.settings_synced_hours,
+            hours.toInt(),
+            hours.toInt()
+        )
+        short -> at.atZone(ZoneId.systemDefault()).format(SyncDate)
         else -> stringResource(R.string.settings_synced_on, at.atZone(ZoneId.systemDefault()).format(SyncDate))
     }
 }

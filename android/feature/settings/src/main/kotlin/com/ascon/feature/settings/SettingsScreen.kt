@@ -38,6 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ascon.core.data.SyncStatus
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.designsystem.component.Eyebrow
 import com.ascon.core.designsystem.component.GroupedCard
@@ -63,6 +64,7 @@ data class SettingsActions(
     val onAccount: () -> Unit = {},
     val onSignIn: () -> Unit = {},
     val onSignOut: () -> Unit = {},
+    val onSyncNow: () -> Unit = {},
     /** Whether the account sheet or the sign-out dialog is open, so the app can hide its nav bar. */
     val onOverlay: (Boolean) -> Unit = {},
     val onBlockAds: (Boolean) -> Unit = {},
@@ -88,6 +90,7 @@ fun SettingsRoute(viewModel: SettingsViewModel, actions: SettingsActions, bottom
             onAccount = viewModel::loadQuota,
             onSignIn = { viewModel.signIn(context) },
             onSignOut = viewModel::signOut,
+            onSyncNow = viewModel::syncNow,
             onBlockAds = viewModel::setBlockAds,
             onBlockPopups = viewModel::setBlockPopups,
             onKeepScreenOn = viewModel::setKeepScreenOn
@@ -150,6 +153,9 @@ fun SettingsScreen(
         AccountSheet(
             account = signedIn.takeIf { overlay == AccountOverlay.Sheet },
             quota = state.quota,
+            sync = state.sync,
+            now = state.now,
+            onSyncNow = actions.onSyncNow,
             onDismiss = { overlay = AccountOverlay.None },
             onSignOut = { overlay = AccountOverlay.SignOut }
         )
@@ -305,6 +311,8 @@ private fun PlusCard(premium: Boolean, onClick: () -> Unit) {
     }
 }
 
+private const val PREVIEW_SYNCED_SECONDS_AGO = 120L
+
 internal fun previewSettingsState(
     signedIn: Boolean = true,
     signIn: SignInStatus = SignInStatus.Idle,
@@ -314,7 +322,12 @@ internal fun previewSettingsState(
     return SettingsUiState(
         loading = false,
         account = if (signedIn) {
-            AccountState.SignedIn("Kevin", "kevin@example.com", premium = premium)
+            AccountState.SignedIn(
+                "Kevin",
+                "kevin@example.com",
+                premium = premium,
+                lastSyncedAt = now.minusSeconds(PREVIEW_SYNCED_SECONDS_AGO)
+            )
         } else {
             AccountState.SignedOut
         },
@@ -326,6 +339,7 @@ internal fun previewSettingsState(
                 Quota(limit = 10, remaining = 7, resetsAt = Instant.parse("2026-11-01T00:00:00Z"), premium = false)
             }
         ),
+        sync = SyncStatus.Idle,
         reader = ReaderSettings(),
         summary = FakeLibrary.settingsSummary,
         now = now

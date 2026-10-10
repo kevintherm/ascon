@@ -8,11 +8,13 @@ import com.ascon.core.data.AccountRefused
 import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.GoogleAccounts
 import com.ascon.core.data.GoogleUnreachable
+import com.ascon.core.data.LibrarySyncer
 import com.ascon.core.data.NoGoogleAccount
 import com.ascon.core.data.ProtectionSettingsRepository
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.SettingsRepository
 import com.ascon.core.data.SignInCancelled
+import com.ascon.core.data.SyncStatus
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.ProtectionSettings
 import com.ascon.core.model.Quota
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -66,6 +69,8 @@ data class SettingsUiState(
     val account: AccountState = AccountState.SignedOut,
     val signIn: SignInStatus = SignInStatus.Idle,
     val quota: QuotaState = QuotaState.Loading,
+    /** Null in builds without a backend, where nothing syncs. */
+    val sync: SyncStatus? = null,
     /** The reader settings for all series. */
     val reader: ReaderSettings = ReaderSettings(),
     val protection: ProtectionSettings = ProtectionSettings(),
@@ -82,7 +87,8 @@ class SettingsViewModel(
     private val clock: Clock = Clock.systemDefaultZone(),
     /** Null in builds without a backend, where signing in isn't available. */
     private val backend: AccountBackend? = null,
-    private val google: GoogleAccounts? = null
+    private val google: GoogleAccounts? = null,
+    private val syncer: LibrarySyncer? = null
 ) : ViewModel() {
     private val signIn = MutableStateFlow<SignInStatus>(SignInStatus.Idle)
     private val quota = MutableStateFlow<QuotaState>(QuotaState.Loading)
@@ -92,13 +98,15 @@ class SettingsViewModel(
             combine(reader.allSeries, protection.settings, settings.summary, ::Triple),
             accounts.account,
             signIn,
-            quota
-        ) { (reader, protection, summary), account, signIn, quota ->
+            quota,
+            syncer?.status ?: flowOf(null)
+        ) { (reader, protection, summary), account, signIn, quota, sync ->
             SettingsUiState(
                 loading = false,
                 account = account,
                 signIn = signIn,
                 quota = quota,
+                sync = sync,
                 reader = reader,
                 protection = protection,
                 summary = summary,
@@ -163,6 +171,11 @@ class SettingsViewModel(
                 QuotaState.Failed
             }
         }
+    }
+
+    fun syncNow() {
+        val syncer = syncer ?: return
+        viewModelScope.launch { syncer.sync() }
     }
 
     /** Forgets the account here first, so signing out works offline, then ends the token. */

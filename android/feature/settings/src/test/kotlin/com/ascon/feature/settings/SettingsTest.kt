@@ -6,9 +6,13 @@ import com.ascon.core.data.AccountBackend
 import com.ascon.core.data.AccountRefused
 import com.ascon.core.data.GoogleCredential
 import com.ascon.core.data.GoogleUnreachable
+import com.ascon.core.data.LibrarySyncer
 import com.ascon.core.data.NoGoogleAccount
 import com.ascon.core.data.SignInCancelled
+import com.ascon.core.data.SyncBackend
+import com.ascon.core.data.SyncStatus
 import com.ascon.core.data.fake.FakeAccountRepository
+import com.ascon.core.data.fake.FakeLibraryRepository
 import com.ascon.core.data.fake.FakeProtectionSettings
 import com.ascon.core.data.fake.FakeReaderSettings
 import com.ascon.core.data.fake.FakeSettingsRepository
@@ -16,9 +20,13 @@ import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.AccountSession
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.Quota
+import com.ascon.core.model.SyncPage
+import com.ascon.core.model.SyncRecord
 import com.github.takahirom.roborazzi.captureRoboImage
 import java.io.IOException
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -86,13 +94,14 @@ class SignInTest {
     private var picked: () -> GoogleCredential = { GoogleCredential("google-jwt", "Kevin", "kevin@example.com") }
     private val backend = FakeAccountBackend()
 
-    private fun viewModel(withBackend: Boolean = true) = SettingsViewModel(
+    private fun viewModel(withBackend: Boolean = true, syncer: LibrarySyncer? = null) = SettingsViewModel(
         FakeSettingsRepository(),
         FakeProtectionSettings(),
         FakeReaderSettings(),
         accounts,
         backend = backend.takeIf { withBackend },
-        google = { picked() }
+        google = { picked() },
+        syncer = syncer
     )
 
     private fun TestScope.collected(vm: SettingsViewModel) =
@@ -147,6 +156,28 @@ class SignInTest {
         backend.revoked = true
         vm.loadQuota()
         assertEquals(AccountState.SignedOut, vm.state.value.account)
+    }
+
+    @Test
+    fun `sync now syncs and shows when`() = runTest {
+        val server = object : SyncBackend {
+            override suspend fun push(token: String, records: List<SyncRecord>) = Unit
+
+            override suspend fun pull(token: String, cursor: String?) = SyncPage(emptyList(), "c-1", hasMore = false)
+        }
+        val at = Instant.parse("2026-10-10T08:00:00Z")
+        val syncer =
+            LibrarySyncer(
+                FakeLibraryRepository(emptyList(), emptyList()),
+                accounts,
+                server,
+                Clock.fixed(at, ZoneOffset.UTC)
+            )
+        val vm = collected(viewModel(syncer = syncer))
+        vm.signIn(context)
+        vm.syncNow()
+        assertEquals(SyncStatus.Idle, vm.state.value.sync)
+        assertEquals(at, (vm.state.value.account as AccountState.SignedIn).lastSyncedAt)
     }
 
     @Test
