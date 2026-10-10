@@ -143,11 +143,25 @@ class FakeLibraryRepositoryTest {
     }
 
     @Test
-    fun `reading a page of an older chapter keeps progress`() = runBlocking {
+    fun `reading into an older chapter moves the place back and keeps read marks`() = runBlocking {
         val repo = FakeLibraryRepository(FakeLibrary.series(clock))
         repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(3), page = 2, pageCount = 20, at = clock.instant())
-        val progress = repo.series("aztec-turning-of-heaven").first()?.progress
-        assertEquals(BigDecimal(12), progress?.chapter)
-        assertEquals(34, progress?.page)
+        val aztec = repo.series("aztec-turning-of-heaven").first()!!
+        assertEquals(BigDecimal(3), aztec.progress?.chapter)
+        assertEquals(2, aztec.progress?.page)
+        assertEquals((1..11).toList(), aztec.chapters.filter { it.read }.map { it.number.toInt() })
+    }
+
+    @Test
+    fun `a chapter read into by mistake gives way to the one read next`() = runBlocking {
+        val repo = FakeLibraryRepository(emptyList(), emptyList())
+        val saga = repo.seriesFor("IRL Quest", "site.example", BigDecimal(211), "https://site.example/quest/211").id
+        repo.recordPageRead(saga, BigDecimal(211), page = 15, pageCount = 40, at = clock.instant())
+        for (chapter in 1..3) {
+            repo.recordPageRead(saga, BigDecimal(chapter), page = 25, pageCount = 25, at = clock.instant())
+        }
+        val series = repo.series(saga).first()!!
+        assertEquals(BigDecimal(3), series.progress?.chapter)
+        assertEquals(listOf(1, 2, 3), series.chapters.filter { it.read }.map { it.number.toInt() })
     }
 }

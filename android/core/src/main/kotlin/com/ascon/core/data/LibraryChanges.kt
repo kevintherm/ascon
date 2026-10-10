@@ -42,7 +42,9 @@ internal fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int, pageO
     val finished = page >= pageCount
     val counts = page >= PAGES_TO_COUNT || finished
     val same = current != null && current.chapter.compareTo(chapter) == 0
-    val moves = current != null && !same && counts && (!readIntoProgress || chapter > current.chapter)
+    // The place follows the chapter read into last, back as well as forward, so a chapter
+    // read by mistake gives way to the one read next.
+    val moves = current != null && !same && counts
     // Reading into a chapter, here or by moving the place to it, reads the ones before it.
     val readsBefore = moves || (same && counts && !readIntoProgress)
     val place = (if (same || moves) current else null) ?: return this
