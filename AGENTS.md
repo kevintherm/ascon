@@ -137,6 +137,14 @@ docs/               ADRs and longer notes
 
 **Health:** successful extractions raise confidence; empty results or backward chapter jumps lower it. Below a threshold the rule is suspect and regenerated, keeping the previous version for rollback. Users are asked only when a rule is suspect, and several reports are needed before regeneration so one confused user cannot break a working rule.
 
+**Planned, agreed with the owner on 2026-10-10: reports and health that reinstalls can't fake.** Today a device counts once per rule, but a new device is free: three reinstalls, or three `POST /v1/devices` calls, make a rule suspect, and one device can send counts that sink a rule's confidence. Build this with the fix-detection sheet, before launch:
+
+- A device's report counts only once that device has sent health counts for the site, so it really read there. This works from day one.
+- A report also counts only from a device older than a minimum age. It is off in early access, where every report matters, and turned on as users grow.
+- Each device can add only so many extractions per rule per day, kept in a small per-device daily tally that is pruned. Health is added up per rule today, so this tally is new.
+- The limits are server settings, so tuning them needs a restart, not an app release: `ASCON_REPORT_DEVICES`, default 3, replacing the `ReportingDevices` constant; `ASCON_REPORT_MIN_DEVICE_AGE`, a Go duration, default 0, later about `72h`; `ASCON_REPORT_NEEDS_READS`, the health batches needed from the site, default 1; and `ASCON_HEALTH_DEVICE_CAP`, extractions per device per rule per day, default 50.
+- Not planned, decided by the owner: limits per IP address on registration or sign-in, even though openapi.yaml says registration is rate-limited by IP. Correct the spec when this is built.
+
 **Fingerprint:** simhash of the generator meta tag, theme class names and DOM skeleton, so a new mirror domain inherits an existing rule.
 
 ### Series identity
@@ -198,6 +206,7 @@ backend/
 - Sync: last-write-wins per field with `updated_at` and tombstones.
 - Rule payloads are signed with Ed25519; the app verifies before use.
 - AI generation quotas are per account, sized by tier. A request joining a generation already running for the same domain does not use quota. Each domain is generated once, then shared with everyone.
+- Planned, agreed with the owner on 2026-10-10: a server-wide daily limit on AI generations, `ASCON_LLM_DAILY_LIMIT`, so many farmed free accounts can't run up the LLM bill. Requests past the limit are told to try tomorrow and use no quota. A device token carries no AI quota, so reinstalling doesn't farm quota; farming takes many Google accounts.
 
 ## Accounts and monetization
 
@@ -267,6 +276,15 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 15. Done: the browser toolbar is docked at the bottom, decided with the owner after trying the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay. The toolbar's Reader button was later replaced by the tracked page chip, as Reader mode says.
 16. Done: the menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
 17. Done: every bottom sheet can be dragged down to close. A sheet taller than the screen scrolls under its grabber, and pulling down at the top of its scroll drags it.
+
+## Next steps
+
+Proposed on 2026-10-10 after sign-in was built; the owner has not confirmed the order yet.
+
+1. Fix Known bug 2, so progress follows what the user reads, not the highest chapter opened. Sync would otherwise copy wrong progress to every device.
+2. Cloud sync in the app. The backend's sync endpoints exist; the app side, the account sheet's Last synced row and Sync now are not built.
+3. Series matching through AniList and MangaUpdates search, with the fix-detection sheet. Build the report protections in Detection and the daily AI limit in Backend with it.
+4. Still open after those: new-chapter alerts, downloads, deploying the backend, billing and Premium, then translation.
 
 ## Known bugs
 
