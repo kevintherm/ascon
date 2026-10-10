@@ -74,17 +74,35 @@ class BrowseViewModel(library: LibraryRepository) : ViewModel() {
 }
 
 @Composable
-fun BrowseRoute(viewModel: BrowseViewModel, onOpen: (String) -> Unit, bottomPadding: Dp) {
+fun BrowseRoute(
+    viewModel: BrowseViewModel,
+    onOpen: (String) -> Unit,
+    bottomPadding: Dp,
+    openPage: OpenPage? = null,
+    onReturnToPage: () -> Unit = {},
+    onClosePage: () -> Unit = {}
+) {
     val sites by viewModel.sites.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val inPreview = LocalInspectionMode.current
     val health = remember { if (inPreview) WebViewHealth.Ok else webViewHealth(context) }
-    BrowseScreen(sites, health, onOpen, bottomPadding)
+    BrowseScreen(sites, health, onOpen, bottomPadding, openPage, onReturnToPage, onClosePage)
 }
 
-/** The Browse tab: an address field and the sites the user reads on. Pages open in a browser tab. */
+/**
+ * The Browse tab: an address field, the page the browser kept, and the sites the user
+ * reads on. Pages open in a browser tab.
+ */
 @Composable
-fun BrowseScreen(sites: List<Site>, health: WebViewHealth, onOpen: (String) -> Unit, bottomPadding: Dp) {
+fun BrowseScreen(
+    sites: List<Site>,
+    health: WebViewHealth,
+    onOpen: (String) -> Unit,
+    bottomPadding: Dp,
+    openPage: OpenPage? = null,
+    onReturnToPage: () -> Unit = {},
+    onClosePage: () -> Unit = {}
+) {
     StatusBarIcons(darkIcons = true)
     val scroll = rememberScrollState()
     Box(Modifier.fillMaxSize().background(AsconColors.Ground)) {
@@ -103,6 +121,7 @@ fun BrowseScreen(sites: List<Site>, health: WebViewHealth, onOpen: (String) -> U
             )
             AddressField(onSubmit = { addressToUrl(it)?.let(onOpen) })
             if (health != WebViewHealth.Ok) WebViewWarning(health)
+            openPage?.let { OpenPageCard(it, onReturnToPage, onClosePage) }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Eyebrow(stringResource(R.string.browse_your_sites))
                 if (sites.isEmpty()) {
@@ -239,5 +258,13 @@ private fun WebViewWarning(health: WebViewHealth) {
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun BrowsePreview() {
-    AsconTheme { BrowseScreen(FakeLibrary.sites, WebViewHealth.Ok, onOpen = {}, bottomPadding = 120.dp) }
+    AsconTheme {
+        BrowseScreen(
+            FakeLibrary.sites,
+            WebViewHealth.Ok,
+            onOpen = {},
+            bottomPadding = 120.dp,
+            openPage = BrowserUiState(url = PreviewCard.url, card = PreviewCard).openPage()
+        )
+    }
 }

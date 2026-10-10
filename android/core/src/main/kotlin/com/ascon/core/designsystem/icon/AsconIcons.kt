@@ -46,6 +46,7 @@ object AsconIcons {
     val External = stroked("External", "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6")
     val ReaderOff = stroked("ReaderOff", "M4 5h7v14H4zM13 5h7v14h-7z", "M3 3l18 18")
     val Close = stroked("Close", "M6 6l12 12M18 6 6 18")
+    val ReturnTo = stroked("ReturnTo", "M9 14l-5-5 5-5", "M4 9h10a6 6 0 0 1 0 12h-3")
     val Reread = stroked("Reread", "M4 12a8 8 0 1 0 2.3-5.6", "M4 4v5h5")
     val Reload = stroked("Reload", "M20 12a8 8 0 1 1-2.34-5.66", "M20 4v4.5h-4.5")
     val Share = stroked("Share", "M12 4v11M7.5 8.5 12 4l4.5 4.5", "M6 13v6h12v-6")

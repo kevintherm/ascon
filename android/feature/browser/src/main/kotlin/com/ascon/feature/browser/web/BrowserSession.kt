@@ -38,6 +38,9 @@ interface BrowserEvents {
 
     fun onProgress(percent: Int)
 
+    /** The page's title, once the WebView has read it. */
+    fun onTitle(title: String) = Unit
+
     fun onHistoryChanged(url: String, canGoBack: Boolean, canGoForward: Boolean)
 
     fun onLoadError(url: String, kind: LoadErrorKind)
@@ -238,6 +241,10 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
     private inner class Chrome : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) {
             events?.onProgress(newProgress)
+        }
+
+        override fun onReceivedTitle(view: WebView, title: String?) {
+            title?.let { events?.onTitle(it) }
         }
 
         /**

@@ -52,7 +52,9 @@ data class BrowserUiState(
      * A chapter read as the site shows it, waiting to be scrolled to its saved page.
      * See [BrowserViewModel.resumeScrolled].
      */
-    val resumeScroll: ResumeScroll? = null
+    val resumeScroll: ResumeScroll? = null,
+    /** The page's own title, for Browse's Open page card when nothing was detected. */
+    val title: String? = null
 ) {
     val host: String get() = displayHost(url)
 }
@@ -152,6 +154,12 @@ class BrowserViewModel(
 
     override fun onProgress(percent: Int) {
         _state.update { it.copy(progress = percent) }
+    }
+
+    override fun onTitle(title: String) {
+        // Before a page names itself, WebView reports its address as the title.
+        val named = title.trim().takeUnless { it.isEmpty() || it.contains("://") }
+        _state.update { it.copy(title = named) }
     }
 
     override fun onHistoryChanged(url: String, canGoBack: Boolean, canGoForward: Boolean) {
@@ -434,7 +442,8 @@ class BrowserViewModel(
                 readerChapter = if (samePage) it.readerChapter else null,
                 blocked = if (samePage) it.blocked else BlockedCounts(),
                 readerUnavailable = samePage && it.readerUnavailable,
-                resumeScroll = if (samePage) it.resumeScroll else null
+                resumeScroll = if (samePage) it.resumeScroll else null,
+                title = if (samePage) it.title else null
             )
         }
     }

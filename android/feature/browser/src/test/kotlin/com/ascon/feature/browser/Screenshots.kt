@@ -28,6 +28,17 @@ class Screenshots {
     }
 
     @Test
+    fun browseOpenPage() = capture("browse_open_page") {
+        BrowseScreen(
+            FakeLibrary.sites,
+            WebViewHealth.Ok,
+            onOpen = {},
+            bottomPadding = 120.dp,
+            openPage = BrowserUiState(url = url, card = PreviewCard.copy(page = 34)).openPage()
+        )
+    }
+
+    @Test
     fun browseOutdatedWebView() = capture("browse_outdated_webview") {
         BrowseScreen(emptyList(), WebViewHealth.Outdated, onOpen = {}, bottomPadding = 120.dp)
     }

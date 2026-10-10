@@ -525,4 +525,23 @@ class BrowserViewModelTest {
 
         assertEquals(BrowserUiState(url = ""), vm.state.value)
     }
+
+    @Test
+    fun `Browse's open page names the detected series, else the page's title`() = runTest {
+        val vm = viewModel()
+        vm.onTitle("https://mangafire.to/read/aztec/chapter-14")
+        assertEquals(OpenPage(host = "mangafire.to", title = null), vm.state.value.openPage())
+        vm.onTitle("Aztec Chapter 14 - MangaFire")
+        assertEquals("Aztec Chapter 14 - MangaFire", vm.state.value.openPage()?.title)
+
+        vm.onDetection(chapter())
+        val page = vm.state.value.openPage()!!
+        assertEquals("Aztec Turning of Heaven", page.title)
+        assertEquals(BigDecimal(14), page.chapter)
+
+        vm.onPageStarted("https://mangafire.to/home")
+        assertEquals(OpenPage(host = "mangafire.to", title = null), vm.state.value.openPage())
+        vm.sessionEnded()
+        assertEquals(null, vm.state.value.openPage())
+    }
 }

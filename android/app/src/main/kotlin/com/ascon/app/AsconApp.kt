@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -45,6 +46,7 @@ import com.ascon.feature.browser.BrowserActions
 import com.ascon.feature.browser.BrowserRoute
 import com.ascon.feature.browser.BrowserViewModel
 import com.ascon.feature.browser.ProtectionViewModel
+import com.ascon.feature.browser.openPage
 import com.ascon.feature.browser.web.BrowserSessionHolder
 import com.ascon.feature.library.home.HomeActions
 import com.ascon.feature.library.home.HomeRoute
@@ -164,7 +166,18 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                         actions = LibraryActions(onOpenSeries = openSeries, onOpenSite = { tab = Tab.Browse }),
                         bottomPadding = bottomPadding
                     )
-                    Tab.Browse -> BrowseRoute(browse, onOpen = openUrl, bottomPadding = bottomPadding)
+                    Tab.Browse -> {
+                        val browserState by browser.state.collectAsStateWithLifecycle()
+                        BrowseRoute(
+                            browse,
+                            onOpen = openUrl,
+                            bottomPadding = bottomPadding,
+                            openPage = browserState.openPage()?.takeIf { closed.url == null },
+                            onReturnToPage = { backStack.push(Route.Browser(browserState.url)) },
+                            // As the menu's Close: the page goes once Undo has had its time.
+                            onClosePage = { closed.url = browserState.url }
+                        )
+                    }
                     Tab.Settings -> SettingsRoute(
                         viewModel = settings,
                         actions = SettingsActions(onOverlay = { tabOverlay = it }),
