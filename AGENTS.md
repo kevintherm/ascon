@@ -259,6 +259,21 @@ Found by the owner, to fix later.
 
 1. On asurascans.com the reader shows blurry pages. The site's pages are single 800 by about 11,600 px strips, and Coil decodes at most 4096 by 4096 px by default, so a page is decoded at about 282 by 4096 and stretched about 3.8 times to the screen's width. Raising the limit would mean bitmaps of about 67 MB per page. Fix with tiled decoding for tall strips, per the stack table, or by splitting tall pages into pieces as they decode. Chapter 150 of Trash of the Count's Family is free to test with; newer chapters ask to sign in.
 
+## Deferred until after the MVP launch
+
+Decided with the owner on 2026-10-10: the big features come first, and these smaller items wait until after the first MVP launch. Do not drop them.
+
+- Known bug 1, blurry Asura pages, fixed with tiled decoding or by splitting tall pages.
+- UI fix 8, the reader's background blur.
+- UI fix 13, the filter lists screen, with trusted sites and list updates every 4 days with ETag.
+- UI fix 14, the open source licenses screen. EasyList and EasyPrivacy must be credited under CC BY-SA, so check before launch whether a minimal credit is needed sooner.
+- The rest of UI fix 7: Finished, and the note line while alerts are on.
+- The rest of UI fix 9: ReaderEndComplete and the chapter end buttons for features not built yet.
+- The reader saving how far down a page the user is, as the site already does, so moving between the reader and the site lands exactly.
+- Keeping the browser toolbar on screen after a resume scroll.
+- The protection sheet's Send the site address switch, and Report broken page in the reader, once the backend endpoints exist.
+- The source switcher in the reader's Chapters sheet.
+
 ## Workflow
 
 How agents work in this repo, agreed with the owner to keep the loop fast.
