@@ -7,6 +7,11 @@
     <string name="series_continue">Continue Ch. %1$s</string>
     <string name="series_continue_page">Page %1$d of %2$d</string>
     <string name="series_start">Start Ch. %1$s</string>
+    <string name="series_read_chapter">Read Ch. %1$s</string>
+    <string name="series_only_on">Only on %1$s so far</string>
+    <string name="series_caught_up">Caught up</string>
+    <string name="series_latest">Ch. %1$s is latest</string>
+    <string name="series_reread">Reread from Chapter 1</string>
     <string name="series_download">Download chapters</string>
     <string name="series_alerts">New chapter alerts</string>
     <string name="series_reading_from">Reading from</string>

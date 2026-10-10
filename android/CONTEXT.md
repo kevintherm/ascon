@@ -282,6 +282,7 @@ object AsconIcons
     val External
     val ReaderOff
     val Close
+    val Reread
     val Reload
     val Share
     val Offline

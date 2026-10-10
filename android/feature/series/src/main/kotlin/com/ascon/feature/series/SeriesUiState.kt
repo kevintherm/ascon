@@ -32,6 +32,12 @@ sealed interface PrimaryAction {
     data class Continue(val chapter: String, val page: Int, val pageCount: Int) : PrimaryAction
 
     data class Start(val chapter: String) : PrimaryAction
+
+    /** Every chapter on this source is read, and [sourceName] already has [chapter]. */
+    data class Ahead(val chapter: String, val sourceName: String) : PrimaryAction
+
+    /** Every chapter Ascon knows of is read. Not a button: a status block with Reread. */
+    data class CaughtUp(val latest: String) : PrimaryAction
 }
 
 data class SourceCard(
@@ -80,12 +86,7 @@ fun seriesUiState(series: Series?, newestFirst: Boolean, today: LocalDate): Seri
             linkedToAniList = series.linkedToAniList,
             status = series.status
         ),
-        primaryAction = when {
-            progress != null && progress.page < progress.pageCount ->
-                PrimaryAction.Continue(progress.chapter.toChapterLabel(), progress.page, progress.pageCount)
-            else -> (series.upNext.firstOrNull() ?: series.chapters.firstOrNull { !it.read })
-                ?.let { PrimaryAction.Start(it.number.toChapterLabel()) }
-        },
+        primaryAction = primaryAction(series, currentSource),
         sources = series.sources.map { source ->
             SourceCard(
                 id = source.id,
@@ -99,6 +100,26 @@ fun seriesUiState(series: Series?, newestFirst: Boolean, today: LocalDate): Seri
         newestFirst = newestFirst,
         today = today
     )
+}
+
+/**
+ * The main button, per notes.md: continue the chapter in progress, start the next unread
+ * one, point to the source that is ahead when this one has nothing more, or show that the
+ * user is caught up.
+ */
+private fun primaryAction(series: Series, currentSource: String?): PrimaryAction? {
+    val progress = series.progress
+    val next = series.upNext.firstOrNull() ?: series.chapters.firstOrNull { !it.read }
+    val here = currentSource?.let(series::source)
+    val ahead = next?.let { n -> series.sources.firstOrNull { it.lastChapter >= n.number } }
+    return when {
+        progress != null && progress.page < progress.pageCount ->
+            PrimaryAction.Continue(progress.chapter.toChapterLabel(), progress.page, progress.pageCount)
+        next == null -> series.latestChapter?.let { PrimaryAction.CaughtUp(it.number.toChapterLabel()) }
+        here != null && here.lastChapter < next.number && ahead != null ->
+            PrimaryAction.Ahead(next.number.toChapterLabel(), ahead.siteName)
+        else -> PrimaryAction.Start(next.number.toChapterLabel())
+    }
 }
 
 private fun Chapter.toRow(series: Series, progress: ReadingProgress?): ChapterRow {

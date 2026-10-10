@@ -64,8 +64,6 @@ import com.ascon.core.designsystem.component.CoverArt
 import com.ascon.core.designsystem.component.CoverTintBackground
 import com.ascon.core.designsystem.component.CoverTintLayout
 import com.ascon.core.designsystem.component.Eyebrow
-import com.ascon.core.designsystem.component.PillButton
-import com.ascon.core.designsystem.component.PillColors
 import com.ascon.core.designsystem.component.ProgressTrack
 import com.ascon.core.designsystem.component.RowDivider
 import com.ascon.core.designsystem.component.StatusBarIcons
@@ -73,7 +71,6 @@ import com.ascon.core.designsystem.component.StatusBarScrim
 import com.ascon.core.designsystem.component.chapterLabel
 import com.ascon.core.designsystem.component.coverTint
 import com.ascon.core.designsystem.component.labelRes
-import com.ascon.core.designsystem.component.overlapAbove
 import com.ascon.core.designsystem.component.solidFill
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconColors
@@ -89,6 +86,7 @@ data class SeriesActions(
     val onBack: () -> Unit = {},
     val onMore: () -> Unit = {},
     val onPrimary: () -> Unit = {},
+    val onReread: () -> Unit = {},
     val onDownload: () -> Unit = {},
     val onAlerts: () -> Unit = {},
     val onSelectSource: (String) -> Unit = {},
@@ -106,8 +104,8 @@ fun SeriesRoute(viewModel: SeriesViewModel, actions: SeriesActions) {
 }
 
 /** How far the content sheet slides up over the header. */
-private val SheetOverlap = 30.dp
-private val SheetShape = RoundedCornerShape(topStart = AsconRadius.Sheet, topEnd = AsconRadius.Sheet)
+internal val SheetOverlap = 30.dp
+internal val SheetShape = RoundedCornerShape(topStart = AsconRadius.Sheet, topEnd = AsconRadius.Sheet)
 
 @Composable
 fun SeriesScreen(state: SeriesUiState, actions: SeriesActions) {
@@ -248,63 +246,6 @@ private fun HeaderPill(text: String, checked: Boolean = false) {
     ) {
         if (checked) Icon(AsconIcons.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
         Text(text, style = AsconType.CaptionStrong, color = Color.White, maxLines = 1)
-    }
-}
-
-@Composable
-private fun Actions(action: PrimaryAction?, actions: SeriesActions) {
-    // The top of the content sheet: it slides over the header with rounded corners.
-    Row(
-        Modifier
-            .overlapAbove(SheetOverlap)
-            .clip(SheetShape)
-            .background(AsconColors.Ground)
-            .padding(start = 16.dp, end = 16.dp, top = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (action != null) {
-            PillButton(
-                onClick = actions.onPrimary,
-                colors = PillColors.Primary,
-                modifier = Modifier.weight(1f),
-                spacing = 10.dp
-            ) {
-                Icon(AsconIcons.Play, null, modifier = Modifier.size(18.dp))
-                Column {
-                    when (action) {
-                        is PrimaryAction.Continue -> {
-                            Text(
-                                stringResource(R.string.series_continue, action.chapter),
-                                style = AsconType.ButtonLarge
-                            )
-                            Text(
-                                stringResource(R.string.series_continue_page, action.page, action.pageCount),
-                                style = AsconType.Caption,
-                                color = Color.White.copy(alpha = 0.82f)
-                            )
-                        }
-                        is PrimaryAction.Start ->
-                            Text(stringResource(R.string.series_start, action.chapter), style = AsconType.ButtonLarge)
-                    }
-                }
-            }
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
-        CircleIconButton(
-            AsconIcons.Download,
-            stringResource(R.string.series_download),
-            actions.onDownload,
-            size = 54.dp,
-            iconSize = 22.dp
-        )
-        CircleIconButton(
-            AsconIcons.Bell,
-            stringResource(R.string.series_alerts),
-            actions.onAlerts,
-            size = 54.dp,
-            iconSize = 22.dp
-        )
     }
 }
 
