@@ -26,12 +26,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
@@ -145,7 +145,10 @@ fun Snackbar(
                 }
             )
             .offset { IntOffset(drag.value.x.roundToInt(), drag.value.y.coerceAtLeast(0f).roundToInt()) }
-            .alpha((1f - (abs(drag.value.x) + drag.value.y.coerceAtLeast(0f)) * FADE_PER_PX).coerceIn(0f, 1f))
+            .graphicsLayer {
+                // Read while drawing, so a drag redraws the bar without recomposing it.
+                alpha = (1f - (abs(drag.value.x) + drag.value.y.coerceAtLeast(0f)) * FADE_PER_PX).coerceIn(0f, 1f)
+            }
             .onGloballyPositioned { if (area != null) area.bounds = it.boundsInWindow() }
             .height(52.dp)
             .shadow(12.dp, shape)

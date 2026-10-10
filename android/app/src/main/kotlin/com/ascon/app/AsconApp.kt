@@ -105,7 +105,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                 container.sync
             )
         }
-    val browse = viewModel { BrowseViewModel(container.library) }
+    val browse = viewModel { BrowseViewModel(container.library, container.clock) }
     // The browser is single-tab and outlives its screen: closing it keeps the page loaded,
     // and the Browse nav item returns to it.
     val browser = viewModel {

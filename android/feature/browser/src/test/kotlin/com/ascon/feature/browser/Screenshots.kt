@@ -11,6 +11,7 @@ import com.ascon.feature.browser.web.BlockedKind
 import com.ascon.feature.browser.web.LoadErrorKind
 import com.ascon.feature.browser.web.WebViewHealth
 import com.github.takahirom.roborazzi.captureRoboImage
+import java.time.ZoneOffset
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -34,7 +35,10 @@ class Screenshots {
             WebViewHealth.Ok,
             onOpen = {},
             bottomPadding = 120.dp,
-            openPage = BrowserUiState(url = url, card = PreviewCard.copy(page = 34)).openPage()
+            openPage = BrowserUiState(url = url, card = PreviewCard.copy(page = 34)).openPage(),
+            recent = PreviewRecent,
+            today = PreviewToday,
+            zone = ZoneOffset.UTC
         )
     }
 

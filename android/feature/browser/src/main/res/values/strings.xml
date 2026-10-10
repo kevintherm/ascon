@@ -18,6 +18,12 @@
     <string name="browser_address">Address, %1$s</string>
     <string name="browser_menu">Menu</string>
     <string name="browser_tracking_short">p. %1$d</string>
+    <string name="browse_add_site">Add site</string>
+    <string name="browse_recently_visited">Recently visited</string>
+    <string name="browse_recent_title">%1$s · Ch. %2$s</string>
+    <string name="browse_recent_detail">%1$s · %2$s</string>
+    <string name="browse_today">Today</string>
+    <string name="browse_yesterday">Yesterday</string>
     <string name="browse_open_page">Open page · %1$s</string>
     <string name="browse_open_page_chapter">Chapter %1$s</string>
     <string name="browse_open_page_chapter_page">Chapter %1$s · p. %2$d</string>

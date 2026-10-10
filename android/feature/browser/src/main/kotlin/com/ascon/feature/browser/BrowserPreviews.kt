@@ -17,6 +17,8 @@ import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.Cover
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
 
 // Paper tones of the stand-in page, as in the Browser screen.
 private val PaperLight = Color(0xFFE8E4DC)
@@ -56,6 +58,28 @@ internal val PreviewCard = DetectionCard(
     seriesId = "aztec-turning-of-heaven",
     cover = Cover.Placeholder(0xFFE9A27A, 0xFFB33A3A, 0xFF2B1530),
     saved = true
+)
+
+internal val PreviewToday: LocalDate = LocalDate.parse("2026-10-11")
+
+/** Recently visited as BrowseIdle shows it. */
+internal val PreviewRecent = listOf(
+    RecentPage(
+        "Salt & Iron Kitchen",
+        BigDecimal(113),
+        "https://mangadex.org/c/113",
+        "MangaDex",
+        "MD",
+        Instant.parse("2026-10-10T20:00:00Z")
+    ),
+    RecentPage(
+        "The Last Lighthouse Keeper",
+        BigDecimal(47),
+        "https://mangaplus.shueisha.co.jp/viewer/47",
+        "MANGA Plus",
+        "M+",
+        Instant.parse("2026-10-08T20:00:00Z")
+    )
 )
 
 @Preview(widthDp = 390, heightDp = 844)
