@@ -99,7 +99,13 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     // The browser is single-tab and outlives its screen: closing it keeps the page loaded,
     // and the Browse nav item returns to it.
     val browser = viewModel {
-        BrowserViewModel(container.library, container.clock, createSavedStateHandle(), startUrl.orEmpty())
+        BrowserViewModel(
+            container.library,
+            container.reader,
+            container.clock,
+            createSavedStateHandle(),
+            startUrl.orEmpty()
+        )
     }
     val protection = viewModel { ProtectionViewModel(container.protection) }
     val browserSession = viewModel { BrowserSessionHolder(container.webViews) }.session

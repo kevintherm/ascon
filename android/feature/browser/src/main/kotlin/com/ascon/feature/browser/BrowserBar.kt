@@ -75,14 +75,14 @@ private val ShieldFill = Color(0x1AFFFFFF)
 /** How long the toolbar takes to slide out of view or back. */
 internal const val SLIDE_MS = 200
 
-/** The Reader button grows by this much when the detection card goes into it. */
+/** The tracking chip grows by this much when the detection card goes into it. */
 private const val PULSE_SCALE = 1.12f
 
 /**
- * The toolbar docked at the bottom, in thumb reach: Back, the address box, the Reader
- * button on a chapter page, and the menu. On a chapter read as the site shows it, the
- * Reader button becomes the page being tracked and a notice row sits above the toolbar
- * on the first load. While a page loads, a line runs along the top edge.
+ * The toolbar docked at the bottom, in thumb reach: Back, the address box, the page being
+ * tracked on a chapter page, and the menu. On a chapter the reader can't take, a notice
+ * row sits above the toolbar on the first load. While a page loads, a line runs along
+ * the top edge.
  */
 @Composable
 internal fun BrowserToolbar(
@@ -118,7 +118,7 @@ internal fun BrowserToolbar(
             } else {
                 ToolbarIcon(AsconIcons.Back, stringResource(R.string.browser_back), commands.onBack)
                 AddressBox(state, commands.onEdit, commands.onShield, Modifier.weight(1f))
-                ReaderSlot(state, commands.onOpenReader, pulse)
+                TrackingChip(state, pulse)
                 ToolbarIcon(AsconIcons.More, stringResource(R.string.browser_menu), commands.onMore)
             }
         }
@@ -132,7 +132,6 @@ internal class ToolbarCommands(
     val onCancelEdit: () -> Unit,
     val onSubmit: (String) -> Unit,
     val onShield: () -> Unit,
-    val onOpenReader: () -> Unit,
     val onMore: () -> Unit,
     val onDismissReaderUnavailable: () -> Unit
 )
@@ -214,49 +213,36 @@ private fun ShieldCount(count: Int, onClick: () -> Unit) {
 }
 
 /**
- * The Reader button on a chapter the reader can take. It pulses once each time [pulse]
- * changes, as the detection card goes into it. On a chapter read as the site shows it,
- * a neutral chip with the page being tracked stands in its place.
+ * The page being tracked on a chapter page, once the page on screen is known. It pulses
+ * once each time [pulse] changes, as the detection card goes into it. The reader opens
+ * from the card or the menu.
  */
 @Composable
-private fun ReaderSlot(state: BrowserUiState, onOpenReader: () -> Unit, pulse: Int) {
-    val card = state.card
-    val page = card?.page
-    when {
-        state.readerChapter != null -> {
-            val scale = remember { Animatable(1f) }
-            LaunchedEffect(pulse) {
-                if (pulse > 0) {
-                    scale.animateTo(PULSE_SCALE, tween(SLIDE_MS))
-                    scale.animateTo(1f, tween(SLIDE_MS))
-                }
-            }
-            ToolbarChip(
-                AsconIcons.Reader,
-                stringResource(R.string.browser_reader),
-                AsconColors.Accent,
-                AsconType.ButtonSmall.copy(fontWeight = FontWeight.Bold),
-                Modifier
-                    .graphicsLayer {
-                        scaleX = scale.value
-                        scaleY = scale.value
-                    }
-                    .clickable(role = Role.Button, onClick = onOpenReader)
-            )
-        }
-        card != null && page != null -> {
-            val label = card.chapter?.let {
-                stringResource(R.string.browser_tracking, it.toChapterLabel(), page)
-            } ?: stringResource(R.string.browser_tracking_page, page)
-            ToolbarChip(
-                AsconIcons.Check,
-                stringResource(R.string.browser_tracking_short, page),
-                AsconColors.Ink2,
-                AsconType.CaptionStrong.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                Modifier.semantics(mergeDescendants = true) { contentDescription = label }
-            )
+private fun TrackingChip(state: BrowserUiState, pulse: Int) {
+    val card = state.card ?: return
+    val page = card.page ?: return
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(pulse) {
+        if (pulse > 0) {
+            scale.animateTo(PULSE_SCALE, tween(SLIDE_MS))
+            scale.animateTo(1f, tween(SLIDE_MS))
         }
     }
+    val label = card.chapter?.let {
+        stringResource(R.string.browser_tracking, it.toChapterLabel(), page)
+    } ?: stringResource(R.string.browser_tracking_page, page)
+    ToolbarChip(
+        AsconIcons.Check,
+        stringResource(R.string.browser_tracking_short, page),
+        AsconColors.Ink2,
+        AsconType.CaptionStrong.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+        Modifier
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+            .semantics(mergeDescendants = true) { contentDescription = label }
+    )
 }
 
 @Composable

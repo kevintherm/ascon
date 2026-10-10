@@ -25,6 +25,9 @@ interface ReaderSettingsRepository
     suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     suspend fun clearSeries(seriesId: String)
+    fun autoOpen(site: String): Flow<Boolean>
+    suspend fun setAutoOpen(site: String, on: Boolean)
+fun siteKey(host: String): String
 interface ReadingPaceRepository
     val secondsPerImage: Flow<List<Float>>
     suspend fun recordSecondsPerImage(seconds: Float)
@@ -84,6 +87,8 @@ class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderS
     override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun clearSeries(seriesId: String)
+    override fun autoOpen(site: String): Flow<Boolean>
+    override suspend fun setAutoOpen(site: String, on: Boolean)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeReadingPace.kt

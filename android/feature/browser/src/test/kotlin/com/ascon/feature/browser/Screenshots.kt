@@ -73,7 +73,7 @@ class Screenshots {
         browser(
             BrowserUiState(
                 url = url,
-                card = PreviewCard,
+                card = PreviewCard.copy(page = 3, pageCount = 20),
                 cardDocked = true,
                 readerChapter = chapter,
                 blocked = BlockedCounts(ads = 19, trackers = 6, redirects = 2)

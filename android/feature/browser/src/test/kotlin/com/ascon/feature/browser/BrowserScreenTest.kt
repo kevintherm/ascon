@@ -67,10 +67,13 @@ class BrowserScreenTest {
     }
 
     @Test
-    fun `the toolbar opens the reader on a chapter it can take`() {
+    fun `on a chapter the reader can take, the toolbar tracks the page and the menu opens the reader`() {
         val chapter = ReaderChapter(url, "Aztec", null, null, listOf("p1"), null, null)
-        show(BrowserUiState(url = url, card = PreviewCard, cardDocked = true, readerChapter = chapter))
-        compose.onNodeWithText("Reader").performClick()
+        val card = PreviewCard.copy(page = 3, pageCount = 20)
+        show(BrowserUiState(url = url, card = card, cardDocked = true, readerChapter = chapter))
+        compose.onNodeWithContentDescription("Tracking chapter 12, page 3").assertExists()
+        compose.onNodeWithContentDescription("Menu").performClick()
+        compose.onNodeWithText("Open in Reader").performClick()
 
         assertEquals(listOf("reader"), calls)
     }
@@ -80,7 +83,6 @@ class BrowserScreenTest {
         show(BrowserUiState(url = url, card = PreviewCard.copy(page = 34, pageCount = 58), readerUnavailable = true))
 
         compose.onNodeWithContentDescription("Tracking chapter 12, page 34").assertExists()
-        compose.onNodeWithText("Reader").assertDoesNotExist()
         compose.onNodeWithText("Reader mode isn't available on this site. Your progress still saves.").assertExists()
     }
 }

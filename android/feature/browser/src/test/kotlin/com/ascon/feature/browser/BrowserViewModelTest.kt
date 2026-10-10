@@ -3,6 +3,7 @@ package com.ascon.feature.browser
 import androidx.lifecycle.SavedStateHandle
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeLibraryRepository
+import com.ascon.core.data.fake.FakeReaderSettings
 import com.ascon.core.model.ReaderChapter
 import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.detection.Detection
@@ -32,6 +33,7 @@ import org.junit.Test
 class BrowserViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC)
     private val library = FakeLibraryRepository(FakeLibrary.series(clock))
+    private val readerSettings = FakeReaderSettings()
     private val chapter14 = "https://mangafire.to/read/aztec/chapter-14"
 
     @Before
@@ -41,7 +43,7 @@ class BrowserViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        BrowserViewModel(library, clock, saved, initialUrl = chapter14).also {
+        BrowserViewModel(library, readerSettings, clock, saved, initialUrl = chapter14).also {
             it.onPageStarted(chapter14)
         }
 
@@ -170,7 +172,7 @@ class BrowserViewModelTest {
 
         assertEquals(
             chapter14,
-            BrowserViewModel(library, clock, saved, initialUrl = "https://x.example/").state.value.url
+            BrowserViewModel(library, readerSettings, clock, saved, initialUrl = "https://x.example/").state.value.url
         )
     }
 
@@ -349,6 +351,20 @@ class BrowserViewModelTest {
         vm.allowReader(chapter14)
         vm.onDetection(chapter(images = images))
         assertEquals(chapter14, vm.state.value.reader?.url)
+    }
+
+    @Test
+    fun `on a site with the reader turned off, the chapter stays on the site with the reader at hand`() = runTest {
+        readerSettings.setAutoOpen("mangafire.to", on = false)
+        val vm = viewModel()
+        vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp", "https://cdn.example/2.webp")))
+        assertNull(vm.state.value.reader)
+        assertEquals(chapter14, vm.state.value.readerChapter?.url)
+
+        // Open in Reader from the menu still opens it, without turning it back on.
+        vm.openReader()
+        assertEquals(chapter14, vm.state.value.reader?.url)
+        assertTrue(!readerSettings.autoOpen("mangafire.to").first())
     }
 
     @Test

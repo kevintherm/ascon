@@ -17,7 +17,6 @@
     <string name="browser_cancel_edit">Cancel</string>
     <string name="browser_address">Address, %1$s</string>
     <string name="browser_menu">Menu</string>
-    <string name="browser_reader">Reader</string>
     <string name="browser_tracking_short">p. %1$d</string>
     <string name="browser_tracking">Tracking chapter %1$s, page %2$d</string>
     <string name="browser_tracking_page">Tracking page %1$d</string>

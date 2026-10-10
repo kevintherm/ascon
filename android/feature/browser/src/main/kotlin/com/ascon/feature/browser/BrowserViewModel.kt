@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
+import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.Series
@@ -87,10 +88,12 @@ data class Notice(val kind: BlockedKind, val host: String, val id: Long)
  * When detection finds a chapter of a series in the library, progress is recorded once
  * per page. Matching is by exact title key for now. A chapter with pages opens the
  * reader once per page, so coming back from the reader, or going back to a page the
- * reader showed, shows the site.
+ * reader showed, shows the site. It doesn't open by itself on a site where the user
+ * turned that off in [readerSettings].
  */
 class BrowserViewModel(
     private val library: LibraryRepository,
+    private val readerSettings: ReaderSettingsRepository,
     private val clock: Clock,
     private val saved: SavedStateHandle,
     initialUrl: String
@@ -186,7 +189,8 @@ class BrowserViewModel(
                 ReaderChapter(page, card.title, chapter, series?.id, images, detection.next, detection.previous, start)
             }
             // add() is false for a page the reader already showed, such as one reached with back.
-            val reader = available?.takeIf { readerOpenedFor.add(page) }
+            val auto = readerSettings.autoOpen(displayHost(page)).first()
+            val reader = available?.takeIf { auto && readerOpenedFor.add(page) }
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             showChapter(page, card, reader, available, unavailable)
             earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->

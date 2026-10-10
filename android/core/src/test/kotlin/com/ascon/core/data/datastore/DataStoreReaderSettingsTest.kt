@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -66,6 +68,26 @@ class DataStoreReaderSettingsTest {
         val second = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         assertEquals(changed, open(file, second).forSeries("aztec").first())
         second.cancel()
+    }
+
+    @Test
+    fun `the reader opens by itself on a site until it is turned off there, kept by a new store`() = runTest {
+        val file = File(folder.root, "sites.preferences_pb")
+        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val store = open(file, scope)
+        assertTrue(store.autoOpen("mangafire.to").first())
+
+        store.setAutoOpen("www.MangaFire.to", on = false)
+        assertFalse(store.autoOpen("mangafire.to").first())
+        assertTrue(store.autoOpen("asurascans.com").first())
+        scope.cancel()
+
+        val reopened = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+        val again = open(file, reopened)
+        assertFalse(again.autoOpen("mangafire.to").first())
+        again.setAutoOpen("mangafire.to", on = true)
+        assertTrue(again.autoOpen("mangafire.to").first())
+        reopened.cancel()
     }
 
     @Test

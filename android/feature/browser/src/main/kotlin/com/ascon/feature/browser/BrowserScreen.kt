@@ -226,7 +226,7 @@ fun BrowserScreen(
             commands.onNoticeShown(notice.id)
         }
     }
-    // The Reader button pulses once where the card went.
+    // The tracking chip pulses once where the card went.
     var pulse by remember { mutableIntStateOf(0) }
     LaunchedEffect(state.cardDocked) { if (state.cardDocked && state.card != null) pulse++ }
 
@@ -276,7 +276,6 @@ fun BrowserScreen(
                         addressToUrl(text)?.let(commands.onLoad)
                     },
                     onShield = { shieldOpen = true },
-                    onOpenReader = commands.onOpenReader,
                     onMore = { menuOpen = true },
                     onDismissReaderUnavailable = commands.onDismissReaderUnavailable
                 ),

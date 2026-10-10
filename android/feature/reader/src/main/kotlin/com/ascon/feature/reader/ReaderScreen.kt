@@ -108,6 +108,7 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
                 },
                 onSettingsScope = viewModel::setSettingsScope,
                 onChangeSettings = viewModel::updateSettings,
+                onAutoOpen = viewModel::setAutoOpen,
                 onSavePage = { index ->
                     withPage(index) { file, name ->
                         if (canSavePages && savePage(context, file, name)) {
@@ -169,6 +170,7 @@ data class ReaderCommands(
     val onOpenChapterNumber: (BigDecimal) -> Unit = {},
     val onSettingsScope: (SettingsScope) -> Unit = {},
     val onChangeSettings: ((ReaderSettings) -> ReaderSettings) -> Unit = {},
+    val onAutoOpen: (Boolean) -> Unit = {},
     /** Long press on a page, counted from 0. */
     val onSavePage: (Int) -> Unit = {},
     val onSharePage: (Int) -> Unit = {}
@@ -306,7 +308,7 @@ fun ReaderScreen(
         ReaderSettingsSheet(
             visible = settingsOpen,
             state = state,
-            commands = ReaderSettingsCommands(commands.onSettingsScope, commands.onChangeSettings),
+            commands = ReaderSettingsCommands(commands.onSettingsScope, commands.onChangeSettings, commands.onAutoOpen),
             onDismiss = { settingsOpen = false }
         )
     }

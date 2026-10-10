@@ -156,4 +156,14 @@ class ReaderViewModelTest {
         assertEquals(listOf(12f, 12f, 12f), pace.secondsPerImage.value)
         assertEquals(2, vm.state.value.minutesLeft)
     }
+
+    @Test
+    fun `turning off opening by itself saves it for the site`() = runTest {
+        val vm = ReaderViewModel(library, clock, chapter(), readerSettings, pace)
+        assertTrue(vm.state.value.autoOpen)
+
+        vm.setAutoOpen(false)
+        assertFalse(vm.state.value.autoOpen)
+        assertFalse(readerSettings.autoOpen(vm.state.value.host).first())
+    }
 }

@@ -58,6 +58,7 @@
     <string name="reader_settings_gray">Gray</string>
     <string name="reader_settings_white">White</string>
     <string name="reader_settings_crop_borders">Crop borders</string>
+    <string name="reader_settings_auto_open">Open reader automatically on %1$s</string>
     <string name="reader_settings_show_tap_zones">Show tap zones</string>
     <string name="reader_settings_keep_screen_on">Keep screen on</string>
     <string name="reader_settings_volume_keys">Volume keys turn pages</string>

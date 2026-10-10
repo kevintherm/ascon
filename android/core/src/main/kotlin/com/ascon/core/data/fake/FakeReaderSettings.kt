@@ -1,6 +1,7 @@
 package com.ascon.core.data.fake
 
 import com.ascon.core.data.ReaderSettingsRepository
+import com.ascon.core.data.siteKey
 import com.ascon.core.model.ReaderSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,5 +28,13 @@ class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderS
 
     override suspend fun clearSeries(seriesId: String) {
         series.update { it - seriesId }
+    }
+
+    private val manualSites = MutableStateFlow(emptySet<String>())
+
+    override fun autoOpen(site: String): Flow<Boolean> = manualSites.map { siteKey(site) !in it }.distinctUntilChanged()
+
+    override suspend fun setAutoOpen(site: String, on: Boolean) {
+        manualSites.update { if (on) it - siteKey(site) else it + siteKey(site) }
     }
 }

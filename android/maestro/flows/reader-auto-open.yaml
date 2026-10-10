@@ -1,0 +1,34 @@
+# The reader opens by itself on a chapter until the user turns that off for the site in
+# the reader settings. Then chapters stay on the site, with the page tracked in the
+# toolbar, and the menu still opens the reader. Pages come from maestro/serve.py.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/manga/aztec-turning-of-heaven/chapter-14/"
+- extendedWaitUntil:
+    visible: "Chapter 14 · 10.0.2.2"
+    timeout: 15000
+- tapOn: "Reader settings"
+- tapOn: "Open reader automatically on 10.0.2.2"
+- back
+# The next chapter stays on the site, and the toolbar shows its page.
+- tapOn: "Next chapter"
+- extendedWaitUntil:
+    visible: "Tracking chapter 15, page [0-9]+"
+    timeout: 15000
+- assertNotVisible: "Next chapter"
+- tapOn: "Menu"
+- tapOn: "Open in Reader"
+- extendedWaitUntil:
+    visible: "Chapter 15 · 10.0.2.2"
+    timeout: 15000
+# The switch turns it back on.
+- tapOn: "Reader settings"
+- tapOn: "Open reader automatically on 10.0.2.2"
+- back
+- tapOn: "Next chapter"
+- extendedWaitUntil:
+    visible: "Chapter 16 · 10.0.2.2"
+    timeout: 15000

@@ -50,6 +50,8 @@ data class ReaderUiState(
     val today: LocalDate? = null,
     /** Minutes to the chapter's end at this user's pace, once a few images are read. */
     val minutesLeft: Int? = null,
+    /** The reader opens by itself on this site's chapters. Off once the user turns it off for the site. */
+    val autoOpen: Boolean = true,
     /** Where changes from the settings sheet go. Only all series without a series in the library. */
     val settingsScope: SettingsScope = if (seriesId != null) SettingsScope.Series else SettingsScope.AllSeries
 ) {
@@ -111,6 +113,17 @@ class ReaderViewModel(
                 }
             }
         }
+    }
+
+    init {
+        viewModelScope.launch {
+            readerSettings.autoOpen(state.value.host).collect { on -> _state.update { it.copy(autoOpen = on) } }
+        }
+    }
+
+    /** Turns opening by itself on or off for the whole site, not just this series. */
+    fun setAutoOpen(on: Boolean) {
+        viewModelScope.launch { readerSettings.setAutoOpen(state.value.host, on) }
     }
 
     private var shownPage = 0

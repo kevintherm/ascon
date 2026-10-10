@@ -8,7 +8,7 @@ BROWSER V2 BEHAVIOR (supersedes every earlier browser bar, including Browser · 
 
 RULE: nothing stays floating over the page while reading. The toolbar is docked at the TOP, like Chrome's. The WebView starts below it, so the site's own top and bottom bars stay reachable. Back sits top-left, the same place as the back button on every other Ascon screen.
 
-TOOLBAR: full width, ink, flat bottom edge, 64 tall below the status bar, padding 8 12. Left to right, gap 4: Back (bare icon, 40 wide), address box (shield count + domain, 44 tall, radius 12; shield chip 26 tall, radius 6; tap to edit the URL), Reader button (only on a detected chapter page: accent, 44 tall, radius 12, icon + Reader), Menu (bare icon, 40 wide). Address box and Reader button share height and radius on purpose. Reload lives in the menu. In page-as-is mode the Reader button becomes the neutral p. N tracking chip. No close or exit button in the toolbar, to avoid accidental taps.
+TOOLBAR: full width, ink, flat bottom edge, 64 tall below the status bar, padding 8 12. Left to right, gap 4: Back (bare icon, 40 wide), address box (shield count + domain, 44 tall, radius 12; shield chip 26 tall, radius 6; tap to edit the URL), tracking chip (only on a detected chapter page once the page on screen is known: neutral, 44 tall, radius 12, check + p. N), Menu (bare icon, 40 wide). Address box and tracking chip share height and radius on purpose. Reload lives in the menu. Decided with the owner after testing: there is no Reader button in the toolbar; the reader opens from the detection card or the menu. No close or exit button in the toolbar, to avoid accidental taps.
 
 MENU FOOTER, two buttons side by side, 56 tall, radius 16:
 Back to Ascon (ink, app icon, wider): leaves the browser but keeps the page loaded, so the Browse tab returns to it exactly.
@@ -17,11 +17,11 @@ While a page loads, a 2 px accent progress line runs along the toolbar's bottom 
 
 SCROLL: scrolling down more than 24 px slides the toolbar up out of view; when the slide ends, the WebView grows to full height, once. Scrolling up, or reaching the top or end of the page, slides it back and the WebView shrinks back. Never resize mid-animation. While hidden, the only thing drawn is a 2 px reading progress line along the top edge, in the brand gradient, on detected chapter pages only. It ignores touches (pointer-events none) and tracks the visible image index, not raw scroll position.
 
-DETECTION CARD: the only overlay, and it is temporary. On a new detection a white card slides up at the BOTTOM (left/right 12, bottom 16 above the gesture area) with Open in Reader and Not right?, plus a 5 s countdown line. When it runs out, the card slides down and the Reader button in the toolbar pulses once to show where it went. Touch pauses the countdown; swipe down or the chevron dismisses early. 8 s and Add to library when the series is not in the library. Shows again only when the chapter changes.
+DETECTION CARD: the only overlay, and it is temporary. On a new detection a white card slides up at the BOTTOM (left/right 12, bottom 16 above the gesture area) with Open in Reader and Not right?, plus a 5 s countdown line. When it runs out, the card slides down and the tracking chip in the toolbar pulses once to show where it went. Touch pauses the countdown; swipe down or the chevron dismisses early. 8 s and Add to library when the series is not in the library. Shows again only when the chapter changes.
 
-RETURN TO READER: the toolbar's Reader button, visible whenever the page is a detected chapter page. Opens the reader at the currently visible image. Reader back returns to this page and scroll position.
+RETURN TO READER: the menu's Open in Reader, on any detected chapter page the reader can take. Opens the reader at the currently visible image. Reader back returns to this page and scroll position.
 
-PAGE AS-IS: the Reader button becomes a neutral Tracking chip with the page number. On the first load only, a dismissable notice row sits under the toolbar, inside the docked area, pushing the page down. Never a banner over the page.
+PAGE AS-IS: the toolbar shows the Tracking chip with the page number, as on every chapter page. On the first load only, a dismissable notice row sits under the toolbar, inside the docked area, pushing the page down. Never a banner over the page.
 
 Back: walks page history; on the first page it leaves the browser. Predictive back.
 Single tab only.

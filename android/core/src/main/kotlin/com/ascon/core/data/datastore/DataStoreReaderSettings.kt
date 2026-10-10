@@ -6,9 +6,11 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.ReadingPaceRepository
+import com.ascon.core.data.siteKey
 import com.ascon.core.model.ReaderSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +53,16 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
         store.edit { it.remove(seriesKey(seriesId)) }
     }
 
+    override fun autoOpen(site: String): Flow<Boolean> =
+        store.data.map { siteKey(site) !in it[ManualSites].orEmpty() }.distinctUntilChanged()
+
+    override suspend fun setAutoOpen(site: String, on: Boolean) {
+        store.edit {
+            val sites = it[ManualSites].orEmpty()
+            it[ManualSites] = if (on) sites - siteKey(site) else sites + siteKey(site)
+        }
+    }
+
     companion object {
         fun open(context: Context, scope: CoroutineScope) = DataStoreReaderSettings(
             PreferenceDataStoreFactory.create(scope = scope) {
@@ -63,6 +75,9 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
         private fun seriesKey(seriesId: String) = stringPreferencesKey("series:$seriesId")
 
         private val Pace = stringPreferencesKey("pace")
+
+        /** Sites the reader doesn't open on by itself. */
+        private val ManualSites = stringSetPreferencesKey("manual_reader_sites")
 
         /** The reading pace keeps this many recent images. */
         private const val PACE_SAMPLES = 200

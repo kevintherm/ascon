@@ -138,7 +138,8 @@ docs/               ADRs and longer notes
 
 ### Reader mode
 
-- Decided with the owner: the reader opens by itself when a chapter's pages are found. Back returns to the site page, and a page the reader already showed stays on the site.
+- Decided with the owner: the reader opens by itself when a chapter's pages are found. Back returns to the site page, and a page the reader already showed stays on the site. A switch in the reader settings, Open reader automatically on <site>, turns this off for the whole site and is saved with DataStore; only that switch turns it back on. With it off, chapters stay on the site and the menu's Open in Reader or the detection card still opens the reader.
+- Decided with the owner: the browser toolbar has no Reader button. A chapter page shows the tracked page chip, p. N, once the page on screen is known, whether or not the reader can take the chapter.
 - Image URLs from the rule's image selector, resolving `data-src` and `srcset`. Fallback: collect large image requests seen in `shouldInterceptRequest`.
 - Without a rule, heuristics take the largest run of images sharing one container, and the next and previous chapters from links that differ from the page URL only in the chapter number.
 - Fetch natively with OkHttp using the WebView's cookies from `CookieManager`, the chapter URL as `Referer`, and the exact same User-Agent, because Cloudflare clearance is tied to it.
@@ -248,7 +249,7 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 12. Done: protection settings are saved with DataStore in `core/data/datastore` and shared by Settings and the browser. `NavigationGuard` applies them to navigations, requests and hidden elements, and the filter lists the user turns off are a protection setting.
 13. The filter lists screen is not built. Designed: FilterLists, notes.md. It also lists trusted sites, and changes list updates to every 4 days on Wi-Fi, fetched with ETag.
 14. There is no open source licenses screen. Designed: Licenses, notes.md: an About group at the bottom of Settings, libraries listed at build time by the AboutLibraries Gradle plugin, and EasyList and EasyPrivacy first with their CC BY-SA credit.
-15. Done: the browser toolbar is docked at the bottom, decided with the owner after trying the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay, and the Reader button in the toolbar takes its place.
+15. Done: the browser toolbar is docked at the bottom, decided with the owner after trying the top, per BrowserV2Detected, BrowserV2Docked, BrowserV2Scrolling, BrowserV2Fallback and notes.md. It replaces the floating bar, the reader chip and the collapsed strip. The detection card is the only overlay. The toolbar's Reader button was later replaced by the tracked page chip, as Reader mode says.
 16. Done: the menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
 17. Done: every bottom sheet can be dragged down to close. A sheet taller than the screen scrolls under its grabber, and pulling down at the top of its scroll drags it.
 

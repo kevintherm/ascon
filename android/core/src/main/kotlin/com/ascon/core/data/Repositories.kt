@@ -79,7 +79,18 @@ interface ReaderSettingsRepository {
 
     /** The series follows [allSeries] again. */
     suspend fun clearSeries(seriesId: String)
+
+    /**
+     * Whether the reader opens by itself on chapters of [site], a host such as
+     * `mangafire.to`. On unless the user turned it off for that site.
+     */
+    fun autoOpen(site: String): Flow<Boolean>
+
+    suspend fun setAutoOpen(site: String, on: Boolean)
 }
+
+/** One key per site, however its host is written: case and "www." don't matter. */
+fun siteKey(host: String): String = host.lowercase().removePrefix("www.")
 
 /** How long this user looks at each image, learned across chapters for the time left. */
 interface ReadingPaceRepository {

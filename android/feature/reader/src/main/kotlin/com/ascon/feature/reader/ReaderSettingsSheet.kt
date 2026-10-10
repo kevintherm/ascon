@@ -61,12 +61,14 @@ internal fun ReaderBackground.color(): Color = when (this) {
 /** What the sheet changes. */
 internal class ReaderSettingsCommands(
     val onScope: (SettingsScope) -> Unit,
-    val onChange: ((ReaderSettings) -> ReaderSettings) -> Unit
+    val onChange: ((ReaderSettings) -> ReaderSettings) -> Unit,
+    val onAutoOpen: (Boolean) -> Unit = {}
 )
 
 /**
  * The reader settings sheet, per ReaderSettings, from the Aa button. Changes save for the
- * series or for all series, as the switch at the top says.
+ * series or for all series, as the switch at the top says, except opening by itself,
+ * which is for the site.
  */
 @Composable
 internal fun ReaderSettingsSheet(
@@ -125,6 +127,12 @@ internal fun ReaderSettingsSheet(
             SettingsDivider()
             SettingsSwitchRow(stringResource(R.string.reader_settings_show_tap_zones), settings.showTapZones) { on ->
                 change { it.copy(showTapZones = on) }
+            }
+        }
+        // For the whole site, whatever the scope says: off, its chapters stay on the site.
+        SettingsGroup {
+            SettingsSwitchRow(stringResource(R.string.reader_settings_auto_open, state.host), state.autoOpen) { on ->
+                commands.onAutoOpen(on)
             }
         }
     }
