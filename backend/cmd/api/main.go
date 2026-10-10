@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kevintherm/ascon/backend/internal/adapter/dotenv"
 	"github.com/kevintherm/ascon/backend/internal/adapter/evaluator"
 	httpadapter "github.com/kevintherm/ascon/backend/internal/adapter/http"
-	"github.com/kevintherm/ascon/backend/internal/adapter/llm"
 	"github.com/kevintherm/ascon/backend/internal/adapter/persistence/sqlite"
 	"github.com/kevintherm/ascon/backend/internal/usecase/generaterule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
@@ -35,6 +35,11 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// A local .env holds development settings such as the LLM key. Real
+	// environment variables override it.
+	if err := dotenv.Load(".env"); err != nil {
+		return err
+	}
 	cfg, err := loadConfig(logger)
 	if err != nil {
 		return err
@@ -50,8 +55,8 @@ func run(logger *slog.Logger) error {
 	rules := sqlite.NewRules(db)
 	generate := generaterule.New(
 		rules, sqlite.NewCandidates(db), sqlite.NewQuotas(db),
-		llm.Unconfigured{}, evaluator.HTML{},
-		generaterule.Config{Limits: cfg.limits, MinImages: 3, Timeout: 2 * time.Minute},
+		cfg.generator, evaluator.HTML{},
+		generaterule.Config{Limits: cfg.limits, MinImages: 3, Timeout: 3 * time.Minute, Attempts: cfg.attempts},
 		now, logger,
 	)
 	if err := generate.Recover(ctx); err != nil {

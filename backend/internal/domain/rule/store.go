@@ -102,10 +102,17 @@ type Sample struct {
 	HTML []byte
 }
 
+// Attempt is a rule generated earlier for the same samples and why it failed
+// the check, so the next try can correct it.
+type Attempt struct {
+	Rule    Rule
+	Problem string
+}
+
 // Generator asks a language model for a rule. Its output is untrusted until
 // the generaterule use case has checked it with an Evaluator.
 type Generator interface {
-	Generate(ctx context.Context, domain, fingerprint string, samples []Sample) (Rule, error)
+	Generate(ctx context.Context, domain, fingerprint string, samples []Sample, previous []Attempt) (Rule, error)
 }
 
 // FingerprintDistance counts the bits that differ between two 16-digit hex

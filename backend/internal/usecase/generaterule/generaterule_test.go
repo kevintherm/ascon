@@ -20,23 +20,32 @@ var now = time.Date(2026, 10, 8, 10, 0, 0, 0, time.UTC)
 type fakeGenerator struct {
 	err   error
 	calls int
+	// urls are the chapter URL patterns of the rules offered in turn. The
+	// last one repeats. "none" makes fakeEvaluator read no chapter.
+	urls     []string
+	previous [][]rule.Attempt
 }
 
-func (g *fakeGenerator) Generate(context.Context, string, string, []rule.Sample) (rule.Rule, error) {
+func (g *fakeGenerator) Generate(_ context.Context, _, _ string, _ []rule.Sample, previous []rule.Attempt) (rule.Rule, error) {
 	g.calls++
+	g.previous = append(g.previous, previous)
 	if g.err != nil {
 		return rule.Rule{}, g.err
 	}
-	return rule.Rule{ChapterPage: rule.ChapterPage{URL: ".*", Images: rule.Images{Selector: "img"}}}, nil
+	url := ".*"
+	if len(g.urls) > 0 {
+		url = g.urls[min(g.calls, len(g.urls))-1]
+	}
+	return rule.Rule{ChapterPage: rule.ChapterPage{URL: url, Images: rule.Images{Selector: "img"}}}, nil
 }
 
 // fakeEvaluator reads the chapter number, title and image count from the
 // sample HTML, written as "chapter|title|images".
 type fakeEvaluator struct{}
 
-func (fakeEvaluator) Evaluate(_ rule.Rule, _ string, page []byte) (rule.Result, error) {
+func (fakeEvaluator) Evaluate(r rule.Rule, _ string, page []byte) (rule.Result, error) {
 	parts := strings.Split(string(page), "|")
-	if len(parts) != 3 {
+	if len(parts) != 3 || r.ChapterPage.URL == "none" {
 		return rule.Result{PageType: rule.PageNone}, nil
 	}
 	images := make([]string, len(parts[2]))
@@ -150,6 +159,55 @@ func TestRejectedGenerationRefundsQuota(t *testing.T) {
 				t.Fatal("a rejected rule was stored")
 			}
 		})
+	}
+}
+
+func TestFailedRuleIsRetriedWithItsProblem(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.s.cfg.Attempts = 2
+	h.generator.urls = []string{"none", ".*"}
+
+	c, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+
+	if got, _ := h.s.Candidate(ctx, free, c.ID); got.Status != rule.Accepted {
+		t.Fatalf("candidate = %s %q, want accepted on the second attempt", got.Status, got.Reason)
+	}
+	if len(h.generator.previous) != 2 || len(h.generator.previous[0]) != 0 {
+		t.Fatalf("previous attempts = %+v", h.generator.previous)
+	}
+	retry := h.generator.previous[1]
+	if len(retry) != 1 || retry[0].Rule.ChapterPage.URL != "none" || !strings.Contains(retry[0].Problem, "not read as a chapter") {
+		t.Fatalf("second call was told %+v", retry)
+	}
+}
+
+func TestRejectedAfterTheLastAttempt(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.s.cfg.Attempts = 2
+	h.generator.urls = []string{"none"}
+
+	c, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+
+	got, _ := h.s.Candidate(ctx, free, c.ID)
+	if got.Status != rule.Rejected || h.generator.calls != 2 {
+		t.Fatalf("candidate = %s after %d calls, want rejected after 2", got.Status, h.generator.calls)
+	}
+}
+
+func TestNonPortableRuleIsRejected(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.generator.urls = []string{"(?i).*"}
+
+	c, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+
+	if got, _ := h.s.Candidate(ctx, free, c.ID); got.Status != rule.Rejected || !strings.Contains(got.Reason, "chapterPage.url") {
+		t.Fatalf("candidate = %s %q, want rejected naming chapterPage.url", got.Status, got.Reason)
 	}
 }
 

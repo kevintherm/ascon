@@ -31,8 +31,12 @@ type Config struct {
 	Limits account.Limits
 	// MinImages is how many images each sample must yield.
 	MinImages int
-	// Timeout bounds one generation.
+	// Timeout bounds one generation, all attempts included.
 	Timeout time.Duration
+	// Attempts is how many rules the model may offer before the request is
+	// rejected. Each retry is told why the previous rule failed. Zero means
+	// one.
+	Attempts int
 }
 
 // Request is what the app sends.
@@ -214,12 +218,9 @@ func (s *Service) generate(site, fingerprint string, samples []rule.Sample, acco
 // generateAndStore returns the stored version, or a reason the rule was
 // rejected, or an error for failures that are not the rule's fault.
 func (s *Service) generateAndStore(ctx context.Context, site, fingerprint string, samples []rule.Sample) (int, string, error) {
-	r, err := s.generator.Generate(ctx, site, fingerprint, samples)
-	if err != nil {
-		return 0, "", err
-	}
-	if reason := Check(s.evaluator, r, samples, s.cfg.MinImages); reason != "" {
-		return 0, reason, nil
+	r, reason, err := s.attempt(ctx, site, fingerprint, samples)
+	if err != nil || reason != "" {
+		return 0, reason, err
 	}
 
 	maxVersion, err := s.rules.MaxVersion(ctx, site)
@@ -239,11 +240,34 @@ func (s *Service) generateAndStore(ctx context.Context, site, fingerprint string
 	return r.Version, "", nil
 }
 
+// attempt asks for rules until one passes Check or the attempts run out, and
+// returns the passing rule or the last reason.
+func (s *Service) attempt(ctx context.Context, site, fingerprint string, samples []rule.Sample) (rule.Rule, string, error) {
+	var previous []rule.Attempt
+	for range max(s.cfg.Attempts, 1) {
+		r, err := s.generator.Generate(ctx, site, fingerprint, samples, previous)
+		if err != nil {
+			return rule.Rule{}, "", err
+		}
+		reason := Check(s.evaluator, r, samples, s.cfg.MinImages)
+		if reason == "" {
+			return r, "", nil
+		}
+		s.log.Info("generated rule failed the check", "domain", site, "attempt", len(previous)+1, "reason", reason)
+		previous = append(previous, rule.Attempt{Rule: r, Problem: reason})
+	}
+	return rule.Rule{}, previous[len(previous)-1].Problem, nil
+}
+
 // Check runs a generated rule against every sample and returns why it fails,
 // or "" when it passes. Every sample must be read as a chapter with a title,
 // a chapter number and at least minImages images. Titles must agree and
-// chapter numbers must differ across samples.
+// chapter numbers must differ across samples. The rule may use only what both
+// evaluators read the same way.
 func Check(ev rule.Evaluator, r rule.Rule, samples []rule.Sample, minImages int) string {
+	if err := rule.Portable(r); err != nil {
+		return err.Error()
+	}
 	var title string
 	chapters := map[string]bool{}
 	for i, s := range samples {

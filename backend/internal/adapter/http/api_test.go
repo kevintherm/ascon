@@ -33,7 +33,7 @@ const fixtures = "../../../../contracts/fixtures/conformance"
 // for a language model.
 type fixtureGenerator struct{}
 
-func (g fixtureGenerator) Generate(context.Context, string, string, []rule.Sample) (rule.Rule, error) {
+func (g fixtureGenerator) Generate(context.Context, string, string, []rule.Sample, []rule.Attempt) (rule.Rule, error) {
 	var r rule.Rule
 	b, err := os.ReadFile(filepath.Join(fixtures, "glasslight/rule.json"))
 	if err != nil {

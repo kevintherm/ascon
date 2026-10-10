@@ -75,8 +75,20 @@ Settings come from environment variables:
 | `ASCON_SIGNING_KEY_ID` | `dev` | Key id the app pins |
 | `ASCON_QUOTA_FREE` | `10` | AI detections per month, free accounts |
 | `ASCON_QUOTA_PREMIUM` | `200` | AI detections per month, premium accounts |
+| `ASCON_LLM_BASE_URL` | none | OpenAI-compatible API that writes rules, ending before `/chat/completions` |
+| `ASCON_LLM_API_KEY` | none | Its key |
+| `ASCON_LLM_MODEL` | none | Its model, such as `deepseek-v4-flash` |
+| `ASCON_LLM_ATTEMPTS` | `2` | Rules the model may offer per request. Each retry is told why the last one failed |
 
-`devaccount` stands in for sign-in, which is not designed yet. No LLM provider is configured, so AI rule generation is rejected and the quota refunded.
+The server also reads a `.env` file in the directory it runs from, for development settings such as the LLM key. Real environment variables win over it. `.env` is ignored by git; never commit a key.
+
+`devaccount` stands in for sign-in, which is not built yet. Without the `ASCON_LLM_*` settings, AI rule generation is rejected and the quota refunded.
+
+To try generation without the app, give `devgenerate` saved chapter pages with the URLs they came from. It prints each rule the model offers and the server's verdict:
+
+```sh
+go run ./cmd/devgenerate 'https://site.example/a/ch-1=ch1.html' 'https://site.example/a/ch-2=ch2.html'
+```
 
 ### With the debug app
 

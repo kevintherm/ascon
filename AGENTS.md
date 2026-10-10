@@ -121,6 +121,7 @@ docs/               ADRs and longer notes
 - Server validates with a Go port of the evaluator: titles must match across samples, chapter numbers must parse and increase, enough images must be found. Only then is the rule stored.
 - The JS and Go evaluators share one conformance suite in `contracts/fixtures/` so they cannot drift.
 - `singleflight` dedupes concurrent generation for the same domain.
+- Built on 2026-10-10: the `llm` adapter speaks the OpenAI chat API in JSON mode, so DeepSeek and OpenAI both fit. Its prompt is `backend/internal/adapter/llm/prompt.txt`, whose example is the glasslight fixture rule. The model may offer two rules; the second is told why the first failed. A rule must also stay inside the selector and regex subset both evaluators share, checked by `rule.Portable`. Each sample is cut at 60 KiB. DeepSeek V4 Flash takes about 45 seconds per rule, so the app must wait for the candidate rather than hold the page.
 
 **On the device**, decided while building the lookup on 2026-10-10:
 
@@ -308,6 +309,6 @@ How agents work in this repo, agreed with the owner to keep the loop fast.
 
 ## Open questions
 
-- LLM for rule generation: shortlist is `deepseek-v4-flash` or `gpt-5.6-luna`, not chosen. Before choosing, check the provider's API terms against the hard rule that inputs are not retained. Keep it behind the `llm` adapter so it can be swapped.
+- LLM for rule generation: shortlist is `deepseek-v4-flash` or `gpt-5.6-luna`, not chosen. Development uses `deepseek-v4-flash` through the owner's OpenAI-compatible proxy, set in the untracked `backend/.env`; that proxy is for development only. Before choosing, check the provider's API terms against the hard rule that inputs are not retained. Keep it behind the `llm` adapter so it can be swapped.
 - Paywall pricing for translation: not decided.
 - Privacy policy: deferred until more decisions are made. Not written yet. It must cover the push token and follow list the server stores for release alerts. See `docs/adr/0001-release-alerts-per-device-list.md`.

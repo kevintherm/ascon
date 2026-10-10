@@ -1,5 +1,6 @@
 // Package llm holds language model providers that generate detection rules.
-// The provider is not chosen yet; see AGENTS.md, Open questions.
+// OpenAI talks to any OpenAI-compatible chat API. The production provider is
+// not chosen yet; see AGENTS.md, Open questions.
 package llm
 
 import (
@@ -20,6 +21,6 @@ type Unconfigured struct{}
 var _ rule.Generator = Unconfigured{}
 
 // Generate always fails.
-func (Unconfigured) Generate(context.Context, string, string, []rule.Sample) (rule.Rule, error) {
+func (Unconfigured) Generate(context.Context, string, string, []rule.Sample, []rule.Attempt) (rule.Rule, error) {
 	return rule.Rule{}, ErrUnconfigured
 }
