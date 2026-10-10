@@ -9,6 +9,7 @@ import com.ascon.core.model.Chapter
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.ReaderSettings
+import com.ascon.core.model.chapterOf
 import java.math.BigDecimal
 import java.net.URI
 import java.time.Clock
@@ -38,7 +39,7 @@ data class ReaderUiState(
     /** Set when the series is in the library. */
     val seriesId: String? = null,
     val cover: Cover? = null,
-    /** The next chapter's number, when the library knows it or it follows a whole number. */
+    /** The chapter the end button goes to, from the next link, else the library or the next whole number. */
     val nextChapter: BigDecimal? = null,
     /** The series' own settings, or the ones for all series. */
     val settings: ReaderSettings = ReaderSettings(),
@@ -82,7 +83,7 @@ class ReaderViewModel(
             next = chapter.next,
             previous = chapter.previous,
             seriesId = chapter.seriesId,
-            nextChapter = chapter.chapter?.let { nextAfter(it, emptyList()) }
+            nextChapter = nextChapter(emptyList())
         )
     )
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
@@ -98,7 +99,6 @@ class ReaderViewModel(
 
     init {
         val seriesId = chapter.seriesId
-        val number = chapter.chapter
         if (seriesId != null) {
             viewModelScope.launch {
                 library.series(seriesId).collect { series ->
@@ -108,9 +108,7 @@ class ReaderViewModel(
                             siteNames = series?.sources.orEmpty().associate { source -> source.id to source.siteName },
                             today = LocalDate.now(clock),
                             cover = series?.cover,
-                            nextChapter = number?.let { n ->
-                                nextAfter(n, series?.chapters.orEmpty().map { c -> c.number })
-                            }
+                            nextChapter = nextChapter(series?.chapters.orEmpty().map { c -> c.number })
                         )
                     }
                 }
@@ -129,6 +127,15 @@ class ReaderViewModel(
     /** Turns opening by itself on or off for the whole site, not just this series. */
     fun setAutoOpen(on: Boolean) {
         viewModelScope.launch { readerSettings.setAutoOpen(state.value.host, on) }
+    }
+
+    /**
+     * The chapter the end button goes to: the one the site's next link names, else the
+     * next chapter after this one among [known].
+     */
+    private fun nextChapter(known: List<BigDecimal>): BigDecimal? {
+        val number = chapter.chapter ?: return null
+        return chapter.next?.let { chapterOf(it, chapter.url, number) } ?: nextAfter(number, known)
     }
 
     private var shownPage = 0

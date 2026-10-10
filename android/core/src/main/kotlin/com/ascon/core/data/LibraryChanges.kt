@@ -19,31 +19,62 @@ internal fun Series.withProgressSource(sourceId: String): Series {
     return if (current == null || source(sourceId) == null) this else copy(progress = current.copy(sourceId = sourceId))
 }
 
+/**
+ * The page a chapter must be read to before it counts as read into, so a chapter opened by
+ * mistake and left on its first page doesn't take the series' place.
+ */
+private const val PAGES_TO_COUNT = 2
+
+/**
+ * Whether the user read into the chapter in progress, past its first page or to its end.
+ * Until then the place is only where they last looked, and the next chapter read takes it.
+ */
+private val Series.readIntoProgress: Boolean
+    get() = progress?.let { p ->
+        p.page >= PAGES_TO_COUNT ||
+            chapters.any { it.number.compareTo(p.chapter) == 0 && it.read }
+    }
+        ?: false
+
 /** See [LibraryRepository.recordPageRead]. */
 internal fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int, pageOffset: Float = 0f): Series {
     val current = progress
-    if (current == null || current.chapter.compareTo(chapter) != 0) return this
     val finished = page >= pageCount
+    val counts = page >= PAGES_TO_COUNT || finished
+    val same = current != null && current.chapter.compareTo(chapter) == 0
+    val moves = current != null && !same && counts && (!readIntoProgress || chapter > current.chapter)
+    // Reading into a chapter, here or by moving the place to it, reads the ones before it.
+    val readsBefore = moves || (same && counts && !readIntoProgress)
+    val place = (if (same || moves) current else null) ?: return this
     return copy(
-        progress = current.copy(page = page, pageCount = pageCount, pageOffset = pageOffset.coerceIn(0f, 1f)),
-        chapters = if (finished) {
-            chapters.map { if (it.number.compareTo(chapter) == 0) it.copy(read = true, isNew = false) else it }
-        } else {
-            chapters
-        }
+        progress = place.copy(
+            chapter = chapter,
+            page = page,
+            pageCount = pageCount,
+            pageOffset = pageOffset.coerceIn(0f, 1f)
+        ),
+        chapters = chapters.markedRead(chapter, before = readsBefore, it = finished)
     )
 }
 
-/** See [LibraryRepository.recordChapterOpened]. */
+/** The chapters with those before [chapter] read if [before], and [chapter] itself if [it]. */
+private fun List<Chapter>.markedRead(chapter: BigDecimal, before: Boolean, it: Boolean): List<Chapter> = map { c ->
+    val read = (before && c.number < chapter) || (it && c.number.compareTo(chapter) == 0)
+    if (read) c.copy(read = true, isNew = false) else c
+}
+
+/**
+ * See [LibraryRepository.recordChapterOpened]. Opening alone moves the place only when the
+ * user hadn't read into the chapter in progress; otherwise reading moves it, in [onPage].
+ */
 internal fun Series.opened(chapter: BigDecimal, at: Instant): Series {
     val current = progress
-    if (current != null && chapter < current.chapter) return copy(lastReadAt = at)
     val sameChapter = current != null && current.chapter.compareTo(chapter) == 0
     return copy(
         status = if (status == ReadingStatus.Plan) ReadingStatus.Reading else status,
-        chapters = withChapter(chapter).map { if (it.number < chapter) it.copy(read = true, isNew = false) else it },
+        chapters = withChapter(chapter),
         // A new chapter starts at page 0 until the reader or the page reports one.
-        progress = if (sameChapter) {
+        progress = if (sameChapter || readIntoProgress) {
             current
         } else {
             ReadingProgress(chapter, page = 0, pageCount = 0, sourceId = current?.sourceId ?: sources.first().id)

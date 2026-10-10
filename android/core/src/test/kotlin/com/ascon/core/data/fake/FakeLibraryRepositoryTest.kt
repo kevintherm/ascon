@@ -35,17 +35,52 @@ class FakeLibraryRepositoryTest {
     }
 
     @Test
-    fun `opening a chapter moves progress and reads the ones before it`() = runBlocking {
+    fun `opening a later chapter keeps the place until it is read into`() = runBlocking {
         val repo = FakeLibraryRepository(FakeLibrary.series(clock))
         val at = clock.instant().plusSeconds(60)
         repo.recordChapterOpened("aztec-turning-of-heaven", BigDecimal(14), at)
+        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(14), page = 1, pageCount = 20, at = at)
 
+        val opened = repo.series("aztec-turning-of-heaven").first()!!
+        assertEquals(BigDecimal(12), opened.progress?.chapter)
+        assertEquals(34, opened.progress?.page)
+        assertEquals(at, opened.lastReadAt)
+
+        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(14), page = 2, pageCount = 20, at = at)
         val aztec = repo.series("aztec-turning-of-heaven").first()!!
         assertEquals(BigDecimal(14), aztec.progress?.chapter)
-        assertEquals(0, aztec.progress?.page)
+        assertEquals(2, aztec.progress?.page)
         assertEquals("mangaplus", aztec.progress?.sourceId)
         assertEquals((1..13).toList(), aztec.chapters.filter { it.read }.map { it.number.toInt() })
-        assertEquals(at, aztec.lastReadAt)
+    }
+
+    @Test
+    fun `a chapter opened by mistake gives way to the chapter read`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        val saga = "tidewater-saga"
+        repo.recordPageRead(saga, BigDecimal(150), page = 1, pageCount = 30, at = clock.instant())
+        assertEquals(BigDecimal(150), repo.series(saga).first()?.progress?.chapter)
+
+        repo.recordChapterOpened(saga, BigDecimal.ONE, clock.instant())
+        repo.recordPageRead(saga, BigDecimal.ONE, page = 12, pageCount = 25, at = clock.instant())
+
+        val series = repo.series(saga).first()!!
+        assertEquals(BigDecimal.ONE, series.progress?.chapter)
+        assertEquals(12, series.progress?.page)
+        assertEquals(emptyList<Int>(), series.chapters.filter { it.read }.map { it.number.toInt() })
+    }
+
+    @Test
+    fun `a chapter skipped to and read into reads the ones before it`() = runBlocking {
+        val repo = FakeLibraryRepository(FakeLibrary.series(clock))
+        val saga = "tidewater-saga"
+        repo.recordChapterOpened(saga, BigDecimal(3), clock.instant())
+        repo.recordPageRead(saga, BigDecimal(3), page = 4, pageCount = 25, at = clock.instant())
+        repo.recordChapterOpened(saga, BigDecimal.ONE, clock.instant())
+
+        val series = repo.series(saga).first()!!
+        assertEquals(BigDecimal(3), series.progress?.chapter)
+        assertEquals(listOf(1, 2), series.chapters.filter { it.read }.map { it.number.toInt() })
     }
 
     @Test

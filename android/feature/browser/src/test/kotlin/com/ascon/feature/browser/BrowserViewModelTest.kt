@@ -73,7 +73,10 @@ class BrowserViewModelTest {
         assertEquals("Aztec Turning of Heaven", card.title)
         assertEquals("aztec-turning-of-heaven", card.seriesId)
         assertTrue(card.saved)
-        assertEquals(BigDecimal(14), library.series("aztec-turning-of-heaven").first()?.progress?.chapter)
+        // Opening a chapter keeps the place in 12, which was read into, until 14 is read into too.
+        val aztec = library.series("aztec-turning-of-heaven").first()!!
+        assertEquals(BigDecimal(12), aztec.progress?.chapter)
+        assertEquals(clock.instant(), aztec.lastReadAt)
     }
 
     @Test

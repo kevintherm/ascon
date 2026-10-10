@@ -499,6 +499,7 @@ data class Quota(val limit: Int, val remaining: Int, val resetsAt: Instant, val 
 
 ```kotlin
 fun chapterUrl(url: String, current: BigDecimal?, target: BigDecimal): String?
+fun chapterOf(link: String, url: String, current: BigDecimal): BigDecimal?
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/ProtectionSettings.kt

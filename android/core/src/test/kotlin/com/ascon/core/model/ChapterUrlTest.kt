@@ -52,4 +52,23 @@ class ChapterUrlTest {
         assertEquals(url, chapterUrl(url, BigDecimal(1), BigDecimal("1.0")))
         assertNull(chapterUrl(url, BigDecimal(1), BigDecimal(2)))
     }
+
+    @Test
+    fun `reads the chapter a link goes to`() {
+        val url = "https://site.example/series/aztec/chapter/1"
+        assertEquals(BigDecimal(2), chapterOf("https://site.example/series/aztec/chapter/2", url, BigDecimal.ONE))
+        assertEquals(
+            BigDecimal("10.5"),
+            chapterOf("https://site.example/read/aztec-10.5/", "https://site.example/read/aztec-10/", BigDecimal(10))
+        )
+    }
+
+    @Test
+    fun `reads nothing from a link that differs elsewhere`() {
+        val url = "https://site.example/series/aztec/chapter/1"
+        assertNull(chapterOf("https://site.example/series/other/chapter/2", url, BigDecimal.ONE))
+        assertNull(
+            chapterOf("https://site.example/series/57/6c35d2", "https://site.example/series/57/a1b2c3", BigDecimal(1))
+        )
+    }
 }

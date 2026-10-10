@@ -62,7 +62,7 @@ class RoomLibraryRepositoryTest {
 
     @Test
     fun `the seed fills an empty library once`() = runBlocking {
-        repo().recordChapterOpened(aztec, BigDecimal(14), clock.instant())
+        repo().recordPageRead(aztec, BigDecimal(14), page = 3, pageCount = 20, at = clock.instant())
         closeAll()
         assertEquals(BigDecimal(14), repo().aztec().progress?.chapter)
     }
@@ -77,10 +77,10 @@ class RoomLibraryRepositoryTest {
     fun `opening, reading and switching sources follow the library rules`() = runBlocking {
         val repo = repo()
         repo.recordChapterOpened(aztec, BigDecimal(14), clock.instant())
-        assertEquals((1..13).toList(), repo.aztec().chapters.filter { it.read }.map { it.number.toInt() })
+        assertEquals(BigDecimal(12), repo.aztec().progress?.chapter)
 
         repo.recordPageRead(aztec, BigDecimal(14), page = 20, pageCount = 20, at = clock.instant())
-        assertEquals(true, repo.aztec().chapters.last().read)
+        assertEquals((1..14).toList(), repo.aztec().chapters.filter { it.read }.map { it.number.toInt() })
 
         repo.selectSource(aztec, "mangafire")
         assertEquals("mangafire", repo.aztec().progress?.sourceId)

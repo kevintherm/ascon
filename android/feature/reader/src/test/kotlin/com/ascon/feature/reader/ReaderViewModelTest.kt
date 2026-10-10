@@ -64,6 +64,20 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `the end button names the chapter the next link goes to`() {
+        val next = "https://www.mangafire.to/read/aztec/chapter-13.5"
+        val state = ReaderViewModel(library, clock, chapter(next = next), readerSettings, pace).state.value
+        assertEquals(BigDecimal("13.5"), state.nextChapter)
+    }
+
+    @Test
+    fun `without a readable next link the end button names the next known chapter`() {
+        val state =
+            ReaderViewModel(library, clock, chapter(next = "https://www.mangafire.to/r/x7"), readerSettings, pace)
+        assertEquals(BigDecimal(14), state.state.value.nextChapter)
+    }
+
+    @Test
     fun `showing a page saves it for a library series`() = runTest {
         val vm = ReaderViewModel(library, clock, chapter(), readerSettings, pace)
         vm.onPageShown(6)
