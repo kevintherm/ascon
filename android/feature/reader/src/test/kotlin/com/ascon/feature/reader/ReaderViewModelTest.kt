@@ -164,6 +164,16 @@ class ReaderViewModelTest {
 
         vm.setAutoOpen(false)
         assertFalse(vm.state.value.autoOpen)
-        assertFalse(readerSettings.autoOpen(vm.state.value.host).first())
+        assertEquals(false, readerSettings.autoOpen(vm.state.value.host).first())
+    }
+
+    @Test
+    fun `a chapter with no next or previous shows opening by itself off until the user chooses`() = runTest {
+        val alone = chapter().copy(previous = null)
+        val vm = ReaderViewModel(library, clock, alone, readerSettings, pace)
+        assertFalse(vm.state.value.autoOpen)
+
+        vm.setAutoOpen(true)
+        assertTrue(vm.state.value.autoOpen)
     }
 }

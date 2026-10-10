@@ -30,11 +30,11 @@ class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderS
         series.update { it - seriesId }
     }
 
-    private val manualSites = MutableStateFlow(emptySet<String>())
+    private val chosen = MutableStateFlow(emptyMap<String, Boolean>())
 
-    override fun autoOpen(site: String): Flow<Boolean> = manualSites.map { siteKey(site) !in it }.distinctUntilChanged()
+    override fun autoOpen(site: String): Flow<Boolean?> = chosen.map { it[siteKey(site)] }.distinctUntilChanged()
 
     override suspend fun setAutoOpen(site: String, on: Boolean) {
-        manualSites.update { if (on) it - siteKey(site) else it + siteKey(site) }
+        chosen.update { it + (siteKey(site) to on) }
     }
 }

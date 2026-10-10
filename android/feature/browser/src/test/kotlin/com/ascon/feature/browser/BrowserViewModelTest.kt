@@ -364,7 +364,21 @@ class BrowserViewModelTest {
         // Open in Reader from the menu still opens it, without turning it back on.
         vm.openReader()
         assertEquals(chapter14, vm.state.value.reader?.url)
-        assertTrue(!readerSettings.autoOpen("mangafire.to").first())
+        assertEquals(false, readerSettings.autoOpen("mangafire.to").first())
+    }
+
+    @Test
+    fun `a chapter with no next or previous stays on the site, unless the user chose the reader there`() = runTest {
+        val vm = viewModel()
+        val images = listOf("https://cdn.example/1.webp", "https://cdn.example/2.webp")
+        vm.onDetection(chapter(images = images).copy(next = null))
+        assertNull(vm.state.value.reader)
+        assertEquals(chapter14, vm.state.value.readerChapter?.url)
+
+        readerSettings.setAutoOpen("mangafire.to", on = true)
+        val chosen = viewModel()
+        chosen.onDetection(chapter(images = images).copy(next = null))
+        assertEquals(chapter14, chosen.state.value.reader?.url)
     }
 
     @Test

@@ -90,9 +90,10 @@ interface ReaderSettingsRepository {
 
     /**
      * Whether the reader opens by itself on chapters of [site], a host such as
-     * `mangafire.to`. On unless the user turned it off for that site.
+     * `mangafire.to`, as the user chose for that site. Null until the user chooses, and
+     * then the reader opens by itself only on a chapter with a next or previous chapter.
      */
-    fun autoOpen(site: String): Flow<Boolean>
+    fun autoOpen(site: String): Flow<Boolean?>
 
     suspend fun setAutoOpen(site: String, on: Boolean)
 }

@@ -211,14 +211,21 @@ class BrowserViewModel(
                 ReaderChapter(page, card.title, chapter, series?.id, images, detection.next, detection.previous, start)
             }
             // add() is false for a page the reader already showed, such as one reached with back.
-            val auto = readerSettings.autoOpen(displayHost(page)).first()
-            val reader = available?.takeIf { auto && readerOpenedFor.add(page) }
+            val reader = available?.takeIf { opensByItself(page, detection) && readerOpenedFor.add(page) }
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             showChapter(page, card, reader, available, unavailable)
             if (reader == null) series?.progress?.let { requestResume(page, it, chapter) }
             replayPosition(page)
         }
     }
+
+    /**
+     * Whether the reader opens by itself on [page], as the user chose for the site. Without
+     * that choice, a chapter with no next or previous stays on the site, whose own buttons
+     * are the way on, and the reader waits to be asked for.
+     */
+    private suspend fun opensByItself(page: String, detection: Detection.ChapterPage): Boolean =
+        readerSettings.autoOpen(displayHost(page)).first() ?: (detection.next != null || detection.previous != null)
 
     /** Saves the position [page] reported before its chapter was found, now that the card can show it. */
     private fun replayPosition(page: String) {

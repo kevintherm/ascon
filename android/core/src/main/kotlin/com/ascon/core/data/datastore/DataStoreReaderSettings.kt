@@ -53,13 +53,19 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
         store.edit { it.remove(seriesKey(seriesId)) }
     }
 
-    override fun autoOpen(site: String): Flow<Boolean> =
-        store.data.map { siteKey(site) !in it[ManualSites].orEmpty() }.distinctUntilChanged()
+    override fun autoOpen(site: String): Flow<Boolean?> = store.data.map {
+        when (siteKey(site)) {
+            in it[ManualSites].orEmpty() -> false
+            in it[AutoSites].orEmpty() -> true
+            else -> null
+        }
+    }.distinctUntilChanged()
 
     override suspend fun setAutoOpen(site: String, on: Boolean) {
+        val key = siteKey(site)
         store.edit {
-            val sites = it[ManualSites].orEmpty()
-            it[ManualSites] = if (on) sites - siteKey(site) else sites + siteKey(site)
+            it[ManualSites] = if (on) it[ManualSites].orEmpty() - key else it[ManualSites].orEmpty() + key
+            it[AutoSites] = if (on) it[AutoSites].orEmpty() + key else it[AutoSites].orEmpty() - key
         }
     }
 
@@ -78,6 +84,7 @@ class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
 
         /** Sites the reader doesn't open on by itself. */
         private val ManualSites = stringSetPreferencesKey("manual_reader_sites")
+        private val AutoSites = stringSetPreferencesKey("auto_reader_sites")
 
         /** The reading pace keeps this many recent images. */
         private const val PACE_SAMPLES = 200
