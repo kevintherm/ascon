@@ -310,6 +310,6 @@ How agents work in this repo, agreed with the owner to keep the loop fast.
 
 ## Open questions
 
-- LLM for rule generation: shortlist is `deepseek-v4-flash` or `gpt-5.6-luna`, not chosen. Development uses `deepseek-v4-flash` through the owner's OpenAI-compatible proxy, set in the untracked `backend/.env`; that proxy is for development only. Before choosing, check the provider's API terms against the hard rule that inputs are not retained. Keep it behind the `llm` adapter so it can be swapped.
+- LLM for rule generation: shortlist is `deepseek-v4-flash` or `gpt-6-luna`, not chosen. A development comparison on 2026-10-10 is only a data point: on the same pages gpt-6-luna answered in about 10 seconds with about 1,200 output tokens, deepseek-v4-flash in 28 to 48 seconds with 4,000 to 8,000, nearly all reasoning, and both rules passed. Development uses `deepseek-v4-flash` through the owner's OpenAI-compatible proxy, set in the untracked `backend/.env`; that proxy is for development only. Before choosing, check the provider's API terms against the hard rule that inputs are not retained. Keep it behind the `llm` adapter so it can be swapped.
 - Paywall pricing for translation: not decided.
 - Privacy policy: deferred until more decisions are made. Not written yet. It must cover the push token and follow list the server stores for release alerts. See `docs/adr/0001-release-alerts-per-device-list.md`.
