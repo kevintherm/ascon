@@ -7,19 +7,21 @@ import (
 	"golang.org/x/net/html"
 )
 
-// dropped elements carry no detection signal.
+// dropped elements carry no detection signal, or hold what the user typed.
 var dropped = map[string]bool{
-	"script": true, "style": true, "noscript": true, "svg": true, "iframe": true,
+	"script": true, "style": true, "noscript": true, "svg": true, "iframe": true, "object": true, "embed": true,
 	"link": true, "template": true, "canvas": true, "video": true, "audio": true,
+	"input": true, "textarea": true, "select": true,
 }
 
-// kept attributes are the ones AGENTS.md lists for snapshots, plus the few
-// lazy-image and meta attributes rules commonly read. The app's sanitizer,
-// built with the app side of generation, decides the final list.
+// kept attributes match the app's snapshot in bridge.js and PageSnapshot in
+// contracts/openapi.yaml. Meta tags keep name, property and content.
 var kept = map[string]bool{
 	"class": true, "id": true, "href": true, "src": true, "data-src": true,
-	"data-lazy-src": true, "srcset": true, "rel": true, "property": true, "name": true, "content": true,
+	"data-lazy-src": true, "srcset": true, "data-srcset": true, "rel": true,
 }
+
+var keptOnMeta = map[string]bool{"name": true, "property": true, "content": true}
 
 const maxText = 80
 
@@ -45,15 +47,14 @@ func clean(n *html.Node) {
 		case c.Type == html.CommentNode, c.Type == html.ElementNode && dropped[c.Data]:
 			n.RemoveChild(c)
 		case c.Type == html.TextNode:
-			text := strings.Join(strings.Fields(c.Data), " ")
-			if len(text) > maxText {
-				text = text[:maxText] + "…"
-			}
-			c.Data = text
+			c.Data = shorten(c.Data)
 		case c.Type == html.ElementNode:
 			attrs := c.Attr[:0]
 			for _, a := range c.Attr {
-				if kept[a.Key] {
+				if kept[a.Key] || c.Data == "meta" && keptOnMeta[a.Key] {
+					if a.Key == "content" {
+						a.Val = shorten(a.Val)
+					}
 					attrs = append(attrs, a)
 				}
 			}
@@ -62,4 +63,14 @@ func clean(n *html.Node) {
 		}
 		c = next
 	}
+}
+
+// shorten collapses whitespace and cuts text at maxText characters, as
+// bridge.js does.
+func shorten(s string) string {
+	text := []rune(strings.Join(strings.Fields(s), " "))
+	if len(text) > maxText {
+		return string(text[:maxText]) + "…"
+	}
+	return string(text)
 }

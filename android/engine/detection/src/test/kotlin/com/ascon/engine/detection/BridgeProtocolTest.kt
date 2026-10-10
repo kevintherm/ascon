@@ -143,6 +143,36 @@ class PageMessagesTest {
     }
 
     @Test
+    fun `a structure says how its chapter was found`() {
+        val message = BridgeProtocol.decode(
+            """{"type":"structure","url":"$chapterUrl","via":"heuristic","features":["a"]}"""
+        ) as PageMessage.Structure
+        assertEquals(DetectionSource.Heuristic, message.via)
+    }
+
+    @Test
+    fun `a snapshot needs a chapter and fits the backend's limit`() {
+        fun snapshot(chapter: String, html: String) = BridgeProtocol.toSnapshot(
+            BridgeProtocol.decode(
+                BridgeProtocol.json.encodeToString(
+                    kotlinx.serialization.json.JsonObject.serializer(),
+                    kotlinx.serialization.json.buildJsonObject {
+                        put("type", JsonPrimitive("snapshot"))
+                        put("url", JsonPrimitive("$chapterUrl#top"))
+                        put("chapter", JsonPrimitive(chapter))
+                        put("html", JsonPrimitive(html))
+                    }
+                )
+            ) as PageMessage.Snapshot
+        )
+        assertEquals(BigDecimal("3") to PageSnapshot(chapterUrl, "<p>x</p>"), snapshot("3", "<p>x</p>"))
+        assertNull(snapshot("none", "<p>x</p>"))
+        assertNull(snapshot("3", ""))
+        assertNull(snapshot("3", "\u00e9".repeat(140_000)))
+        assertEquals("""{"type":"snapshot"}""", BridgeProtocol.encodeSnapshotRequest())
+    }
+
+    @Test
     fun `drops a position outside the chapter`() {
         listOf(0 to 10, 11 to 10, 1 to 0, 1 to 100_000).forEach { (p, count) ->
             val message = BridgeProtocol.decode(

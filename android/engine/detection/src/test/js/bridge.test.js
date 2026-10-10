@@ -196,6 +196,7 @@ test("a chapter page without its own rule sends what it is built from, once", as
 
   assert.equal(sent.length, 1);
   assert.equal(sent[0].url, url);
+  assert.equal(sent[0].via, "builtin");
   const features = sent[0].features;
   assert.equal(features[0], "generator:madara");
   assert.ok(features.includes("class:reading-content"));
@@ -221,6 +222,56 @@ test("a page read by its own rule, or not a chapter, sends no structure", async 
     await page.close();
     assert.deepEqual(sent, [], url);
   }
+});
+
+const snapshotPage = `<!DOCTYPE html><html><head><title>Sea Glass Chapter 4</title>
+<meta property="og:title" content="Sea Glass Chapter 4"><meta name="viewport" content="width=device-width">
+<style>.hidden-rule{}</style><script>var secretValue = 1;</script><link rel="stylesheet" href="/s.css"></head>
+<body><!-- build note --><div class="reader" id="r" style="color:red" data-user="kevin" onclick="go()">
+<img src="https://cdn.inkwell.example/4/1.jpg" alt="page one" data-src="https://cdn.inkwell.example/4/1.jpg"></div>
+<p>${"word ".repeat(40)}</p><form><input value="hunter2"><textarea>typed words</textarea></form>
+<svg><text>vector</text></svg></body></html>`;
+
+async function askSnapshot(page) {
+  await page.evaluate(() => __bridge.onmessage({ data: JSON.stringify({ type: "snapshot" }) }));
+  await page.waitForTimeout(50);
+  return page.evaluate(() => __sent.filter((m) => m.type === "snapshot"));
+}
+
+test("a chapter page answers a snapshot request with its reduced markup", async () => {
+  const url = "https://inkwell.example/sea-glass/chapter-4";
+  const page = await open(url, snapshotPage);
+  await sendRules(page, []);
+  await results(page);
+  const sent = await askSnapshot(page);
+  await page.close();
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url, url);
+  assert.equal(sent[0].chapter, "4");
+  const html = sent[0].html;
+  for (const kept of [
+    '<div class="reader" id="r">',
+    '<img src="https://cdn.inkwell.example/4/1.jpg" data-src="https://cdn.inkwell.example/4/1.jpg">',
+    '<meta property="og:title" content="Sea Glass Chapter 4">',
+    "<title>Sea Glass Chapter 4</title>",
+    // Text is cut at 80 characters.
+    "<p>" + "word ".repeat(16) + "\u2026</p>",
+  ]) {
+    assert.ok(html.includes(kept), `missing ${kept} in ${html}`);
+  }
+  for (const dropped of ["secretValue", "hidden-rule", "build note", "style=", "data-user", "onclick", "alt=", "hunter2", "typed", "vector", "s.css", "<form><input"]) {
+    assert.ok(!html.includes(dropped), `kept ${dropped}`);
+  }
+});
+
+test("a page that is not a chapter sends no snapshot", async () => {
+  const page = await open("https://inkwell.example/about", snapshotPage);
+  await sendRules(page, []);
+  await results(page);
+  const sent = await askSnapshot(page);
+  await page.close();
+  assert.deepEqual(sent, []);
 });
 
 test("heuristics read JSON-LD and the URL", async () => {

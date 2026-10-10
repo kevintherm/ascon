@@ -547,7 +547,7 @@ data class ChapterLink(val url: String, val label: String?, val number: BigDecim
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/DetectionHost.kt
 
 ```kotlin
-class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope, private val health: RuleHealth? = null)
+class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope, private val health: RuleHealth? = null, private val generation: RuleGeneration? = null)
     fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): PageLink?
     companion object
         const val BRIDGE_NAME
@@ -565,6 +565,24 @@ object Fingerprint
     fun distance(a: String, b: String): Int
 ```
 
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/GenerationBackend.kt
+
+```kotlin
+data class PageSnapshot(val url: String, val html: String)
+sealed interface CandidateState
+    data class Pending(val id: String, val retryAfterSeconds: Int) : CandidateState
+    data class Accepted(val rule: SignedRule) : CandidateState
+    data class Rejected(val reason: String) : CandidateState
+    data object RuleExists : CandidateState
+    data class OutOfQuota(val resetsAt: Instant?) : CandidateState
+interface GenerationBackend
+    suspend fun request(domain: String, fingerprint: String?, samples: List<PageSnapshot>): CandidateState
+    suspend fun candidate(id: String): CandidateState
+class HttpGenerationBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val accountToken: () -> String?) : GenerationBackend
+    override suspend fun request(domain: String, fingerprint: String?, samples: List<PageSnapshot>): CandidateState
+    override suspend fun candidate(id: String): CandidateState
+```
+
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleBackend.kt
 
 ```kotlin
@@ -578,6 +596,14 @@ interface RuleBackend
 class HttpRuleBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val tokens: DeviceTokenStore, private val appVersion: String) : RuleBackend
     override suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer
     override suspend fun sendHealth(counts: List<RuleHealthCount>)
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleGeneration.kt
+
+```kotlin
+class RuleGeneration(private val store: RuleStore, private val backend: GenerationBackend, private val verifier: RuleVerifier, private val accountToken: () -> String?, private val clock: () -> Instant = Instant::now, private val maxPolls: Int = MAX_POLLS)
+    suspend fun wants(host: String): Boolean
+    suspend fun offer(host: String, fingerprint: String?, chapter: BigDecimal, snapshot: PageSnapshot): Boolean
 ```
 
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleHealth.kt

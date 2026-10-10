@@ -20,8 +20,12 @@ class DetectionHost(
     private val script: String,
     private val rules: RuleSource,
     private val scope: CoroutineScope,
-    private val health: RuleHealth? = null
+    private val health: RuleHealth? = null,
+    private val generation: RuleGeneration? = null
 ) {
+    /** The latest structure fingerprint per site, sent with its AI detection request. */
+    private val fingerprints = mutableMapOf<String, String>()
+
     /**
      * Installs detection on [webView], and returns the way to send its page messages.
      * Returns null when the WebView is too old to run scripts at document start, in which
@@ -81,13 +85,37 @@ class DetectionHost(
                 health?.let { scope.launch { it.record(host.lowercase(), detection) } }
                 listeners.onDetection(detection)
             }
-            // A site without its own rule may borrow one from a site built the same way.
-            is PageMessage.Structure -> scope.launch {
-                val fingerprint = BridgeProtocol.fingerprintOf(decoded) ?: return@launch
-                rules.forStructure(host, fingerprint)?.let { reply.postMessage(BridgeProtocol.encodeRules(it)) }
-            }
+            is PageMessage.Structure -> scope.launch { onStructure(host, decoded, reply) }
+            is PageMessage.Snapshot -> onSnapshot(host, decoded, reply)
             is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(listeners.onDetection)
             is PageMessage.Tap -> listeners.onTap(BridgeProtocol.tappedLink(decoded))
+        }
+    }
+
+    /**
+     * A site without its own rule may borrow one from a site built the same way. With
+     * nothing to borrow, a chapter only heuristics found is offered to AI detection.
+     */
+    private suspend fun onStructure(host: String, message: PageMessage.Structure, reply: JavaScriptReplyProxy) {
+        val fingerprint = BridgeProtocol.fingerprintOf(message) ?: return
+        fingerprints[host] = fingerprint
+        val borrowed = rules.forStructure(host, fingerprint)
+        if (borrowed != null) {
+            reply.postMessage(BridgeProtocol.encodeRules(borrowed))
+        } else if (message.via == DetectionSource.Heuristic && generation?.wants(host) == true) {
+            reply.postMessage(BridgeProtocol.encodeSnapshotRequest())
+        }
+    }
+
+    /** Hands a snapshot to AI detection, and the page its new rule once there is one. */
+    private fun onSnapshot(host: String, message: PageMessage.Snapshot, reply: JavaScriptReplyProxy) {
+        val generation = generation
+        val found = BridgeProtocol.toSnapshot(message)
+        if (generation == null || found == null) return
+        scope.launch {
+            if (generation.offer(host, fingerprints[host], found.first, found.second)) {
+                reply.postMessage(BridgeProtocol.encodeRules(rules.candidatesFor(host)))
+            }
         }
     }
 

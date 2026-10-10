@@ -92,13 +92,15 @@ go run ./cmd/devgenerate 'https://site.example/a/ch-1=ch1.html' 'https://site.ex
 
 ### With the debug app
 
-Debug builds ask `http://127.0.0.1:8080/v1/` for rules and trust only the development key from `contracts/fixtures/signed-rule.json`. Start the backend with that key, forward the port, and store a rule to test with, since generation doesn't work yet:
+Debug builds ask `http://127.0.0.1:8080/v1/` for rules and trust only the development key from `contracts/fixtures/signed-rule.json`. Start the backend with that key, forward the port, and store a rule to test with:
 
 ```
 ASCON_SIGNING_KEY=BVJXFv+SVtoLhp3etgbTU5mGcjZkZuduNYD7aotBkYk= go run ./cmd/api
 adb reverse tcp:8080 tcp:8080
 go run ./cmd/devrule -domain 10.0.2.2 rule.json   # stored as the domain's next version
 ```
+
+For AI detection, put an account token from `go run ./cmd/devaccount` in `android/local.properties` as `ascon.devAccountToken=...` and rebuild. The app then sends two chapters of a site that has no rule, where heuristics find the chapters, and keeps the rule once the backend has written it, about a minute later. Without the line, debug builds have no AI detection. A token belongs to one backend database.
 
 Without the backend the app still works: lookups fail quietly and it uses its kept and built-in rules. Release builds have no backend address until the server is deployed.
 

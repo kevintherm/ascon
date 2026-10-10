@@ -40,10 +40,19 @@ internal sealed interface PageMessage {
     @SerialName("tap")
     data class Tap(override val url: String, val href: String? = null) : PageMessage
 
-    /** What the page is built from, for its structure fingerprint. See [Fingerprint]. */
+    /**
+     * What the page is built from, for its structure fingerprint. See [Fingerprint].
+     * [via] is how the page's chapter was found.
+     */
     @Serializable
     @SerialName("structure")
-    data class Structure(override val url: String, val features: List<String>) : PageMessage
+    data class Structure(override val url: String, val features: List<String>, val via: DetectionSource? = null) :
+        PageMessage
+
+    /** The page reduced for AI detection, sent when the app asks. [chapter] is the one found on it. */
+    @Serializable
+    @SerialName("snapshot")
+    data class Snapshot(override val url: String, val chapter: String? = null, val html: String) : PageMessage
 }
 
 /** The evaluator's result, as contracts/README.md defines it. */
@@ -85,12 +94,19 @@ internal data class RulesMessage(val rules: List<RuleCandidate>, val type: Strin
 @Serializable
 internal data class ScrollMessage(val page: Int, val pageCount: Int, val offset: Float, val type: String = "scroll")
 
+/** Asks the page for a [PageMessage.Snapshot]. */
+@Serializable
+internal data class SnapshotRequest(val type: String = "snapshot")
+
 internal object BridgeProtocol {
     /** Larger messages are dropped. A long chapter's image list fits well under this. */
     const val MAX_MESSAGE_CHARS = 512 * 1024
     private const val MAX_IMAGES = 2000
     private const val MAX_CHAPTERS = 5000
     private const val MAX_FEATURES = 1000
+
+    /** The backend's limit for one sample, contracts/openapi.yaml. */
+    private const val MAX_SNAPSHOT_BYTES = 256 * 1024
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -114,6 +130,21 @@ internal object BridgeProtocol {
 
     fun encodeScroll(page: Int, pageCount: Int, offset: Float): String =
         json.encodeToString(ScrollMessage.serializer(), ScrollMessage(page, pageCount, offset))
+
+    fun encodeSnapshotRequest(): String = json.encodeToString(SnapshotRequest.serializer(), SnapshotRequest())
+
+    /** The snapshot and its chapter, or null when it has no chapter or is too large to send. */
+    fun toSnapshot(message: PageMessage.Snapshot): Pair<BigDecimal, PageSnapshot>? {
+        val chapter = message.chapter.toChapterNumber()
+        val fits = message.html.isNotEmpty() && message.html.toByteArray().size <= MAX_SNAPSHOT_BYTES
+        return if (chapter != null &&
+            fits
+        ) {
+            chapter to PageSnapshot(message.url.withoutFragment(), message.html)
+        } else {
+            null
+        }
+    }
 
     fun toDetection(message: PageMessage.Result): Detection {
         val url = message.url

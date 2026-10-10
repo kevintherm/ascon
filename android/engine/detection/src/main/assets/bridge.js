@@ -14,7 +14,9 @@
  *   page → app  {"type":"position","url":...,"page":n,"pageCount":m,"offset":f}
  *   app → page  {"type":"scroll","page":n,"pageCount":m,"offset":f}
  *   page → app  {"type":"tap","url":...,"href":link|null}
- *   page → app  {"type":"structure","url":...,"features":[...]}
+ *   page → app  {"type":"structure","url":...,"via":...,"features":[...]}
+ *   app → page  {"type":"snapshot"}
+ *   page → app  {"type":"snapshot","url":...,"chapter":n|null,"html":...}
  *
  * A position is sent on every chapter page: the page slot under the middle of the
  * screen, counted from 1, and how far down that slot the middle is, from 0 up to 1.
@@ -30,6 +32,10 @@
  * A chapter page found without the site's own rule sends its structure once: its
  * generator meta tag, class names and parent>child tag pairs. The app turns them into
  * a fingerprint and may answer with new rules, borrowed from a site built the same way.
+ *
+ * When nothing can be borrowed and the user has AI detection, the app asks for a
+ * snapshot: the page reduced to its skeleton, with scripts, styles, form fields and
+ * most attributes removed and text cut short, for the backend to write a rule from.
  */
 (function () {
   "use strict";
@@ -56,6 +62,7 @@
 
   var candidates = null;
   var lastReport = null;
+  var lastFound = null;
   var lastUrl = null;
   var timer = 0;
   var watchUntil = 0;
@@ -74,6 +81,8 @@
     if (message && message.type === "scroll" && message.page > 0 && message.pageCount > 0) {
       var offset = message.offset > 0 && message.offset < 1 ? message.offset : 0;
       scrollTo(message.page, message.pageCount, offset);
+    } else if (message && message.type === "snapshot") {
+      sendSnapshot();
     } else if (message && message.type === "rules" && Array.isArray(message.rules)) {
       candidates = message.rules;
       // Before DOMContentLoaded the page is half parsed; that event runs detection.
@@ -114,7 +123,66 @@
   function sendStructure(url, found) {
     if (structureSent || found.via === "rule" || found.result.pageType !== "chapter") return;
     structureSent = true;
-    send({ type: "structure", url: url, features: structure() });
+    send({ type: "structure", url: url, via: found.via, features: structure() });
+  }
+
+  // ---- Snapshot for AI detection ----------------------------------------
+
+  // Elements that carry no detection signal, or hold what the user typed.
+  var SNAPSHOT_DROP = {
+    script: 1, style: 1, noscript: 1, template: 1, svg: 1, canvas: 1, iframe: 1, object: 1,
+    embed: 1, video: 1, audio: 1, link: 1, input: 1, textarea: 1, select: 1
+  };
+  // Attributes rules read. Meta tags also keep name, property and content, for og:title.
+  var SNAPSHOT_KEEP = {
+    "class": 1, id: 1, href: 1, src: 1, "data-src": 1, "data-lazy-src": 1, srcset: 1,
+    "data-srcset": 1, rel: 1
+  };
+  var SNAPSHOT_META = { name: 1, property: 1, content: 1 };
+  var SNAPSHOT_TEXT = 80;
+  var SNAPSHOT_CHARS = 80000;
+
+  function shorten(text) {
+    text = text.replace(/\s+/g, " ");
+    return text.length > SNAPSHOT_TEXT ? text.slice(0, SNAPSHOT_TEXT) + "\u2026" : text;
+  }
+
+  function reduce(node) {
+    var child = node.firstChild;
+    while (child) {
+      var next = child.nextSibling;
+      if (child.nodeType === 8 || (child.nodeType === 1 && SNAPSHOT_DROP[child.localName])) {
+        node.removeChild(child);
+      } else if (child.nodeType === 3) {
+        child.data = shorten(child.data);
+      } else if (child.nodeType === 1) {
+        var meta = child.localName === "meta";
+        for (var i = child.attributes.length - 1; i >= 0; i--) {
+          var attr = child.attributes[i];
+          if (!SNAPSHOT_KEEP[attr.name] && !(meta && SNAPSHOT_META[attr.name])) {
+            child.removeAttribute(attr.name);
+          } else if (attr.name === "content") {
+            attr.value = shorten(attr.value);
+          }
+        }
+        reduce(child);
+      }
+      child = next;
+    }
+  }
+
+  /** The page reduced for AI detection. It works on a copy in an inert document, which loads nothing. */
+  function snapshot() {
+    var inert = document.implementation.createHTMLDocument("");
+    var root = inert.importNode(document.documentElement, true);
+    reduce(root);
+    return ("<!DOCTYPE html>" + root.outerHTML).slice(0, SNAPSHOT_CHARS);
+  }
+
+  function sendSnapshot() {
+    var found = lastFound;
+    if (!found || found.result.pageType !== "chapter" || !document.documentElement) return;
+    send({ type: "snapshot", url: location.href, chapter: found.result.chapter, html: snapshot() });
   }
 
   // ---- Heuristics -------------------------------------------------------
@@ -496,6 +564,7 @@
     if (candidates == null || !document.documentElement) return;
     var url = location.href;
     var found = detect(url);
+    lastFound = found;
     followPosition(found);
     var report = stringify({ type: "result", url: url, via: found.via, result: found.result });
     if (report !== lastReport) {

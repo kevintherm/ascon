@@ -7,5 +7,8 @@ package com.ascon.app
 internal object BackendConfig {
     val BASE_URL: String? = null
 
+    /** Sign-in isn't built, so release builds have no AI detection. */
+    val accountToken: String? = null
+
     val publicKeys: Map<String, String> = emptyMap()
 }

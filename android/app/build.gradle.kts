@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.serialization)
@@ -18,8 +20,19 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
+    buildFeatures { buildConfig = true }
+
     buildTypes {
+        debug {
+            // Stands in for sign-in: a token from the backend's cmd/devaccount, kept in the
+            // untracked local.properties as ascon.devAccountToken.
+            val local = Properties().apply {
+                rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use(::load)
+            }
+            buildConfigField("String", "DEV_ACCOUNT_TOKEN", "\"${local.getProperty("ascon.devAccountToken", "")}\"")
+        }
         release {
+            buildConfigField("String", "DEV_ACCOUNT_TOKEN", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

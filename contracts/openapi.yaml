@@ -653,9 +653,11 @@ components:
 
     PageSnapshot:
       description: |
-        A chapter page reduced by the app before upload. Scripts and styles
-        are removed, only `class`, `id`, `href`, `src` and `data-src`
-        attributes are kept, and text nodes are truncated. No images.
+        A chapter page reduced by the app before upload. Scripts, styles and
+        form fields are removed. Only `class`, `id`, `href`, `src`,
+        `data-src`, `data-lazy-src`, `srcset`, `data-srcset` and `rel`
+        attributes are kept, plus `name`, `property` and `content` on meta
+        tags. Text is cut to 80 characters. No images.
       type: object
       additionalProperties: false
       required: [url, html]

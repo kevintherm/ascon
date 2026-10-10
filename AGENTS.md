@@ -116,7 +116,7 @@ docs/               ADRs and longer notes
 
 **AI generation, server side:**
 
-- Client sends sanitized snapshots: scripts and styles removed, only `class`, `id`, `href`, `src`, `data-src` attributes kept, text truncated, size capped. Ideally two chapter pages from the same site.
+- Client sends sanitized snapshots: scripts, styles and form fields removed, only `class`, `id`, `href`, `src`, `data-src`, `data-lazy-src`, `srcset`, `data-srcset` and `rel` attributes kept, plus `name`, `property` and `content` on meta tags so rules can read `og:title`, text cut to 80 characters, size capped. Ideally two chapter pages from the same site.
 - LLM returns a rule constrained to the JSON Schema.
 - Server validates with a Go port of the evaluator: titles must match across samples, chapter numbers must parse and increase, enough images must be found. Only then is the rule stored.
 - The JS and Go evaluators share one conformance suite in `contracts/fixtures/` so they cannot drift.
@@ -131,6 +131,7 @@ docs/               ADRs and longer notes
 - Simhash is sensitive: one changed feature in 200 can flip a few bits, and the backend reuses a rule within 4. Tune the features or the limit with real mirror pairs once generated rules carry fingerprints.
 - Health counts only the site's own rule from the backend. A page is judged once, by its best result, when the next page arrives, so the last page before the app is closed isn't counted. A WorkManager job sends the counts daily.
 - The backend client registers the device on its first call and again if the token is refused. The token is in plain DataStore, since it is anonymous.
+- AI detection, built on 2026-10-10: a chapter page only heuristics read, on a site the backend has no rule for and nothing to borrow by fingerprint, is asked for a snapshot. Two snapshots of different chapters go to the backend together, and the app polls until the rule is written, then keeps it like a looked-up rule and sends it to the page. Each site is tried once per run of the app, or again after the backend was unreachable; a used-up quota stops all sites until it resets. A page heuristics can't read as a chapter is never sent; the fix-detection sheet covers it. Until sign-in exists, debug builds take the account token from `ascon.devAccountToken` in `local.properties`, and release builds have none.
 
 **Health:** successful extractions raise confidence; empty results or backward chapter jumps lower it. Below a threshold the rule is suspect and regenerated, keeping the previous version for rollback. Users are asked only when a rule is suspect, and several reports are needed before regeneration so one confused user cannot break a working rule.
 

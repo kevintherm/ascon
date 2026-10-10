@@ -23,8 +23,10 @@ import com.ascon.engine.adblock.Adblock
 import com.ascon.engine.adblock.CosmeticFilter
 import com.ascon.engine.adblock.FilterListUpdateWorker
 import com.ascon.engine.detection.DetectionHost
+import com.ascon.engine.detection.HttpGenerationBackend
 import com.ascon.engine.detection.HttpRuleBackend
 import com.ascon.engine.detection.RuleBackend
+import com.ascon.engine.detection.RuleGeneration
 import com.ascon.engine.detection.RuleHealth
 import com.ascon.engine.detection.RuleHealthWorker
 import com.ascon.engine.detection.RuleLookup
@@ -81,13 +83,29 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     /** Rules fetched for single sites, and how they did. */
     val ruleStore: RuleStore = RoomRuleStore(database)
 
+    private val backendClient by lazy {
+        OkHttpClient.Builder().callTimeout(Duration.ofSeconds(BACKEND_TIMEOUT_SECONDS)).build()
+    }
+
     /** Null when this build has no backend to ask. */
     val ruleBackend: RuleBackend? = BackendConfig.BASE_URL?.let { url ->
         HttpRuleBackend(
             baseUrl = url.toHttpUrl(),
-            client = OkHttpClient.Builder().callTimeout(Duration.ofSeconds(BACKEND_TIMEOUT_SECONDS)).build(),
+            client = backendClient,
             tokens = DataStoreDeviceToken.open(app, background),
             appVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName.orEmpty()
+        )
+    }
+
+    private val verifier = RuleVerifier(BackendConfig.publicKeys)
+
+    /** AI detection, for builds with a backend. It does nothing without an account token. */
+    private val generation: RuleGeneration? = BackendConfig.BASE_URL?.let { url ->
+        RuleGeneration(
+            store = ruleStore,
+            backend = HttpGenerationBackend(url.toHttpUrl(), backendClient) { BackendConfig.accountToken },
+            verifier = verifier,
+            accountToken = { BackendConfig.accountToken }
         )
     }
 
@@ -98,11 +116,12 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
                 store = ruleStore,
                 builtIn = DetectionHost.loadBuiltInRules(app),
                 backend = ruleBackend,
-                verifier = RuleVerifier(BackendConfig.publicKeys),
+                verifier = verifier,
                 scope = background
             ),
             scope = MainScope(),
-            health = RuleHealth(ruleStore)
+            health = RuleHealth(ruleStore),
+            generation = generation
         ).also { RuleHealthWorker.schedule(app) }
     }
 
