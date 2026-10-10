@@ -37,6 +37,8 @@ import com.ascon.core.designsystem.component.FloatingNavBar
 import com.ascon.core.designsystem.component.FloatingNavBarClearance
 import com.ascon.core.designsystem.component.NavItem
 import com.ascon.core.designsystem.component.Snackbar
+import com.ascon.core.designsystem.component.SnackbarArea
+import com.ascon.core.designsystem.component.closesSnackbarOnTapOutside
 import com.ascon.core.designsystem.icon.AsconIcons
 import com.ascon.core.designsystem.theme.AsconTheme
 import com.ascon.core.model.ReadingStatus
@@ -143,8 +145,10 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
     // Back from a tab other than Home goes to Home. Detail screens handle back in NavDisplay.
     BackHandler(enabled = tabsShown && tab.back() != null) { tab.back()?.let { tab = it } }
 
+    val snackbarArea = remember { SnackbarArea() }
+
     AsconTheme {
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().closesSnackbarOnTapOutside(snackbarArea) { closed.discard() }) {
             TabHost(selected = tab, visible = tabsShown, modifier = Modifier.coveredByDetail(cover)) { shown ->
                 when (shown) {
                     Tab.Home -> HomeRoute(
@@ -175,7 +179,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                             openPage = browserState.openPage()?.takeIf { closed.url == null },
                             onReturnToPage = { backStack.push(Route.Browser(browserState.url)) },
                             // As the menu's Close: the page goes once Undo has had its time.
-                            onClosePage = { closed.url = browserState.url }
+                            onClosePage = { closed.close(browserState.url, reopens = false) }
                         )
                     }
                     Tab.Settings -> SettingsRoute(
@@ -212,7 +216,7 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                             actions = BrowserActions(
                                 onClose = { backStack.pop() },
                                 onEndSession = {
-                                    closed.url = browser.state.value.url
+                                    closed.close(browser.state.value.url, reopens = true)
                                     backStack.pop()
                                 },
                                 onOpenSeries = openSeries,
@@ -262,12 +266,9 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
             ClosedSnackbar(
                 visible = closed.url != null,
                 above = if (tabsShown) FloatingNavBarClearance else 0.dp,
-                onUndo = {
-                    closed.url?.let { url ->
-                        closed.url = null
-                        backStack.push(Route.Browser(url))
-                    }
-                },
+                area = snackbarArea,
+                onUndo = { closed.undo()?.let { backStack.push(Route.Browser(it)) } },
+                onDismiss = closed::discard,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -283,6 +284,23 @@ private const val UNDO_CLOSE_MS = 5_000L
  */
 private class ClosedBrowser(private val onDiscard: () -> Unit) {
     var url by mutableStateOf<String?>(null)
+
+    private var reopens = true
+
+    fun close(url: String, reopens: Boolean) {
+        this.reopens = reopens
+        this.url = url
+    }
+
+    /**
+     * Keeps the page. Returns its address when the browser should open it again; Undo
+     * from Browse's card only brings the card back.
+     */
+    fun undo(): String? {
+        val kept = url
+        url = null
+        return kept?.takeIf { reopens }
+    }
 
     fun discard() {
         if (url != null) {
@@ -306,7 +324,14 @@ private fun rememberClosedBrowser(onDiscard: () -> Unit): ClosedBrowser {
 
 /** Browser closed · Undo, over the screen that opened the browser and above the nav. */
 @Composable
-private fun ClosedSnackbar(visible: Boolean, above: Dp, onUndo: () -> Unit, modifier: Modifier = Modifier) {
+private fun ClosedSnackbar(
+    visible: Boolean,
+    above: Dp,
+    area: SnackbarArea,
+    onUndo: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
@@ -317,9 +342,11 @@ private fun ClosedSnackbar(visible: Boolean, above: Dp, onUndo: () -> Unit, modi
             text = stringResource(R.string.browser_closed),
             action = stringResource(R.string.browser_closed_undo),
             onAction = onUndo,
+            onDismiss = onDismiss,
+            area = area,
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(bottom = above + 16.dp)
+                .padding(start = 12.dp, end = 12.dp, bottom = above + 24.dp)
         )
     }
 }

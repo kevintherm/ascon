@@ -317,7 +317,7 @@ Found by the owner, to fix later.
 
 Improvements found while testing, not bugs:
 
-1. A snackbar, such as Browser closed · Undo, can't be closed early. It should go away on a swipe or on a tap outside its button.
+1. Done on 2026-10-11: the shared ink snackbar, used for Browser closed · Undo and the reader's page messages, closes early on a sideways or downward swipe, or on a tap anywhere outside it, which still reaches what it lands on. It follows notes.md's spec: 52 tall, radius 18, 12 from the sides, 24 above the bottom or the nav. Closing Browser closed early discards the page at once. Undo after the X on Browse's Open page card brings the card back rather than opening the browser. The protection sheet's glass Protection off · Undo pill over web pages still closes only by itself.
 
 ## Deferred until after the MVP launch
 

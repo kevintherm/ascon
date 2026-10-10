@@ -47,7 +47,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ascon.core.designsystem.component.Snackbar
+import com.ascon.core.designsystem.component.SnackbarArea
 import com.ascon.core.designsystem.component.StatusBarIcons
+import com.ascon.core.designsystem.component.closesSnackbarOnTapOutside
 import com.ascon.core.model.PageFit
 import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.ReadingMode
@@ -91,7 +93,8 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
                 if (file == null) resources.getString(R.string.reader_page_not_fetched, index + 1) else use(file, name)
         }
     }
-    Box {
+    val snackbarArea = remember { SnackbarArea() }
+    Box(Modifier.closesSnackbarOnTapOutside(snackbarArea) { message = null }) {
         ReaderScreen(
             state = state,
             pageSizes = sizes,
@@ -147,7 +150,9 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
                 Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 12.dp)
+                    .padding(start = 12.dp, end = 12.dp, top = 12.dp),
+                onDismiss = { message = null },
+                area = snackbarArea
             )
         }
     }
