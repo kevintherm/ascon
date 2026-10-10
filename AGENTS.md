@@ -111,7 +111,7 @@ docs/               ADRs and longer notes
 1. Local rule cache by domain
 2. Backend rule by domain, then by structure fingerprint
 3. Built-in hand-written rules for common WordPress manga themes
-4. Heuristics: JSON-LD, `og:title`, chapter patterns in the URL
+4. Heuristics: JSON-LD, `og:title`, chapter patterns in the URL. A site whose chapter URLs carry an id takes the chapter from a JSON-LD `Chapter` naming this URL, by its name or else its position
 5. AI generation, last resort, automatic for a signed-in user with quota left. Otherwise the user gets heuristics and the fix-detection sheet
 
 **AI generation, server side:**
@@ -130,6 +130,7 @@ docs/               ADRs and longer notes
 - A rule that fails its Ed25519 signature is treated as no rule. Debug builds pin the development key in `contracts/fixtures/signed-rule.json`, which the Go signer and the app's verifier both test against. Release builds have no backend address or key until the server is deployed.
 - bridge.js sends a page's structure only from a chapter page read without the site's own rule, once per document: the generator meta tag, class names without digits, and parent>child tag pairs. The app hashes them into the fingerprint and asks the backend once per site. A borrowed rule is kept under the asking site with the fingerprint, so refreshing keeps it. A site where neither built-in rules nor heuristics find a chapter never sends its structure; AI generation covers it.
 - Simhash is sensitive: one changed feature in 200 can flip a few bits, and the backend reuses a rule within 4. Tune the features or the limit with real mirror pairs once generated rules carry fingerprints.
+- A Cloudflare check page, "Just a moment", is never read as a page of the site, even by the site's own rule. It is known by Cloudflare's `_cf_chl_opt` or `#challenge-form`.
 - Health counts only the site's own rule from the backend. A page is judged once, by its best result, when the next page arrives, so the last page before the app is closed isn't counted. A WorkManager job sends the counts daily.
 - The backend client registers the device on its first call and again if the token is refused. The token is in plain DataStore, since it is anonymous.
 - AI detection, built on 2026-10-10: a chapter page only heuristics read, on a site the backend has no rule for and nothing to borrow by fingerprint, is asked for a snapshot. Two snapshots of different chapters go to the backend together, and the app polls until the rule is written, then keeps it like a looked-up rule and sends it to the page. Each site is tried once per run of the app, or again after the backend was unreachable; a used-up quota stops all sites until it resets. A page heuristics can't read as a chapter is never sent; the fix-detection sheet covers it. Until sign-in exists, debug builds take the account token from `ascon.devAccountToken` in `local.properties`, and release builds have none.

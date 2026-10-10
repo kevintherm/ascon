@@ -295,6 +295,28 @@ test("heuristics clean the document title", async () => {
   assert.equal(got.result.chapter, "9.5");
 });
 
+test("heuristics take the chapter from JSON-LD when the URL carries an id", async () => {
+  const got = await detect("https://ember.example/series/41/9f2c41d0a7b3e655", fixture("heuristic/jsonld-id.html"), []);
+  assert.equal(got.result.pageType, "chapter");
+  assert.equal(got.result.title, "Lantern Code");
+  assert.equal(got.result.chapter, "12");
+  assert.deepEqual(got.result.images, [1, 2, 3].map((n) => `https://cdn.ember.example/series/41/9f2c41d0a7b3e655/${n}.png`));
+});
+
+test("JSON-LD for another URL gives no chapter", async () => {
+  const got = await detect("https://ember.example/series/41/0000aaaa1111bbbb", fixture("heuristic/jsonld-id.html"), []);
+  assert.deepEqual(got.result, { pageType: "none" });
+});
+
+test("a Cloudflare check page is not a chapter, even under a rule for the site", async () => {
+  const url = "https://inkwell.example/rust-belt-saints/chapter-9/";
+  const rule = { chapterPage: { url: "https://inkwell\\.example/.*", images: { selector: "img" } } };
+  const heuristic = await detect(url, fixture("heuristic/challenge.html"), []);
+  assert.deepEqual(heuristic.result, { pageType: "none" });
+  const ruled = await detect(url, fixture("heuristic/challenge.html"), [{ via: "rule", rule }]);
+  assert.deepEqual(ruled.result, { pageType: "none" });
+});
+
 test("heuristics find nothing without a chapter in the URL", async () => {
   const got = await detect("https://inkwell.example/rust-belt-saints/", fixture("heuristic/title.html"), []);
   assert.deepEqual(got.result, { pageType: "none" });

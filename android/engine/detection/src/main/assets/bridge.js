@@ -207,7 +207,9 @@
     return typeof node.name === "string" ? node.name : null;
   }
 
-  function jsonLdTitle() {
+  /** Every JSON-LD node on the page, @graph members included. */
+  function jsonLdNodes() {
+    var nodes = [];
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
     for (var i = 0; i < scripts.length; i++) {
       var data;
@@ -216,13 +218,42 @@
       } catch (e) {
         continue;
       }
-      var nodes = [].concat(data);
+      nodes = nodes.concat(data);
       if (data && Array.isArray(data["@graph"])) nodes = nodes.concat(data["@graph"]);
-      for (var j = 0; j < nodes.length; j++) {
-        var node = nodes[j];
-        if (!node || typeof node !== "object") continue;
-        if (hasType(node, ISSUE_TYPES) && nameOf(node.isPartOf)) return nameOf(node.isPartOf);
-        if (hasType(node, SERIES_TYPES) && nameOf(node)) return nameOf(node);
+    }
+    return nodes.filter(function (node) { return node && typeof node === "object"; });
+  }
+
+  function jsonLdTitle() {
+    var nodes = jsonLdNodes();
+    for (var j = 0; j < nodes.length; j++) {
+      var node = nodes[j];
+      if (hasType(node, ISSUE_TYPES) && nameOf(node.isPartOf)) return nameOf(node.isPartOf);
+      if (hasType(node, SERIES_TYPES) && nameOf(node)) return nameOf(node);
+    }
+    return null;
+  }
+
+  function samePage(a, b) {
+    return a.replace(/[?#].*$/, "").replace(/\/$/, "") === b.replace(/[?#].*$/, "").replace(/\/$/, "");
+  }
+
+  /**
+   * The chapter number a JSON-LD chapter of a series gives, from its name or else its
+   * position, for sites whose chapter URLs carry an id instead. A node that names another
+   * URL is left out, since a single-page site can keep the last page's JSON-LD.
+   */
+  function jsonLdChapter(url) {
+    var nodes = jsonLdNodes();
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (!hasType(node, ISSUE_TYPES) || !nameOf(node.isPartOf)) continue;
+      if (typeof node.url === "string" && !samePage(evaluator.resolveUrl(node.url, url) || "", url)) continue;
+      var m = typeof node.name === "string" && CHAPTER_NUMBER_IN_TITLE.exec(node.name);
+      if (m) return evaluator.parseChapterNumber(m[1]);
+      if (typeof node.position === "number" || typeof node.position === "string") {
+        var n = evaluator.parseChapterNumber(String(node.position));
+        if (n != null) return n;
       }
     }
     return null;
@@ -384,15 +415,21 @@
 
   function heuristic(url) {
     var here = chapterInUrl(url);
-    if (!here) return { pageType: "none" };
-    var around = neighbors(here, url);
+    var chapter;
+    if (here) {
+      // The title can lag behind a single-page site's URL, so it wins only over an id.
+      chapter = here.number >= MAX_CHAPTER ? chapterInTitle() : evaluator.parseChapterNumber(here.raw);
+    } else {
+      chapter = jsonLdChapter(url);
+      if (chapter == null) return { pageType: "none" };
+    }
+    var around = here ? neighbors(here, url) : { next: null, previous: null };
     return {
       pageType: "chapter",
       series: null,
       title: cleanTitle(jsonLdTitle() || document.title || metaContent('meta[property="og:title"]')),
       chapterLabel: null,
-      // The title can lag behind a single-page site's URL, so it wins only over an id.
-      chapter: here.number >= MAX_CHAPTER ? chapterInTitle() : evaluator.parseChapterNumber(here.raw),
+      chapter: chapter,
       images: pageImages(url),
       next: around.next,
       previous: around.previous
@@ -539,6 +576,14 @@
 
   // ---- Evaluation -------------------------------------------------------
 
+  /**
+   * Cloudflare's "Just a moment" check stands in for the page at its URL until it
+   * passes, then loads the real page. Nothing on it is the site's.
+   */
+  function challenged() {
+    return "_cf_chl_opt" in window || !!document.getElementById("challenge-form");
+  }
+
   /*
    * Candidates come in lookup order. A rule made for this domain is trusted
    * even when it says the page is neither a chapter nor a series page. A
@@ -546,6 +591,7 @@
    * it recognizes the page.
    */
   function detect(url) {
+    if (challenged()) return { via: "heuristic", result: { pageType: "none" } };
     for (var i = 0; i < candidates.length; i++) {
       var c = candidates[i];
       try {
