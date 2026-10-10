@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"path/filepath"
@@ -28,24 +29,56 @@ func openTest(t *testing.T) *DB {
 
 func newAccount(t *testing.T, db *DB, tier account.Tier) (account.Account, string) {
 	t.Helper()
-	acc, token, err := NewDevAccounts(db).Create(context.Background(), tier, now)
+	acc, token, err := NewAccounts(db).Create(context.Background(), tier, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return acc, token
 }
 
-func TestDevAccountsVerify(t *testing.T) {
+func TestAccountsByToken(t *testing.T) {
 	ctx := context.Background()
 	db := openTest(t)
 	acc, token := newAccount(t, db, account.Premium)
+	accounts := NewAccounts(db)
+	hash := sha256.Sum256([]byte(token))
 
-	got, err := NewDevAccounts(db).Verify(ctx, token)
+	got, err := accounts.ByTokenHash(ctx, hash[:])
 	if err != nil || got != acc {
-		t.Fatalf("Verify = %+v, %v; want %+v", got, err, acc)
+		t.Fatalf("ByTokenHash = %+v, %v; want %+v", got, err, acc)
 	}
-	if _, err := NewDevAccounts(db).Verify(ctx, "nope"); !errors.Is(err, domain.ErrUnauthenticated) {
-		t.Fatalf("Verify(bad token) error = %v, want ErrUnauthenticated", err)
+	if err := accounts.RemoveToken(ctx, hash[:]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := accounts.ByTokenHash(ctx, hash[:]); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("ByTokenHash(removed) error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestAccountsForIdentityCreatesOnce(t *testing.T) {
+	ctx := context.Background()
+	accounts := NewAccounts(openTest(t))
+	alice := account.Identity{Provider: account.Google, Subject: "111"}
+
+	first, err := accounts.ForIdentity(ctx, alice, now)
+	if err != nil || first.Tier != account.Free {
+		t.Fatalf("ForIdentity = %+v, %v; want a free account", first, err)
+	}
+	again, err := accounts.ForIdentity(ctx, alice, now)
+	if err != nil || again != first {
+		t.Fatalf("ForIdentity again = %+v, %v; want %+v", again, err, first)
+	}
+	other, err := accounts.ForIdentity(ctx, account.Identity{Provider: account.Google, Subject: "222"}, now)
+	if err != nil || other.ID == first.ID {
+		t.Fatalf("another subject got %+v, %v", other, err)
+	}
+
+	hash := []byte("hash")
+	if err := accounts.AddToken(ctx, first.ID, hash, now); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := accounts.ByTokenHash(ctx, hash); err != nil || got != first {
+		t.Fatalf("ByTokenHash = %+v, %v", got, err)
 	}
 }
 

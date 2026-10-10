@@ -79,10 +79,11 @@ Settings come from environment variables:
 | `ASCON_LLM_API_KEY` | none | Its key |
 | `ASCON_LLM_MODEL` | none | Its model, such as `deepseek-v4-flash` |
 | `ASCON_LLM_ATTEMPTS` | `2` | Rules the model may offer per request. Each retry is told why the last one failed |
+| `ASCON_GOOGLE_CLIENT_ID` | none | The OAuth Web client ID the app signs in with. Google ID tokens must name it as their audience. Without it, sign-in fails |
 
 The server also reads a `.env` file in the directory it runs from, for development settings such as the LLM key. Real environment variables win over it. `.env` is ignored by git; never commit a key.
 
-`devaccount` stands in for sign-in, which is not built yet. Without the `ASCON_LLM_*` settings, AI rule generation is rejected and the quota refunded.
+Users get accounts by signing in with Google. `devaccount` makes one without signing in, such as a premium account for testing. Without the `ASCON_LLM_*` settings, AI rule generation is rejected and the quota refunded.
 
 To try generation without the app, give `devgenerate` saved chapter pages with the URLs they came from. It sanitizes raw pages first, unless given `-raw`, and prints each rule the model offers, the tokens it used and the server's verdict:
 

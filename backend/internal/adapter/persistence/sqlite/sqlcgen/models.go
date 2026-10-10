@@ -14,6 +14,13 @@ type Account struct {
 	CreatedAt string
 }
 
+type AccountIdentity struct {
+	Provider  string
+	Subject   string
+	AccountID string
+	CreatedAt string
+}
+
 type AccountToken struct {
 	TokenHash []byte
 	AccountID string

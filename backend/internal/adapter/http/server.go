@@ -21,6 +21,7 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
 
@@ -33,8 +34,10 @@ const (
 
 // Server holds the use cases the handlers call.
 type Server struct {
-	Devices  *registerdevice.Service
+	Devices *registerdevice.Service
+	// Accounts checks account tokens; SignIn issues and ends them.
 	Accounts account.Verifier
+	SignIn   *signin.Service
 	Resolve  *resolverule.Service
 	Reports  *reportrule.Service
 	Generate *generaterule.Service
@@ -49,6 +52,9 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("POST /v1/devices", s.registerDevice)
 	mux.HandleFunc("DELETE /v1/devices/me", s.withDevice(s.deleteDevice))
+
+	mux.HandleFunc("POST /v1/sessions", s.signIn)
+	mux.HandleFunc("DELETE /v1/sessions/current", s.withAccount(s.signOut))
 
 	mux.HandleFunc("GET /v1/rules", s.withDevice(s.lookupRule))
 	mux.HandleFunc("POST /v1/rules/{domain}/reports", s.withDevice(s.reportRule))

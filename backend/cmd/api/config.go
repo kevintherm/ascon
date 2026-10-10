@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/kevintherm/ascon/backend/internal/adapter/google"
 	"github.com/kevintherm/ascon/backend/internal/adapter/llm"
 	"github.com/kevintherm/ascon/backend/internal/adapter/signing"
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
@@ -25,6 +26,8 @@ type config struct {
 	// may offer per request.
 	generator rule.Generator
 	attempts  int
+	// identities checks Google ID tokens at sign-in.
+	identities account.IdentityVerifier
 }
 
 func loadConfig(logger *slog.Logger) (config, error) {
@@ -43,6 +46,7 @@ func loadConfig(logger *slog.Logger) (config, error) {
 	}
 	c.limits = account.Limits{account.Free: free, account.Premium: premium}
 
+	c.identities = identities(logger)
 	c.generator = generator(logger)
 	if c.attempts, err = envInt("ASCON_LLM_ATTEMPTS", 2); err != nil {
 		return c, err
@@ -76,6 +80,17 @@ func generator(logger *slog.Logger) rule.Generator {
 				"reasoning_tokens", u.Details.Reasoning, "cached_tokens", u.PromptDetails.Cached)
 		},
 	}
+}
+
+// identities reads ASCON_GOOGLE_CLIENT_ID, the OAuth Web client ID the app
+// asks Google for ID tokens with. Without it every sign-in fails.
+func identities(logger *slog.Logger) account.IdentityVerifier {
+	clientID := os.Getenv("ASCON_GOOGLE_CLIENT_ID")
+	if clientID == "" {
+		logger.Warn("ASCON_GOOGLE_CLIENT_ID is not set; sign-in will fail")
+		return google.Unconfigured{}
+	}
+	return &google.IDTokens{ClientID: clientID}
 }
 
 // signingSeed reads ASCON_SIGNING_KEY, a base64 Ed25519 seed. Without it the

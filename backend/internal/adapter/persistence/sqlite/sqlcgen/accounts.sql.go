@@ -9,6 +9,30 @@ import (
 	"context"
 )
 
+const accountByIdentity = `-- name: AccountByIdentity :one
+SELECT a.id, a.tier
+FROM account_identities i
+JOIN accounts a ON a.id = i.account_id
+WHERE i.provider = ? AND i.subject = ?
+`
+
+type AccountByIdentityParams struct {
+	Provider string
+	Subject  string
+}
+
+type AccountByIdentityRow struct {
+	ID   string
+	Tier string
+}
+
+func (q *Queries) AccountByIdentity(ctx context.Context, arg AccountByIdentityParams) (AccountByIdentityRow, error) {
+	row := q.db.QueryRowContext(ctx, accountByIdentity, arg.Provider, arg.Subject)
+	var i AccountByIdentityRow
+	err := row.Scan(&i.ID, &i.Tier)
+	return i, err
+}
+
 const accountByTokenHash = `-- name: AccountByTokenHash :one
 SELECT a.id, a.tier
 FROM account_tokens t
@@ -43,6 +67,27 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) er
 	return err
 }
 
+const createAccountIdentity = `-- name: CreateAccountIdentity :exec
+INSERT INTO account_identities (provider, subject, account_id, created_at) VALUES (?, ?, ?, ?)
+`
+
+type CreateAccountIdentityParams struct {
+	Provider  string
+	Subject   string
+	AccountID string
+	CreatedAt string
+}
+
+func (q *Queries) CreateAccountIdentity(ctx context.Context, arg CreateAccountIdentityParams) error {
+	_, err := q.db.ExecContext(ctx, createAccountIdentity,
+		arg.Provider,
+		arg.Subject,
+		arg.AccountID,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createAccountToken = `-- name: CreateAccountToken :exec
 INSERT INTO account_tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)
 `
@@ -55,6 +100,15 @@ type CreateAccountTokenParams struct {
 
 func (q *Queries) CreateAccountToken(ctx context.Context, arg CreateAccountTokenParams) error {
 	_, err := q.db.ExecContext(ctx, createAccountToken, arg.TokenHash, arg.AccountID, arg.CreatedAt)
+	return err
+}
+
+const deleteAccountToken = `-- name: DeleteAccountToken :exec
+DELETE FROM account_tokens WHERE token_hash = ?
+`
+
+func (q *Queries) DeleteAccountToken(ctx context.Context, tokenHash []byte) error {
+	_, err := q.db.ExecContext(ctx, deleteAccountToken, tokenHash)
 	return err
 }
 

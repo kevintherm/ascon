@@ -20,6 +20,7 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
 
@@ -64,9 +65,11 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
+	signIn := signin.New(cfg.identities, sqlite.NewAccounts(db), now)
 	api := &httpadapter.Server{
 		Devices:  registerdevice.New(sqlite.NewDevices(db), now),
-		Accounts: sqlite.NewDevAccounts(db),
+		Accounts: signIn,
+		SignIn:   signIn,
 		Resolve:  resolverule.New(rules, cfg.signer),
 		Reports:  reportrule.New(rules, now),
 		Generate: generate,

@@ -12,18 +12,21 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/kevintherm/ascon/backend/internal/adapter/evaluator"
 	"github.com/kevintherm/ascon/backend/internal/adapter/persistence/sqlite"
 	"github.com/kevintherm/ascon/backend/internal/adapter/signing"
+	"github.com/kevintherm/ascon/backend/internal/domain"
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
 	"github.com/kevintherm/ascon/backend/internal/domain/rule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/generaterule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
 
@@ -42,10 +45,21 @@ func (g fixtureGenerator) Generate(context.Context, string, string, []rule.Sampl
 	return r, json.Unmarshal(b, &r)
 }
 
+// googleStub accepts ID tokens of the form "google:<sub>".
+type googleStub struct{}
+
+func (googleStub) VerifyIdentity(_ context.Context, idToken string) (account.Identity, error) {
+	sub, ok := strings.CutPrefix(idToken, "google:")
+	if !ok {
+		return account.Identity{}, domain.ErrUnauthenticated
+	}
+	return account.Identity{Provider: account.Google, Subject: sub}, nil
+}
+
 type env struct {
 	t        *testing.T
 	srv      *httptest.Server
-	accounts *sqlite.DevAccounts
+	accounts *sqlite.Accounts
 	pub      ed25519.PublicKey
 }
 
@@ -64,9 +78,11 @@ func newEnv(t *testing.T, limits account.Limits) *env {
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	rules := sqlite.NewRules(db)
+	signIn := signin.New(googleStub{}, sqlite.NewAccounts(db), time.Now)
 	api := &Server{
 		Devices:  registerdevice.New(sqlite.NewDevices(db), time.Now),
-		Accounts: sqlite.NewDevAccounts(db),
+		Accounts: signIn,
+		SignIn:   signIn,
 		Resolve:  resolverule.New(rules, signer),
 		Reports:  reportrule.New(rules, time.Now),
 		Generate: generaterule.New(rules, sqlite.NewCandidates(db), sqlite.NewQuotas(db),
@@ -77,7 +93,7 @@ func newEnv(t *testing.T, limits account.Limits) *env {
 	}
 	srv := httptest.NewServer(api.Handler())
 	t.Cleanup(srv.Close)
-	return &env{t: t, srv: srv, accounts: sqlite.NewDevAccounts(db), pub: signer.PublicKey()}
+	return &env{t: t, srv: srv, accounts: sqlite.NewAccounts(db), pub: signer.PublicKey()}
 }
 
 // reply is what a call returns; the body is already decoded and closed.
@@ -263,4 +279,34 @@ func TestSyncRoundTrip(t *testing.T) {
 		"entity": "progress", "id": id,
 		"fields": map[string]any{"chapter": map[string]any{"value": "10.50", "updatedAt": "2026-10-08T10:00:00Z"}},
 	}}}, nil), 400)
+}
+
+func TestSignInAndOut(t *testing.T) {
+	e := newEnv(t, account.Limits{account.Free: 10})
+
+	var s sessionDTO
+	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{"idToken": "google:111"}, &s), 201)
+	if s.Token == "" || s.AccountID == "" || s.Tier != "free" {
+		t.Fatalf("session = %+v", s)
+	}
+	var q quotaDTO
+	e.expect(e.call("GET", "/v1/quota", s.Token, nil, &q), 200)
+	if q.Limit != 10 || q.Remaining != 10 {
+		t.Fatalf("quota = %+v", q)
+	}
+
+	// The same Google user on another phone gets the same account.
+	var again sessionDTO
+	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{"idToken": "google:111"}, &again), 201)
+	if again.AccountID != s.AccountID || again.Token == s.Token {
+		t.Fatalf("second sign-in = %+v, first %+v", again, s)
+	}
+
+	e.expect(e.call("DELETE", "/v1/sessions/current", s.Token, nil, nil), 204)
+	e.expect(e.call("GET", "/v1/quota", s.Token, nil, nil), 401)
+	e.expect(e.call("GET", "/v1/quota", again.Token, nil, nil), 200)
+
+	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{"idToken": "forged"}, nil), 401)
+	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{}, nil), 400)
+	e.expect(e.call("DELETE", "/v1/sessions/current", "", nil, nil), 401)
 }

@@ -24,10 +24,39 @@ type Account struct {
 }
 
 // Verifier turns an account bearer token into an account. It returns
-// domain.ErrUnauthenticated for a token it does not accept. The sign-in flow
-// is not designed yet, so this port is what a real one will implement.
+// domain.ErrUnauthenticated for a token it does not accept.
 type Verifier interface {
 	Verify(ctx context.Context, token string) (Account, error)
+}
+
+// Identity is a user as a sign-in provider knows them. Subject is the
+// provider's stable id for the user, Google's sub claim. Nothing else about
+// the user, such as their email, is kept.
+type Identity struct {
+	Provider string
+	Subject  string
+}
+
+// Google is the provider name of Google sign-in.
+const Google = "google"
+
+// IdentityVerifier checks an ID token from a sign-in provider. It returns
+// domain.ErrUnauthenticated for a token it does not accept, and another error
+// when it could not check, such as when the provider's keys can't be fetched.
+type IdentityVerifier interface {
+	VerifyIdentity(ctx context.Context, idToken string) (Identity, error)
+}
+
+// Repository stores accounts, the identities that sign in to them and their
+// bearer tokens. Tokens are stored only as hashes.
+type Repository interface {
+	// ForIdentity returns the account id signs in to, creating a free account
+	// the first time.
+	ForIdentity(ctx context.Context, id Identity, now time.Time) (Account, error)
+	AddToken(ctx context.Context, accountID string, tokenHash []byte, now time.Time) error
+	// ByTokenHash returns domain.ErrNotFound for a token it doesn't hold.
+	ByTokenHash(ctx context.Context, tokenHash []byte) (Account, error)
+	RemoveToken(ctx context.Context, tokenHash []byte) error
 }
 
 // QuotaRepository counts AI detection use per account and period.

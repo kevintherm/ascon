@@ -25,3 +25,15 @@ WHERE account_id = ? AND period = ? AND used > 0;
 
 -- name: QuotaUsed :one
 SELECT used FROM quota_usage WHERE account_id = ? AND period = ?;
+
+-- name: AccountByIdentity :one
+SELECT a.id, a.tier
+FROM account_identities i
+JOIN accounts a ON a.id = i.account_id
+WHERE i.provider = ? AND i.subject = ?;
+
+-- name: CreateAccountIdentity :exec
+INSERT INTO account_identities (provider, subject, account_id, created_at) VALUES (?, ?, ?, ?);
+
+-- name: DeleteAccountToken :exec
+DELETE FROM account_tokens WHERE token_hash = ?;

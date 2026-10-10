@@ -1,5 +1,5 @@
-// Command devaccount creates an account and prints its bearer token. It
-// stands in for sign-in, which is not designed yet.
+// Command devaccount creates an account and prints its bearer token, without
+// signing in. It is for development and premium testing.
 //
 //	go run ./cmd/devaccount -db ascon.db -tier premium
 package main
@@ -39,7 +39,7 @@ func run(tier account.Tier, dbPath string) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	acc, token, err := sqlite.NewDevAccounts(db).Create(ctx, tier, time.Now())
+	acc, token, err := sqlite.NewAccounts(db).Create(ctx, tier, time.Now())
 	if err != nil {
 		return err
 	}

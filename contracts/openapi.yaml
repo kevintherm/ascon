@@ -21,6 +21,8 @@ servers:
 tags:
   - name: devices
     description: Anonymous device registration and followed series.
+  - name: accounts
+    description: Sign-in with Google and sign-out.
   - name: rules
     description: Detection rules, rule health, and AI generation within a quota.
   - name: metadata
@@ -96,6 +98,50 @@ paths:
         "204":
           description: List replaced.
         "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sessions:
+    post:
+      tags: [accounts]
+      operationId: signIn
+      summary: Sign in with a Google ID token
+      description: |
+        The app gets an ID token from Android's Credential Manager, asked for
+        with the server's OAuth Web client ID. The server checks its signature
+        against Google's published keys, its issuer, its audience and its
+        expiry, then finds the account for the Google user, creating a free
+        account the first time. Only Google's stable user id is stored, not the
+        email or name. Each sign-in gets its own account token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignIn"
+      responses:
+        "201":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /sessions/current:
+    delete:
+      tags: [accounts]
+      operationId: signOut
+      summary: Sign out
+      description: |
+        Ends the account token the call is made with. The account, its synced
+        library and its other devices' tokens stay.
+      security:
+        - accountToken: []
+      responses:
+        "204":
+          description: Signed out.
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /rules:
@@ -474,7 +520,7 @@ components:
       description: |
         Token for a signed-in account. Free accounts use it for sync and AI
         detection. With an active subscription it also gives the larger AI
-        detection quota and translation. The sign-in flow is not designed yet.
+        detection quota and translation. Issued by `signIn`.
 
   parameters:
     Domain:
@@ -575,6 +621,29 @@ components:
         token:
           type: string
           description: Bearer token for later calls. Store it in encrypted preferences.
+
+    SignIn:
+      type: object
+      additionalProperties: false
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          maxLength: 8192
+          description: A Google ID token whose audience is the server's Web client ID.
+
+    Session:
+      type: object
+      additionalProperties: false
+      required: [accountId, token, tier]
+      properties:
+        accountId: { type: string, format: uuid }
+        token:
+          type: string
+          description: Account token for later calls. Store it in app-private storage.
+        tier:
+          type: string
+          enum: [free, premium]
 
     Follows:
       type: object

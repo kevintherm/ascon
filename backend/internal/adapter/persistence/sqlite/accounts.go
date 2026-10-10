@@ -14,21 +14,49 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
 )
 
-// DevAccounts verifies account tokens stored in the account_tokens table and
-// can mint them. It stands in until a real sign-in flow exists.
-type DevAccounts struct{ db *DB }
+// Accounts implements account.Repository. Create also makes accounts with a
+// token directly, for cmd/devaccount and tests.
+type Accounts struct{ db *DB }
 
-// NewDevAccounts returns the development account verifier.
-func NewDevAccounts(db *DB) *DevAccounts { return &DevAccounts{db} }
+// NewAccounts returns the account repository.
+func NewAccounts(db *DB) *Accounts { return &Accounts{db} }
 
-var _ account.Verifier = (*DevAccounts)(nil)
+var _ account.Repository = (*Accounts)(nil)
 
-// Verify returns the account holding token.
-func (a *DevAccounts) Verify(ctx context.Context, token string) (account.Account, error) {
-	hash := sha256.Sum256([]byte(token))
-	row, err := a.db.r.AccountByTokenHash(ctx, hash[:])
+// ForIdentity returns the account id signs in to, creating a free account the
+// first time.
+func (a *Accounts) ForIdentity(ctx context.Context, id account.Identity, now time.Time) (account.Account, error) {
+	var acc account.Account
+	err := a.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		row, err := q.AccountByIdentity(ctx, sqlcgen.AccountByIdentityParams{Provider: id.Provider, Subject: id.Subject})
+		if err == nil {
+			acc = account.Account{ID: row.ID, Tier: account.Tier(row.Tier)}
+			return nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		acc = account.Account{ID: domain.NewID(), Tier: account.Free}
+		if err := q.CreateAccount(ctx, sqlcgen.CreateAccountParams{ID: acc.ID, Tier: string(acc.Tier), CreatedAt: formatTime(now)}); err != nil {
+			return err
+		}
+		return q.CreateAccountIdentity(ctx, sqlcgen.CreateAccountIdentityParams{
+			Provider: id.Provider, Subject: id.Subject, AccountID: acc.ID, CreatedAt: formatTime(now),
+		})
+	})
+	return acc, err
+}
+
+// AddToken stores a token's hash for the account.
+func (a *Accounts) AddToken(ctx context.Context, accountID string, tokenHash []byte, now time.Time) error {
+	return a.db.w.CreateAccountToken(ctx, sqlcgen.CreateAccountTokenParams{TokenHash: tokenHash, AccountID: accountID, CreatedAt: formatTime(now)})
+}
+
+// ByTokenHash returns the account holding the token.
+func (a *Accounts) ByTokenHash(ctx context.Context, tokenHash []byte) (account.Account, error) {
+	row, err := a.db.r.AccountByTokenHash(ctx, tokenHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return account.Account{}, domain.ErrUnauthenticated
+		return account.Account{}, domain.ErrNotFound
 	}
 	if err != nil {
 		return account.Account{}, err
@@ -36,8 +64,14 @@ func (a *DevAccounts) Verify(ctx context.Context, token string) (account.Account
 	return account.Account{ID: row.ID, Tier: account.Tier(row.Tier)}, nil
 }
 
+// RemoveToken forgets a token. Removing one it doesn't hold is not an error.
+func (a *Accounts) RemoveToken(ctx context.Context, tokenHash []byte) error {
+	return a.db.w.DeleteAccountToken(ctx, tokenHash)
+}
+
 // Create makes an account of the given tier and returns it with a new token.
-func (a *DevAccounts) Create(ctx context.Context, tier account.Tier, now time.Time) (account.Account, string, error) {
+// It is for development and tests; users get accounts by signing in.
+func (a *Accounts) Create(ctx context.Context, tier account.Tier, now time.Time) (account.Account, string, error) {
 	acc := account.Account{ID: domain.NewID(), Tier: tier}
 	var raw [32]byte
 	if _, err := rand.Read(raw[:]); err != nil {
