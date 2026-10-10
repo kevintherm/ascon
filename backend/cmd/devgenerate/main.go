@@ -119,8 +119,8 @@ func printResults(r rule.Rule, samples []rule.Sample) {
 	for i, s := range samples {
 		res, _ := evaluator.HTML{}.Evaluate(r, s.URL, s.HTML)
 		if c := res.Chapter; c != nil {
-			fmt.Printf("sample %d: title %q, chapter %v, %d images, next %v\n",
-				i+1, deref(c.Title), deref(c.Chapter), len(c.Images), deref(c.Next))
+			fmt.Printf("sample %d: title %q, chapter %v, %d images, next %v, previous %v\n",
+				i+1, deref(c.Title), deref(c.Chapter), len(c.Images), deref(c.Next), deref(c.Previous))
 		}
 	}
 }

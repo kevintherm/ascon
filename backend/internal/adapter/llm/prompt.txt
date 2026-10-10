@@ -28,6 +28,8 @@ Allowed regular expressions: the subset RE2 and JavaScript agree on. Named group
 
 Make the rule general for the whole site, not for these samples. The url pattern must match any chapter of any series on the site, so never put a series slug, a chapter number or a title in it. Prefer stable class names and ids from the site's theme over position-based selectors. The images selector must match only the chapter's page images, not covers, avatars, logos, banners, ads or images of other series. The title must be the series name alone, without the chapter, the site name or words like "Read"; use a pattern to cut it out of a longer heading or of the <title> tag when no element holds it alone. Leave out a field you cannot find reliably rather than guessing.
 
+The next and previous links must lead to the chapter right after and right before this one in the same series. Pick them by what they are, such as rel="next", a class or id naming next or previous, or the link in the chapter navigation whose URL has the neighboring chapter number. Do not pick the first or last chapter link on the page by position alone: chapter lists, "latest chapters" and breadcrumbs also link to chapters. On the first chapter there is no previous link and on the latest there is no next link, so a selector that finds nothing there is right.
+
 Example for a WordPress manga theme, for a site whose chapter URLs look like https://glasslight.example/manga/salt-and-ember/chapter-10-5/:
 
 {
@@ -46,4 +48,4 @@ Example for a WordPress manga theme, for a site whose chapter URLs look like htt
   }
 }
 
-The checker runs your rule on every sample. Each must be read as a chapter page with a series title, a chapter number and enough images; titles must be the same on every sample and chapter numbers must differ. If a rule fails, you are told why and may answer once more with a corrected rule.
+The checker runs your rule on every sample. Each must be read as a chapter page with a series title, a chapter number and enough images; titles must be the same on every sample and chapter numbers must differ. A next or previous link the rule finds must match the chapter url pattern, in the same series, with a higher or lower chapter number. If a rule fails, you are told why and may answer once more with a corrected rule.

@@ -118,7 +118,7 @@ docs/               ADRs and longer notes
 
 - Client sends sanitized snapshots: scripts, styles and form fields removed, only `class`, `id`, `href`, `src`, `data-src`, `data-lazy-src`, `srcset`, `data-srcset` and `rel` attributes kept, plus `name`, `property` and `content` on meta tags so rules can read `og:title`, text cut to 80 characters, size capped. Ideally two chapter pages from the same site.
 - LLM returns a rule constrained to the JSON Schema.
-- Server validates with a Go port of the evaluator: titles must match across samples, chapter numbers must parse and increase, enough images must be found. Only then is the rule stored.
+- Server validates with a Go port of the evaluator: titles must match across samples, chapter numbers must parse and increase, enough images must be found, and a next or previous link the rule finds must match the chapter URL pattern in the same series, with a higher or lower chapter number from the URL's chapter group. Only then is the rule stored.
 - The JS and Go evaluators share one conformance suite in `contracts/fixtures/` so they cannot drift.
 - `singleflight` dedupes concurrent generation for the same domain.
 - Built on 2026-10-10: the `llm` adapter speaks the OpenAI chat API in JSON mode, so DeepSeek and OpenAI both fit. Its prompt is `backend/internal/adapter/llm/prompt.txt`, whose example is the glasslight fixture rule. The model may offer two rules; the second is told why the first failed. A rule must also stay inside the selector and regex subset both evaluators share, checked by `rule.Portable`. Each sample is cut at 60 KiB. DeepSeek V4 Flash takes about 45 seconds per rule, so the app must wait for the candidate rather than hold the page.

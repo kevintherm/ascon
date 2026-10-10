@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"net/url"
 	"sync"
 	"time"
@@ -262,8 +263,9 @@ func (s *Service) attempt(ctx context.Context, site, fingerprint string, samples
 // Check runs a generated rule against every sample and returns why it fails,
 // or "" when it passes. Every sample must be read as a chapter with a title,
 // a chapter number and at least minImages images. Titles must agree and
-// chapter numbers must differ across samples. The rule may use only what both
-// evaluators read the same way.
+// chapter numbers must differ across samples. A next or previous link, when
+// found, must be a chapter page of the same series, later or earlier. The rule
+// may use only what both evaluators read the same way.
 func Check(ev rule.Evaluator, r rule.Rule, samples []rule.Sample, minImages int) string {
 	if err := rule.Portable(r); err != nil {
 		return err.Error()
@@ -288,6 +290,9 @@ func Check(ev rule.Evaluator, r rule.Rule, samples []rule.Sample, minImages int)
 		case len(c.Images) < minImages:
 			return fmt.Sprintf("only %d images on sample %d, need %d", len(c.Images), n, minImages)
 		}
+		if reason := checkLinks(ev, r, c, n); reason != "" {
+			return reason
+		}
 		if i == 0 {
 			title = *c.Title
 		} else if *c.Title != title {
@@ -297,6 +302,43 @@ func Check(ev rule.Evaluator, r rule.Rule, samples []rule.Sample, minImages int)
 			return fmt.Sprintf("two samples read as chapter %s", *c.Chapter)
 		}
 		chapters[*c.Chapter] = true
+	}
+	return ""
+}
+
+// checkLinks reads each link of sample n as the rule would read the linked
+// page's URL. The linked page itself is not fetched, so its chapter number
+// comes from the URL's chapter group; without one, only the page type and
+// series are checked.
+func checkLinks(ev rule.Evaluator, r rule.Rule, c *rule.ChapterResult, n int) string {
+	links := []struct {
+		name  string
+		url   *string
+		later bool
+	}{{"next", c.Next, true}, {"previous", c.Previous, false}}
+	here, _ := new(big.Rat).SetString(*c.Chapter)
+	for _, l := range links {
+		if l.url == nil {
+			continue
+		}
+		res, err := ev.Evaluate(r, *l.url, nil)
+		if err != nil || res.PageType != rule.PageChapter {
+			return fmt.Sprintf("the %s link on sample %d, %s, is not a chapter page by chapterPage.url", l.name, n, *l.url)
+		}
+		linked := res.Chapter
+		if c.Series != nil && linked.Series != nil && *c.Series != *linked.Series {
+			return fmt.Sprintf("the %s link on sample %d, %s, is in another series", l.name, n, *l.url)
+		}
+		if linked.Chapter == nil || here == nil {
+			continue
+		}
+		there, ok := new(big.Rat).SetString(*linked.Chapter)
+		if !ok {
+			continue
+		}
+		if cmp := there.Cmp(here); l.later && cmp <= 0 || !l.later && cmp >= 0 {
+			return fmt.Sprintf("the %s link on sample %d, chapter %s, goes to chapter %s", l.name, n, *c.Chapter, *linked.Chapter)
+		}
 	}
 	return ""
 }

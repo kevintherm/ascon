@@ -154,8 +154,10 @@ paths:
 
         The server asks an LLM for a rule, then checks it with the Go
         evaluator: titles must match across samples, chapter numbers must
-        parse and increase, and enough images must be found. Requests for a
-        domain already being generated join that run.
+        parse and increase, enough images must be found, and next and
+        previous links must lead to a later and an earlier chapter of the
+        same series. Requests for a domain already being generated join
+        that run.
 
         Needs an account, free or premium. Uses one unit of the account's
         AI detection quota, unless the request joins a generation already

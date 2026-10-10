@@ -40,18 +40,39 @@ func (g *fakeGenerator) Generate(_ context.Context, _, _ string, _ []rule.Sample
 }
 
 // fakeEvaluator reads the chapter number, title and image count from the
-// sample HTML, written as "chapter|title|images".
+// sample HTML, written as "chapter|title|images", optionally followed by
+// "|next|previous" link URLs. Without a page, as for a link, it reads a URL
+// like https://host/<series>/c/<chapter>.
 type fakeEvaluator struct{}
 
-func (fakeEvaluator) Evaluate(r rule.Rule, _ string, page []byte) (rule.Result, error) {
-	parts := strings.Split(string(page), "|")
-	if len(parts) != 3 || r.ChapterPage.URL == "none" {
+func (fakeEvaluator) Evaluate(r rule.Rule, pageURL string, page []byte) (rule.Result, error) {
+	if r.ChapterPage.URL == "none" {
 		return rule.Result{PageType: rule.PageNone}, nil
 	}
-	images := make([]string, len(parts[2]))
-	return rule.Result{PageType: rule.PageChapter, Chapter: &rule.ChapterResult{
-		Chapter: &parts[0], Title: &parts[1], Images: images,
-	}}, nil
+	if page == nil {
+		parts := strings.Split(strings.TrimPrefix(pageURL, "https://"), "/")
+		if len(parts) != 4 || parts[2] != "c" {
+			return rule.Result{PageType: rule.PageNone}, nil
+		}
+		return rule.Result{PageType: rule.PageChapter, Chapter: &rule.ChapterResult{Series: &parts[1], Chapter: &parts[3]}}, nil
+	}
+	parts := strings.Split(string(page), "|")
+	if len(parts) != 3 && len(parts) != 5 {
+		return rule.Result{PageType: rule.PageNone}, nil
+	}
+	series := "s"
+	c := &rule.ChapterResult{Series: &series, Chapter: &parts[0], Title: &parts[1], Images: make([]string, len(parts[2]))}
+	if len(parts) == 5 {
+		c.Next, c.Previous = link(parts[3]), link(parts[4])
+	}
+	return rule.Result{PageType: rule.PageChapter, Chapter: c}, nil
+}
+
+func link(u string) *string {
+	if u == "" {
+		return nil
+	}
+	return &u
 }
 
 type harness struct {
@@ -159,6 +180,31 @@ func TestRejectedGenerationRefundsQuota(t *testing.T) {
 				t.Fatal("a rejected rule was stored")
 			}
 		})
+	}
+}
+
+func TestLinksMustLeadToTheNeighboringChapters(t *testing.T) {
+	ev := fakeEvaluator{}
+	r := rule.Rule{ChapterPage: rule.ChapterPage{URL: ".*"}}
+	sample := func(next, previous string) []rule.Sample {
+		return []rule.Sample{{URL: "https://a.example/s/c/10", HTML: []byte("10|Salt|xxx|" + next + "|" + previous)}}
+	}
+	cases := []struct {
+		name, next, previous, want string
+	}{
+		{"both right", "https://a.example/s/c/11", "https://a.example/s/c/9.5", ""},
+		{"none found", "", "", ""},
+		{"next goes back", "https://a.example/s/c/1", "", "the next link on sample 1, chapter 10, goes to chapter 1"},
+		{"next is this chapter", "https://a.example/s/c/10", "", "goes to chapter 10"},
+		{"previous goes ahead", "", "https://a.example/s/c/11", "the previous link on sample 1, chapter 10, goes to chapter 11"},
+		{"previous is the series page", "", "https://a.example/s", "is not a chapter page"},
+		{"next is another series", "https://a.example/t/c/11", "", "is in another series"},
+	}
+	for _, c := range cases {
+		got := Check(ev, r, sample(c.next, c.previous), 3)
+		if c.want == "" && got != "" || c.want != "" && !strings.Contains(got, c.want) {
+			t.Errorf("%s: Check = %q, want %q", c.name, got, c.want)
+		}
 	}
 }
 
