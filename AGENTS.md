@@ -302,16 +302,17 @@ Proposed on 2026-10-10 after sign-in was built; the owner has not confirmed the 
 
 1. Done: progress follows what the user reads, per Series identity.
 2. Done: cloud sync in the app, per Sync.
-3. Series matching through AniList and MangaUpdates search, with the fix-detection sheet. Build the report protections in Detection and the daily AI limit in Backend with it.
-4. Hand-editing marks, agreed with the owner on 2026-10-10: from a chapter row, mark as unread, mark read up to here, and remove from history. Needs a small design first.
-5. Still open after those: new-chapter alerts, downloads, deploying the backend, billing and Premium, then translation.
+3. Series matching through AniList and MangaUpdates search, with the fix-detection sheet. Build the report protections in Detection and the daily AI limit in Backend with it. Designed: FixDetection, FixMatchSearching, FixMatchResults, FixMatchNoResults, FixMatchOffline, BrowserV2Unconfirmed, SeriesMatchSheet, SeriesUnlinked, SeriesMerged, and notes.md's Series matching and Unconfirmed titles. Open from the design: how a merged series' sync id is retired, since phones send no tombstones yet.
+4. Hand-editing marks, agreed with the owner on 2026-10-10: from a chapter row, mark as unread, mark read up to here, and remove from history. Designed: SeriesChapterMenu, SeriesSelectMode, SeriesHistoryRemoved, and notes.md's Hand-editing read marks.
+5. One search screen, the Browse tab's idle screen and the series menu, designed by the owner on 2026-10-11: SearchIdle, SearchAddress, SearchResults, BrowseIdle, SeriesMoreMenu, and notes.md's Search, Browse and the series menu. BrowseIdle's Open page card fixes Known bug 2. The menu's Remove from library waits for sync tombstones from the phone.
+6. Still open after those: new-chapter alerts, downloads, deploying the backend, billing and Premium, then translation.
 
 ## Known bugs
 
 Found by the owner, to fix later.
 
 1. On asurascans.com the reader shows blurry pages. The site's pages are single 800 by about 11,600 px strips, and Coil decodes at most 4096 by 4096 px by default, so a page is decoded at about 282 by 4096 and stretched about 3.8 times to the screen's width. Raising the limit would mean bitmaps of about 67 MB per page. Fix with tiled decoding for tall strips, per the stack table, or by splitting tall pages into pieces as they decode. Chapter 150 of Trash of the Count's Family is free to test with; newer chapters ask to sign in.
-2. Keep browsing leaves no way back to the page. On the first page of history, Back asks Keep browsing or Close. Tapping Keep browsing goes to the Browse tab, which shows no way back to the page that was open. The page is still kept: after the user opens another site, or switches to another tab and back to Browse, it suddenly shows the old page again. Keep browsing should stay on the page, or Browse should offer a clear way back to it.
+2. Keep browsing leaves no way back to the page. On the first page of history, Back asks Keep browsing or Close. Tapping Keep browsing goes to the Browse tab, which shows no way back to the page that was open. The page is still kept: after the user opens another site, or switches to another tab and back to Browse, it suddenly shows the old page again. Keep browsing should stay on the page, or Browse should offer a clear way back to it. Designed: BrowseIdle's Open page card, per Next steps 5.
 
 Improvements found while testing, not bugs:
 
