@@ -25,7 +25,7 @@ interface ReaderSettingsRepository
     suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     suspend fun clearSeries(seriesId: String)
-    fun autoOpen(site: String): Flow<Boolean>
+    fun autoOpen(site: String): Flow<Boolean?>
     suspend fun setAutoOpen(site: String, on: Boolean)
 fun siteKey(host: String): String
 interface ReadingPaceRepository
@@ -33,6 +33,20 @@ interface ReadingPaceRepository
     suspend fun recordSecondsPerImage(seconds: Float)
 interface AccountRepository
     val account: Flow<AccountState>
+    val token: StateFlow<String?>
+    suspend fun signedIn(session: AccountSession)
+    suspend fun signedOut()
+interface AccountBackend
+    suspend fun signIn(idToken: String): AccountSession
+    suspend fun signOut(token: String)
+    suspend fun quota(token: String): Quota
+class AccountRefused : Exception()
+fun interface GoogleAccounts
+    suspend fun pick(context: Context): GoogleCredential
+data class GoogleCredential(val idToken: String, val displayName: String?, val email: String)
+class SignInCancelled : Exception()
+class NoGoogleAccount : Exception()
+class GoogleUnreachable(cause: Throwable? = null) : Exception(cause)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/Rules.kt
@@ -49,6 +63,18 @@ interface RuleStore
 interface DeviceTokenStore
     suspend fun token(): String?
     suspend fun saveToken(token: String?)
+```
+
+## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreAccount.kt
+
+```kotlin
+class DataStoreAccount(private val store: DataStore<Preferences>, scope: CoroutineScope) : AccountRepository
+    override val account: Flow<AccountState>
+    override val token: StateFlow<String?>
+    override suspend fun signedIn(session: AccountSession)
+    override suspend fun signedOut()
+    companion object
+        fun open(context: Context, scope: CoroutineScope)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreDeviceToken.kt
@@ -113,7 +139,7 @@ class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderS
     override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun clearSeries(seriesId: String)
-    override fun autoOpen(site: String): Flow<Boolean>
+    override fun autoOpen(site: String): Flow<Boolean?>
     override suspend fun setAutoOpen(site: String, on: Boolean)
 ```
 
@@ -145,8 +171,11 @@ class FakeDeviceToken(var value: String? = null) : DeviceTokenStore
 ```kotlin
 class FakeSettingsRepository(summary: SettingsSummary = FakeLibrary.settingsSummary) : SettingsRepository
     override val summary: Flow<SettingsSummary>
-class FakeAccountRepository(initial: AccountState) : AccountRepository
-    override val account: Flow<AccountState>
+class FakeAccountRepository(initial: AccountState = AccountState.SignedOut, token: String? = null) : AccountRepository
+    override val account
+    override val token
+    override suspend fun signedIn(session: AccountSession)
+    override suspend fun signedOut()
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/room/AsconDatabase.kt
@@ -227,6 +256,12 @@ data class CoverTintLayout(val gradientAngle: Float = 155f, val glowAlignment: A
 
 ```kotlin
 fun Modifier.dashedBorder(width: Dp, color: Color, radius: Dp, dash: Dp, gap: Dp): Modifier
+```
+
+## core/src/main/kotlin/com/ascon/core/designsystem/component/Dialog.kt
+
+```kotlin
+@Composable fun ConfirmDialog(visible: Boolean, title: String, body: String, cancel: String, confirm: String, onDismiss: () -> Unit, onConfirm: () -> Unit, destructive: Boolean = false)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Labels.kt
@@ -332,6 +367,9 @@ object AsconIcons
     val Plus
     val Sort
     val Person
+    val Alert
+    val SignOut
+    val Star
     val Forward
     val PreviousChapter
     val NextChapter
@@ -380,6 +418,10 @@ object AsconColors
     val Accent
     val Accent2
     val Success
+    val Danger
+    val DangerSoft
+    val DangerStrong
+    val DangerBody
     val Scrim
     val ShadowFloating
     val ShadowCover
@@ -448,7 +490,9 @@ object AsconType
 ```kotlin
 sealed interface AccountState
     data object SignedOut : AccountState
-    data class SignedIn(val displayName: String, val premium: Boolean, val lastSyncedAt: Instant?) : AccountState
+    data class SignedIn(val displayName: String, val email: String? = null, val premium: Boolean, val lastSyncedAt: Instant? = null) : AccountState
+data class AccountSession(val token: String, val displayName: String, val email: String?, val premium: Boolean)
+data class Quota(val limit: Int, val remaining: Int, val resetsAt: Instant, val premium: Boolean)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/ChapterUrl.kt
@@ -494,7 +538,7 @@ data class Series(val id: String, val title: String, val altTitles: List<String>
 data class Source(val id: String, val siteName: String, val official: Boolean, val firstChapter: BigDecimal, val lastChapter: BigDecimal, val lastOpened: ChapterLink? = null)
     fun chapterUrl(number: BigDecimal): String?
 data class ChapterLink(val url: String, val chapter: BigDecimal)
-data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null)
+data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null, val openedUrl: String? = null, val openedOnSourceId: String? = null)
 data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String, val pageOffset: Float = 0f)
     val fraction: Float get()
 sealed interface Cover
@@ -581,6 +625,15 @@ interface GenerationBackend
 class HttpGenerationBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val accountToken: () -> String?) : GenerationBackend
     override suspend fun request(domain: String, fingerprint: String?, samples: List<PageSnapshot>): CandidateState
     override suspend fun candidate(id: String): CandidateState
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/HttpAccountBackend.kt
+
+```kotlin
+class HttpAccountBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient) : AccountBackend
+    override suspend fun signIn(idToken: String): AccountSession
+    override suspend fun signOut(token: String)
+    override suspend fun quota(token: String): Quota
 ```
 
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleBackend.kt

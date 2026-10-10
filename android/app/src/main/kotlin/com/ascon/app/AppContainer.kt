@@ -2,27 +2,29 @@ package com.ascon.app
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import com.ascon.core.data.AccountBackend
 import com.ascon.core.data.AccountRepository
+import com.ascon.core.data.GoogleAccounts
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ProtectionSettingsRepository
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.ReadingPaceRepository
 import com.ascon.core.data.RuleStore
 import com.ascon.core.data.SettingsRepository
+import com.ascon.core.data.datastore.DataStoreAccount
 import com.ascon.core.data.datastore.DataStoreDeviceToken
 import com.ascon.core.data.datastore.DataStoreProtectionSettings
 import com.ascon.core.data.datastore.DataStoreReaderSettings
-import com.ascon.core.data.fake.FakeAccountRepository
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeSettingsRepository
 import com.ascon.core.data.room.AsconDatabase
 import com.ascon.core.data.room.RoomLibraryRepository
 import com.ascon.core.data.room.RoomRuleStore
-import com.ascon.core.model.AccountState
 import com.ascon.engine.adblock.Adblock
 import com.ascon.engine.adblock.CosmeticFilter
 import com.ascon.engine.adblock.FilterListUpdateWorker
 import com.ascon.engine.detection.DetectionHost
+import com.ascon.engine.detection.HttpAccountBackend
 import com.ascon.engine.detection.HttpGenerationBackend
 import com.ascon.engine.detection.HttpRuleBackend
 import com.ascon.engine.detection.RuleBackend
@@ -49,7 +51,7 @@ import okhttp3.OkHttpClient
 
 /**
  * Manual dependency injection: one instance of each repository for the whole app.
- * General settings and the account are fakes until sign-in exists.
+ * General settings are a fake until their screens exist.
  */
 class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone()) {
     private val app = context.applicationContext
@@ -72,13 +74,7 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     private val readerStore = DataStoreReaderSettings.open(app, background)
     val reader: ReaderSettingsRepository = readerStore
     val readingPace: ReadingPaceRepository = readerStore
-    val accounts: AccountRepository = FakeAccountRepository(
-        AccountState.SignedIn(
-            displayName = "Kevin",
-            premium = false,
-            lastSyncedAt = clock.instant().minus(Duration.ofMinutes(2))
-        )
-    )
+    val accounts: AccountRepository = DataStoreAccount.open(app, background)
 
     /** Rules fetched for single sites, and how they did. */
     val ruleStore: RuleStore = RoomRuleStore(database)
@@ -97,15 +93,23 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
         )
     }
 
+    /** Null when this build has no backend, so it can't sign in. */
+    val accountBackend: AccountBackend? = BackendConfig.BASE_URL?.let {
+        HttpAccountBackend(it.toHttpUrl(), backendClient)
+    }
+
+    /** Null when this build has no Google client ID, so it can't sign in. */
+    val google: GoogleAccounts? = BuildConfig.GOOGLE_WEB_CLIENT_ID.ifEmpty { null }?.let(::CredentialManagerGoogle)
+
     private val verifier = RuleVerifier(BackendConfig.publicKeys)
 
-    /** AI detection, for builds with a backend. It does nothing without an account token. */
+    /** AI detection, for builds with a backend. It does nothing while signed out. */
     private val generation: RuleGeneration? = BackendConfig.BASE_URL?.let { url ->
         RuleGeneration(
             store = ruleStore,
-            backend = HttpGenerationBackend(url.toHttpUrl(), backendClient) { BackendConfig.accountToken },
+            backend = HttpGenerationBackend(url.toHttpUrl(), backendClient) { accounts.token.value },
             verifier = verifier,
-            accountToken = { BackendConfig.accountToken }
+            accountToken = { accounts.token.value }
         )
     }
 

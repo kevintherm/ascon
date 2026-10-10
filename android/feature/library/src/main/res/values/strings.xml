@@ -3,6 +3,7 @@
     <!-- Home -->
     <string name="home_search_hint">Search or enter a site</string>
     <string name="home_profile">Profile</string>
+    <string name="home_sign_in">Sign in</string>
     <string name="home_continue_reading">Continue reading</string>
     <string name="home_continue_meta">Ch. %1$s · Page %2$d of %3$d · %4$s</string>
     <string name="home_resume">Resume</string>

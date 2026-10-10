@@ -181,7 +181,8 @@ private val AvatarInk = Color(0xFF3A1A20)
 
 @Composable
 private fun ProfileButton(initial: String?, onClick: () -> Unit) {
-    val label = stringResource(R.string.home_profile)
+    // Signed out, the button leads to Sign in with Google in Settings, per HomeSignedOut.
+    val label = stringResource(if (initial != null) R.string.home_profile else R.string.home_sign_in)
     Box(
         modifier = Modifier
             .size(48.dp)

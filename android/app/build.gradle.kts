@@ -22,17 +22,18 @@ android {
 
     buildFeatures { buildConfig = true }
 
+    // The OAuth Web client ID Google sign-in asks ID tokens for, the backend's
+    // ASCON_GOOGLE_CLIENT_ID. It isn't secret, but it stays in the untracked local.properties
+    // as ascon.googleWebClientId. Without it, sign-in says it isn't available.
+    val local = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use(::load)
+    }
+    defaultConfig {
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${local.getProperty("ascon.googleWebClientId", "")}\"")
+    }
+
     buildTypes {
-        debug {
-            // Stands in for sign-in: a token from the backend's cmd/devaccount, kept in the
-            // untracked local.properties as ascon.devAccountToken.
-            val local = Properties().apply {
-                rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use(::load)
-            }
-            buildConfigField("String", "DEV_ACCOUNT_TOKEN", "\"${local.getProperty("ascon.devAccountToken", "")}\"")
-        }
         release {
-            buildConfigField("String", "DEV_ACCOUNT_TOKEN", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
@@ -67,6 +68,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.core)
     // The backend client for detection rules is built here.
     implementation(libs.okhttp)
+    // Sign in with Google: Credential Manager, its Play services provider, and the Google ID token type.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
 }

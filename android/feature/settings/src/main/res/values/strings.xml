@@ -2,7 +2,30 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="settings_sign_in">Sign in with Google</string>
-    <string name="settings_sign_in_body">Sync your library and use AI detection</string>
+    <string name="settings_signed_out">Not signed in</string>
+    <string name="settings_signed_out_body">Your library is saved on this phone only</string>
+    <string name="settings_sign_in_explainer">An account adds sync across devices and AI detection for sites Ascon doesn\'t know yet.</string>
+    <string name="settings_signing_in">Signing in…</string>
+    <string name="settings_sign_in_failed">Couldn\'t sign in</string>
+    <string name="settings_sign_in_google_unreachable">Google didn\'t respond. Check your connection and try again.</string>
+    <string name="settings_sign_in_server_unreachable">Ascon\'s server didn\'t respond. Check your connection and try again.</string>
+    <string name="settings_sign_in_no_google_account">There\'s no Google account on this phone. Add one in Android settings, then try again.</string>
+    <string name="settings_sign_in_refused">Ascon couldn\'t confirm your Google sign-in. Try again.</string>
+    <string name="settings_sign_in_unavailable">Sign-in isn\'t available in this build of Ascon.</string>
+    <string name="settings_try_again">Try again</string>
+    <string name="settings_account_label">Account, %1$s</string>
+    <string name="account_plan">Plan</string>
+    <string name="account_free">Free</string>
+    <string name="account_premium">Premium</string>
+    <string name="account_detections">AI detections left this month</string>
+    <string name="account_detections_left">%1$d of %2$d</string>
+    <string name="account_detections_resets">resets %1$s</string>
+    <string name="account_detections_loading">Checking…</string>
+    <string name="account_detections_failed">Couldn\'t check. Open this again to retry.</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_sign_out_title">Sign out of Ascon?</string>
+    <string name="account_sign_out_body">Your library and progress stay on this phone. Sync and AI detection stop until you sign in again.</string>
+    <string name="account_sign_out_cancel">Cancel</string>
     <string name="settings_synced_now">Synced just now</string>
     <plurals name="settings_synced_minutes">
         <item quantity="one">Synced %d min ago</item>
@@ -13,7 +36,6 @@
         <item quantity="other">Synced %d h ago</item>
     </plurals>
     <string name="settings_synced_on">Synced %1$s</string>
-    <string name="settings_not_synced">Not synced yet</string>
 
     <string name="settings_protection">Protection</string>
     <string name="settings_block_ads">Block ads and trackers</string>

@@ -44,6 +44,10 @@ The source of truth for layout is `design/screens/*.html`. This file is the sour
 | `accent` | `#D9472B` | Primary action per screen, new-chapter dots, badge fills |
 | `accent2` | `#F5A54A` | Only as the start of the brand gradient |
 | `success` | `#2E9E5B` | Sync status dot only |
+| `danger` | `#B42318` | Sign out and other actions that end something |
+| `danger-soft` | `#FCEDEA` | Ground of an error note, such as Couldn't sign in |
+| `danger-strong` | `#8F1D12` | Title of an error note |
+| `danger-body` | `#5B2A24` | Body of an error note |
 
 **Brand gradient** is `accent2 → accent`, left to right. Use it only where something fills up or costs money: reading progress bars, the page scrubber, import progress, the Plus upsell. Never on backgrounds or large areas.
 

@@ -92,7 +92,9 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
                 container.protection,
                 container.reader,
                 container.accounts,
-                container.clock
+                container.clock,
+                container.accountBackend,
+                container.google
             )
         }
     val browse = viewModel { BrowseViewModel(container.library) }

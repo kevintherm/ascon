@@ -101,7 +101,7 @@ adb reverse tcp:8080 tcp:8080
 go run ./cmd/devrule -domain 10.0.2.2 rule.json   # stored as the domain's next version
 ```
 
-For AI detection, put an account token from `go run ./cmd/devaccount` in `android/local.properties` as `ascon.devAccountToken=...` and rebuild. The app then sends two chapters of a site that has no rule, where heuristics find the chapters, and keeps the rule once the backend has written it, about a minute later. Without the line, debug builds have no AI detection. A token belongs to one backend database.
+To sign in, put the OAuth Web client ID in `android/local.properties` as `ascon.googleWebClientId=...` and in `backend/.env` as `ASCON_GOOGLE_CLIENT_ID=...`, and add the debug certificate's SHA-1, from `./gradlew :app:signingReport`, to the Android OAuth client. Then Sign in with Google in Settings. Signed in, the app uses AI detection: it sends two chapters of a site that has no rule, where heuristics find the chapters, and keeps the rule once the backend has written it, about a minute later. An account belongs to one backend database.
 
 Without the backend the app still works: lookups fail quietly and it uses its kept and built-in rules. Release builds have no backend address until the server is deployed.
 

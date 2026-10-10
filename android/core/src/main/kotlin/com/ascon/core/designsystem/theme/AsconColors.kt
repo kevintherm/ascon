@@ -42,6 +42,14 @@ object AsconColors {
     /** Sync status dot only. */
     val Success = Color(0xFF2E9E5B)
 
+    /** Sign out and other actions that end something. */
+    val Danger = Color(0xFFB42318)
+
+    /** An error note: its ground, title and body. */
+    val DangerSoft = Color(0xFFFCEDEA)
+    val DangerStrong = Color(0xFF8F1D12)
+    val DangerBody = Color(0xFF5B2A24)
+
     /** Sheet scrim. */
     val Scrim = Color(0x8C0E0F12)
 

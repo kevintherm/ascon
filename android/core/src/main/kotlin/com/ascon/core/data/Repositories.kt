@@ -1,7 +1,10 @@
 package com.ascon.core.data
 
+import android.content.Context
+import com.ascon.core.model.AccountSession
 import com.ascon.core.model.AccountState
 import com.ascon.core.model.ProtectionSettings
+import com.ascon.core.model.Quota
 import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.Series
 import com.ascon.core.model.SettingsSummary
@@ -109,6 +112,53 @@ interface ReadingPaceRepository {
     suspend fun recordSecondsPerImage(seconds: Float)
 }
 
+/** The signed-in account, kept on the device. */
 interface AccountRepository {
     val account: Flow<AccountState>
+
+    /** The backend's account token, or null while signed out. Backend calls read it each time. */
+    val token: StateFlow<String?>
+
+    suspend fun signedIn(session: AccountSession)
+
+    /** Forgets the account on this device. The library stays. */
+    suspend fun signedOut()
 }
+
+/** The account calls of the Ascon backend, contracts/openapi.yaml. */
+interface AccountBackend {
+    /**
+     * Signs in with a Google ID token and returns the session without a name, which the
+     * backend doesn't know. Throws [AccountRefused] when the backend refuses the ID token
+     * and [java.io.IOException] when it can't be reached.
+     */
+    suspend fun signIn(idToken: String): AccountSession
+
+    /** Ends [token] on the backend. Throws [java.io.IOException] when it can't be reached. */
+    suspend fun signOut(token: String)
+
+    /** Throws [AccountRefused] when [token] no longer works, as after signing out elsewhere. */
+    suspend fun quota(token: String): Quota
+}
+
+/** The backend refused a Google ID token or an account token. */
+class AccountRefused : Exception()
+
+/** Asks the user to pick a Google account, through Android's Credential Manager. */
+fun interface GoogleAccounts {
+    /**
+     * Needs an activity [context] to show the account picker. Throws [SignInCancelled] when
+     * the user backs out, [NoGoogleAccount] when the phone has none, and
+     * [GoogleUnreachable] for anything else, such as no connection.
+     */
+    suspend fun pick(context: Context): GoogleCredential
+}
+
+/** A Google ID token and the profile it came with. [email] is the account's address. */
+data class GoogleCredential(val idToken: String, val displayName: String?, val email: String)
+
+class SignInCancelled : Exception()
+
+class NoGoogleAccount : Exception()
+
+class GoogleUnreachable(cause: Throwable? = null) : Exception(cause)
