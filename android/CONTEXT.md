@@ -25,6 +25,9 @@ interface ReaderSettingsRepository
     suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     suspend fun clearSeries(seriesId: String)
+interface ReadingPaceRepository
+    val secondsPerImage: Flow<List<Float>>
+    suspend fun recordSecondsPerImage(seconds: Float)
 interface AccountRepository
     val account: Flow<AccountState>
 ```
@@ -38,14 +41,7 @@ class DataStoreProtectionSettings(private val store: DataStore<Preferences>, sco
 ## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreReaderSettings.kt
 
 ```kotlin
-class DataStoreReaderSettings(private val store: DataStore<Preferences>) : ReaderSettingsRepository
-    override val allSeries: Flow<ReaderSettings>
-    override fun forSeries(seriesId: String): Flow<ReaderSettings?>
-    override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
-    override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
-    override suspend fun clearSeries(seriesId: String)
-    companion object
-        fun open(context: Context, scope: CoroutineScope)
+class DataStoreReaderSettings(private val store: DataStore<Preferences>) :
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeLibrary.kt
@@ -88,6 +84,14 @@ class FakeReaderSettings(allSeries: ReaderSettings = ReaderSettings()) : ReaderS
     override suspend fun updateAllSeries(transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun updateSeries(seriesId: String, transform: (ReaderSettings) -> ReaderSettings)
     override suspend fun clearSeries(seriesId: String)
+```
+
+## core/src/main/kotlin/com/ascon/core/data/fake/FakeReadingPace.kt
+
+```kotlin
+class FakeReadingPace(samples: List<Float> = emptyList()) : ReadingPaceRepository
+    override val secondsPerImage: StateFlow<List<Float>>
+    override suspend fun recordSecondsPerImage(seconds: Float)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeSettingsRepository.kt
@@ -410,7 +414,7 @@ enum class ReadingMode
 enum class PageFit
 enum class PageGap
 enum class ReaderBackground
-data class ReaderSettings(val mode: ReadingMode = ReadingMode.LongStrip, val fit: PageFit = PageFit.Width, val gap: PageGap = PageGap.Auto, val background: ReaderBackground = ReaderBackground.Black, val keepScreenOn: Boolean = false, val volumeKeys: Boolean = false)
+data class ReaderSettings(val mode: ReadingMode = ReadingMode.LongStrip, val fit: PageFit = PageFit.Width, val gap: PageGap = PageGap.Auto, val background: ReaderBackground = ReaderBackground.Black, val cropBorders: Boolean = false, val keepScreenOn: Boolean = false, val volumeKeys: Boolean = false, val showTapZones: Boolean = false)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/Series.kt
