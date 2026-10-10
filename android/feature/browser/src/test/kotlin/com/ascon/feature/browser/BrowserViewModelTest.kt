@@ -385,9 +385,31 @@ class BrowserViewModelTest {
         vm.onDetection(Detection.ReadingPosition(chapter12, page = 35, pageCount = 58))
         assertEquals(35, progress())
 
+        // Scrolling within a page saves how far down it the screen is.
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 35, pageCount = 58, offset = 0.4f))
+        assertEquals(0.4f, library.series("aztec-turning-of-heaven").first()?.progress?.pageOffset)
+
         // Another result for the same page doesn't scroll it again.
         vm.onDetection(chapter(url = chapter12, number = "12"))
         assertNull(vm.state.value.resumeScroll)
+    }
+
+    @Test
+    fun `reloading a chapter from the library doesn't save its top over the saved place`() = runTest {
+        val chapter12 = "https://mangafire.to/read/aztec/chapter-12"
+        val vm = viewModel().also { it.onPageStarted(chapter12) }
+        vm.onDetection(chapter(url = chapter12, number = "12"))
+        vm.resumeScrolled()
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 40, pageCount = 58, offset = 0.5f))
+
+        // The library opens the same page again; the new document reports its top first.
+        vm.allowReader(chapter12)
+        vm.onPageStarted(chapter12)
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 1, pageCount = 58, offset = 0.4f))
+        assertEquals(40, library.series("aztec-turning-of-heaven").first()?.progress?.page)
+        vm.onDetection(chapter(url = chapter12, number = "12"))
+        assertEquals(ResumeScroll(chapter12, 40, 58, 0.5f), vm.state.value.resumeScroll)
+        assertEquals(40, library.series("aztec-turning-of-heaven").first()?.progress?.page)
     }
 
     @Test

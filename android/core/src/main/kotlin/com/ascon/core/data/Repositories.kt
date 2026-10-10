@@ -39,9 +39,17 @@ interface LibraryRepository {
     /**
      * Records that page [page] of [pageCount], counted from 1, is on screen in the
      * reader. Opens the chapter first, as [recordChapterOpened] does. Reaching the
-     * last page marks the chapter read.
+     * last page marks the chapter read. [pageOffset] is how far down the page the top of
+     * the screen is, as [ReadingProgress.pageOffset] says.
      */
-    suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+    suspend fun recordPageRead(
+        seriesId: String,
+        chapter: BigDecimal,
+        page: Int,
+        pageCount: Int,
+        at: Instant,
+        pageOffset: Float = 0f
+    )
 }
 
 /**

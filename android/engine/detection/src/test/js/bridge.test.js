@@ -343,25 +343,70 @@ test("a chapter the reader cannot take reports the page slot on screen", async (
     url: "https://inkwell.example/title/1-cinderelle/chapter/6/",
     page: 1,
     pageCount: 10,
+    // The middle of the 720 px tall screen, below the body's 8 px margin, in the first 900 px slot.
+    offset: (360 - 8) / 900,
   });
   await page.evaluate(() => document.querySelectorAll(".slide")[4].scrollIntoView());
   await page.waitForFunction(() => __sent.filter((m) => m.type === "position").some((m) => m.page === 5));
+  // Once scrolling stops, how far down the slot the middle of the screen is.
+  await page.evaluate(() => window.scrollBy(0, 300));
+  await page.waitForFunction(() =>
+    __sent.some((m) => m.type === "position" && m.page === 5 && Math.abs(m.offset - 660 / 900) < 0.01));
   await page.close();
 });
 
-test("the app can send the page back to a saved page slot, scaled to the page's slots", async () => {
+test("the last page counts as reached once its end is on screen", async () => {
   const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
     <div class="pages">${Array.from({ length: 10 }, (_, i) =>
-      `<div class="slide" style="height:900px"><img src="/p/${i}.jpg"></div>`).join("")}</div>`;
+      `<div class="slide" style="height:${i === 9 ? 200 : 900}px"><img src="/p/${i}.jpg"></div>`).join("")}</div>`;
   const page = await open("https://inkwell.example/title/1-cinderelle/chapter/6/", html);
-  // Sent before detection has found the slots, so it waits for them.
-  await page.evaluate(() => __bridge.onmessage({ data: JSON.stringify({ type: "scroll", page: 9, pageCount: 20 }) }));
+  await sendRules(page, []);
+  await results(page);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForFunction(() => __sent.some((m) => m.type === "position" && m.page === 10));
+  await page.close();
+});
+
+const slides = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
+  <div class="pages">${Array.from({ length: 10 }, (_, i) =>
+    `<div class="slide" style="height:900px"><img src="/p/${i}.jpg"></div>`).join("")}</div>`;
+
+async function scrolledTo(page, place) {
+  await page.evaluate((p) => __bridge.onmessage({ data: JSON.stringify({ type: "scroll", ...p }) }), place);
+}
+
+test("the app can send the page back to a saved place, scaled to the page's slots", async () => {
+  const page = await open("https://inkwell.example/title/1-cinderelle/chapter/6/", slides);
+  // Sent before detection has found the slots, so it waits for them. Halfway down
+  // page 9 of 20 is a quarter of the way down slot 5 of 10, put at the screen's middle.
+  await scrolledTo(page, { page: 9, pageCount: 20, offset: 0.5 });
   await sendRules(page, []);
   await results(page);
   await page.waitForFunction(() => __sent.filter((m) => m.type === "position").some((m) => m.page === 5));
   const top = await page.evaluate(() => Math.round(document.querySelectorAll(".slide")[4].getBoundingClientRect().top));
   await page.close();
-  assert.equal(top, 0);
+  assert.equal(top, 360 - 225);
+});
+
+test("the place is held while a slot above it grows, until the user touches the page", async () => {
+  // Chrome keeps the place by itself unless the page turns scroll anchoring off, as some do.
+  const page = await open(
+    "https://inkwell.example/title/1-cinderelle/chapter/6/",
+    slides.replace("<div class=\"pages\">", "<div class=\"pages\" style=\"overflow-anchor:none\">"),
+  );
+  await sendRules(page, []);
+  await results(page);
+  await scrolledTo(page, { page: 5, pageCount: 10, offset: 0.5 });
+  const top = () => page.evaluate(() => Math.round(document.querySelectorAll(".slide")[4].getBoundingClientRect().top));
+  // A lazy image above loads and makes its slot taller.
+  await page.evaluate(() => { document.querySelectorAll(".slide")[1].style.height = "1500px"; });
+  await page.waitForFunction(() => Math.round(document.querySelectorAll(".slide")[4].getBoundingClientRect().top) === -90);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.evaluate(() => { document.querySelectorAll(".slide")[1].style.height = "2100px"; });
+  await page.waitForTimeout(100);
+  assert.equal(await top(), 510);
+  await page.close();
 });
 
 test("a chapter with pages for the reader reports the page on screen too", async () => {

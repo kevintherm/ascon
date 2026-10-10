@@ -11,15 +11,17 @@
  *   page → app  {"type":"page","url":...}
  *   app → page  {"type":"rules","rules":[{"via":...,"when":selector|null,"rule":{...}}]}
  *   page → app  {"type":"result","url":...,"via":"rule"|"builtin"|"heuristic","result":{...}}
- *   page → app  {"type":"position","url":...,"page":n,"pageCount":m}
- *   app → page  {"type":"scroll","page":n,"pageCount":m}
+ *   page → app  {"type":"position","url":...,"page":n,"pageCount":m,"offset":f}
+ *   app → page  {"type":"scroll","page":n,"pageCount":m,"offset":f}
  *   page → app  {"type":"tap","url":...,"href":link|null}
  *
- * A position is sent on every chapter page: the page slot most on screen, counted
- * from 1. It saves progress on a chapter read as it is, and opens the reader at the
- * same page when the user switches to it. A scroll from the app brings page n of m
- * back on screen, scaled to this page's slots, as when the user resumes a chapter
- * read as the site shows it.
+ * A position is sent on every chapter page: the page slot under the middle of the
+ * screen, counted from 1, and how far down that slot the middle is, from 0 up to 1.
+ * It is sent at once when the slot changes and again when scrolling stops. It saves
+ * progress on a chapter read as it is, and opens the reader at the same page when the
+ * user switches to it. A scroll from the app puts that place back in the middle of the
+ * screen, scaled to this page's slots, as when the user resumes a chapter read as the
+ * site shows it.
  *
  * A tap reports the link under the finger, or null, for the navigation guard: a tap
  * only lets the tab go to another site through the link that was tapped.
@@ -65,7 +67,8 @@
       return;
     }
     if (message && message.type === "scroll" && message.page > 0 && message.pageCount > 0) {
-      scrollTo(message.page, message.pageCount);
+      var offset = message.offset > 0 && message.offset < 1 ? message.offset : 0;
+      scrollTo(message.page, message.pageCount, offset);
     } else if (message && message.type === "rules" && Array.isArray(message.rules)) {
       candidates = message.rules;
       // Before DOMContentLoaded the page is half parsed; that event runs detection.
@@ -289,53 +292,132 @@
 
   // ---- Position on a chapter page ----------------------------------
 
-  var tracked = null; // { holder, observer, ratios, page, slots }
-  var pendingScroll = null; // { page, pageCount } until the slots are found
-  // Lazy images above the slot can push it down as they load, so the scroll is made
-  // again once, unless the user has touched the page by then.
-  var RESCROLL_MS = 1000;
+  var tracked = null; // { holder, slots, page, offset }
+  var pendingScroll = null; // { page, pageCount, offset } until the slots are found
+  var REPORT_MS = 300;
+  var reportTimer = 0;
+  // Images that load after a scroll change the heights above the place it went to, so
+  // the place is held in the middle of the screen until the user touches the page or
+  // HOLD_MS pass.
+  var HOLD_MS = 5000;
+  var held = null; // { observer, timer }
   var touchedSince = 0;
 
   function stopTracking() {
-    if (tracked) tracked.observer.disconnect();
+    release();
+    clearTimeout(reportTimer);
+    reportTimer = 0;
     tracked = null;
   }
 
-  /** Reports which of [holder]'s page slots is most on screen, whenever that changes. */
+  /** Reports where the reading line is among [holder]'s page slots, as it changes. */
   function track(holder) {
     if (tracked && tracked.holder === holder) return;
     stopTracking();
     var slots = [].filter.call(holder.children, isSlot);
     if (slots.length < MIN_PAGES) return;
-    var state = { holder: holder, ratios: slots.map(function () { return 0; }), page: 0 };
-    state.observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { state.ratios[slots.indexOf(e.target)] = e.intersectionRatio; });
-      var best = 0;
-      for (var i = 1; i < state.ratios.length; i++) if (state.ratios[i] > state.ratios[best]) best = i;
-      if (state.ratios[best] === 0 || best + 1 === state.page) return;
-      state.page = best + 1;
-      send({ type: "position", url: location.href, page: state.page, pageCount: slots.length });
-    }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
-    slots.forEach(function (slot) { state.observer.observe(slot); });
-    state.slots = slots;
-    tracked = state;
-    if (pendingScroll) scrollTo(pendingScroll.page, pendingScroll.pageCount);
+    tracked = { holder: holder, slots: slots, page: 0, offset: 0 };
+    report();
+    if (pendingScroll) scrollTo(pendingScroll.page, pendingScroll.pageCount, pendingScroll.offset);
   }
 
-  /** Brings page [page] of [pageCount] on screen, or waits for the slots to be found. */
-  function scrollTo(page, pageCount) {
+  /**
+   * Where the user reads: the middle of the screen, in the page's pixels. It is measured
+   * on the screen, not the window, so the toolbar showing or hiding doesn't move it. A
+   * page laid out wider than the screen has more of its pixels per screen pixel.
+   */
+  function readingLine() {
+    var screen = window.screen;
+    if (!screen || !screen.height || !screen.width) return window.innerHeight / 2;
+    return screen.height * (window.innerWidth / screen.width) / 2;
+  }
+
+  /**
+   * The slot under the reading line and how far down it the line is. Before the first
+   * slot that is the first slot's top. Once the last slot's end is on screen, the last
+   * slot if the user has scrolled into the slots, so a short last page still counts as
+   * reached, and otherwise the first, as when the slots have no height yet.
+   */
+  function placeOf(slots) {
+    var last = slots.length - 1;
+    if (slots[last].getBoundingClientRect().bottom <= window.innerHeight + 1) {
+      var into = slots[0].getBoundingClientRect().top < 0;
+      return { page: into ? last + 1 : 1, offset: 0 };
+    }
+    var line = readingLine();
+    for (var i = 0; ; i++) {
+      var rect = slots[i].getBoundingClientRect();
+      if (rect.bottom <= line && i < last) continue;
+      var down = rect.height > 0 && rect.top < line ? (line - rect.top) / rect.height : 0;
+      return { page: i + 1, offset: Math.min(down, 0.999) };
+    }
+  }
+
+  function report() {
+    reportTimer = 0;
+    if (!tracked) return;
+    var place = placeOf(tracked.slots);
+    if (place.page === tracked.page && Math.abs(place.offset - tracked.offset) < 0.001) return;
+    tracked.page = place.page;
+    tracked.offset = place.offset;
+    send({ type: "position", url: location.href, page: place.page, pageCount: tracked.slots.length, offset: place.offset });
+  }
+
+  // Captured, so a reader that scrolls inside its own box is followed too.
+  window.addEventListener("scroll", function () {
+    if (!tracked) return;
+    // A new page is shown at once; a place inside one waits for the scroll to stop.
+    if (placeOf(tracked.slots).page !== tracked.page) report();
+    clearTimeout(reportTimer);
+    reportTimer = setTimeout(report, REPORT_MS);
+  }, { capture: true, passive: true });
+
+  /** Puts page [page] of [pageCount], [offset] down it, in the middle of the screen, or waits for the slots. */
+  function scrollTo(page, pageCount, offset) {
     if (!tracked) {
-      pendingScroll = { page: page, pageCount: pageCount };
+      pendingScroll = { page: page, pageCount: pageCount, offset: offset };
       return;
     }
     pendingScroll = null;
     var slots = tracked.slots;
-    var slot = slots[Math.min(slots.length - 1, Math.floor((page - 1) * slots.length / pageCount))];
+    // The place in the whole chapter, scaled to this page's slots.
+    var place = (page - 1 + offset) / pageCount * slots.length;
+    var index = Math.min(slots.length - 1, Math.floor(place));
+    hold(tracked.holder, slots[index], Math.min(place - index, 0.999));
+  }
+
+  function hold(holder, slot, offset) {
+    release();
     touchedSince = 0;
-    slot.scrollIntoView({ block: "start" });
-    setTimeout(function () {
-      if (!touchedSince && tracked && tracked.slots === slots && slot.isConnected) slot.scrollIntoView({ block: "start" });
-    }, RESCROLL_MS);
+    var until = Date.now() + HOLD_MS;
+    function place() {
+      if (touchedSince || Date.now() > until || !slot.isConnected) return release();
+      slot.scrollIntoView({ block: "start" });
+      var rect = slot.getBoundingClientRect();
+      var by = rect.top + offset * rect.height - readingLine();
+      if (Math.abs(by) >= 1) scrollerOf(slot).scrollBy(0, by);
+    }
+    place();
+    var observer = new ResizeObserver(place);
+    observer.observe(holder);
+    observer.observe(document.documentElement);
+    held = { observer: observer, timer: setTimeout(release, HOLD_MS) };
+  }
+
+  function release() {
+    if (!held) return;
+    held.observer.disconnect();
+    clearTimeout(held.timer);
+    held = null;
+  }
+
+  /** The box that scrolls [el]: its nearest scrolling ancestor, or the window. */
+  function scrollerOf(el) {
+    for (var e = el.parentElement; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      var y = getComputedStyle(e).overflowY;
+      if ((y === "auto" || y === "scroll") && e.scrollHeight > e.clientHeight) return e;
+    }
+    return window;
   }
 
   /** Tracks the position on a chapter page; stops on any other page. */

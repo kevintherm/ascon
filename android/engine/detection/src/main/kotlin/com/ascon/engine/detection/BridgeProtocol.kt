@@ -29,7 +29,7 @@ internal sealed interface PageMessage {
 
     @Serializable
     @SerialName("position")
-    data class Position(val url: String, val page: Int, val pageCount: Int) : PageMessage
+    data class Position(val url: String, val page: Int, val pageCount: Int, val offset: Float = 0f) : PageMessage
 
     /** [href] is the link under a tap, or null for a tap elsewhere. */
     @Serializable
@@ -72,9 +72,9 @@ data class RuleCandidate(
 @Serializable
 internal data class RulesMessage(val rules: List<RuleCandidate>, val type: String = "rules")
 
-/** Asks a chapter page to bring page [page] of [pageCount] on screen. */
+/** Asks a chapter page to bring page [page] of [pageCount] on screen, [offset] of the way down it. */
 @Serializable
-internal data class ScrollMessage(val page: Int, val pageCount: Int, val type: String = "scroll")
+internal data class ScrollMessage(val page: Int, val pageCount: Int, val offset: Float, val type: String = "scroll")
 
 internal object BridgeProtocol {
     /** Larger messages are dropped. A long chapter's image list fits well under this. */
@@ -102,8 +102,8 @@ internal object BridgeProtocol {
     fun encodeRules(rules: List<RuleCandidate>): String =
         json.encodeToString(RulesMessage.serializer(), RulesMessage(rules))
 
-    fun encodeScroll(page: Int, pageCount: Int): String =
-        json.encodeToString(ScrollMessage.serializer(), ScrollMessage(page, pageCount))
+    fun encodeScroll(page: Int, pageCount: Int, offset: Float): String =
+        json.encodeToString(ScrollMessage.serializer(), ScrollMessage(page, pageCount, offset))
 
     fun toDetection(message: PageMessage.Result): Detection {
         val url = message.url
@@ -141,7 +141,13 @@ internal object BridgeProtocol {
     /** Null for a page outside the chapter or a count no chapter has. */
     fun toPosition(message: PageMessage.Position): Detection.ReadingPosition? =
         if (message.pageCount in 1..MAX_IMAGES && message.page in 1..message.pageCount) {
-            Detection.ReadingPosition(message.url, message.page, message.pageCount)
+            // NaN fails both comparisons and lands at the top of the page.
+            Detection.ReadingPosition(
+                message.url,
+                message.page,
+                message.pageCount,
+                if (message.offset > 0f && message.offset < 1f) message.offset else 0f
+            )
         } else {
             null
         }

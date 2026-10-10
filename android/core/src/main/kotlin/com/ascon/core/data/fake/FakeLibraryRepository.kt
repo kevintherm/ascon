@@ -51,8 +51,14 @@ class FakeLibraryRepository(
         it.opened(chapter, at)
     }
 
-    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant) =
-        change(seriesId) { it.opened(chapter, at).onPage(chapter, page, pageCount) }
+    override suspend fun recordPageRead(
+        seriesId: String,
+        chapter: BigDecimal,
+        page: Int,
+        pageCount: Int,
+        at: Instant,
+        pageOffset: Float
+    ) = change(seriesId) { it.opened(chapter, at).onPage(chapter, page, pageCount, pageOffset) }
 
     private fun change(seriesId: String, transform: (Series) -> Series) {
         state.update { all -> all.map { if (it.id == seriesId) transform(it) else it } }

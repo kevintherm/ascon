@@ -20,12 +20,12 @@ internal fun Series.withProgressSource(sourceId: String): Series {
 }
 
 /** See [LibraryRepository.recordPageRead]. */
-internal fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int): Series {
+internal fun Series.onPage(chapter: BigDecimal, page: Int, pageCount: Int, pageOffset: Float = 0f): Series {
     val current = progress
     if (current == null || current.chapter.compareTo(chapter) != 0) return this
     val finished = page >= pageCount
     return copy(
-        progress = current.copy(page = page, pageCount = pageCount),
+        progress = current.copy(page = page, pageCount = pageCount, pageOffset = pageOffset.coerceIn(0f, 1f)),
         chapters = if (finished) {
             chapters.map { if (it.number.compareTo(chapter) == 0) it.copy(read = true, isNew = false) else it }
         } else {

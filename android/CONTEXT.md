@@ -12,7 +12,7 @@ interface LibraryRepository
     suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
-    suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+    suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float = 0f)
 interface ProtectionSettingsRepository
     val settings: StateFlow<ProtectionSettings>
     suspend fun load(): ProtectionSettings
@@ -66,7 +66,7 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
-    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeProtectionSettings.kt
@@ -127,7 +127,7 @@ class RoomLibraryRepository(database: AsconDatabase, private val seed: Seed? = n
     override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
-    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant)
+    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Basics.kt
@@ -443,7 +443,7 @@ data class Source(val id: String, val siteName: String, val official: Boolean, v
     fun chapterUrl(number: BigDecimal): String?
 data class ChapterLink(val url: String, val chapter: BigDecimal)
 data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null)
-data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String)
+data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String, val pageOffset: Float = 0f)
     val fraction: Float get()
 sealed interface Cover
     data class Placeholder(val top: Long, val middle: Long, val bottom: Long) : Cover
@@ -487,7 +487,7 @@ sealed interface Detection
     val url: String
     data class ChapterPage(override val url: String, val source: DetectionSource, val seriesSlug: String?, val title: String?, val chapterLabel: String?, val chapter: BigDecimal?, val images: List<String>, val next: String?, val previous: String?) : Detection
     data class SeriesPage(override val url: String, val source: DetectionSource, val seriesSlug: String?, val title: String?, val chapters: List<ChapterLink>) : Detection
-    data class ReadingPosition(override val url: String, val page: Int, val pageCount: Int) : Detection
+    data class ReadingPosition(override val url: String, val page: Int, val pageCount: Int, val offset: Float = 0f) : Detection
     data class None(override val url: String) : Detection
 data class ChapterLink(val url: String, val label: String?, val number: BigDecimal?)
 ```

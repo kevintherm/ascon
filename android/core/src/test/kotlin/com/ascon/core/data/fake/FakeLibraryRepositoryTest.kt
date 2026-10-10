@@ -84,11 +84,19 @@ class FakeLibraryRepositoryTest {
     @Test
     fun `reading a page saves the page and the page count`() = runBlocking {
         val repo = FakeLibraryRepository(FakeLibrary.series(clock))
-        repo.recordPageRead("aztec-turning-of-heaven", BigDecimal(13), page = 5, pageCount = 40, at = clock.instant())
+        repo.recordPageRead(
+            "aztec-turning-of-heaven",
+            BigDecimal(13),
+            page = 5,
+            pageCount = 40,
+            at = clock.instant(),
+            pageOffset = 0.25f
+        )
         val progress = repo.series("aztec-turning-of-heaven").first()?.progress
         assertEquals(BigDecimal(13), progress?.chapter)
         assertEquals(5, progress?.page)
         assertEquals(40, progress?.pageCount)
+        assertEquals(0.25f, progress?.pageOffset)
     }
 
     @Test

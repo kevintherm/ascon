@@ -73,7 +73,8 @@ internal data class ProgressEntity(
     val chapter: BigDecimal,
     val page: Int,
     @ColumnInfo(name = "page_count") val pageCount: Int,
-    @ColumnInfo(name = "source_id") val sourceId: String
+    @ColumnInfo(name = "source_id") val sourceId: String,
+    @ColumnInfo(name = "page_offset", defaultValue = "0") val pageOffset: Float
 )
 
 @Entity(tableName = "site", indices = [Index("position")])

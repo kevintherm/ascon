@@ -49,7 +49,13 @@ sealed interface Detection {
      * The page on screen, counted from 1, in a chapter read as the site shows it because
      * the reader could not take its pages. Sent after the chapter's [ChapterPage].
      */
-    data class ReadingPosition(override val url: String, val page: Int, val pageCount: Int) : Detection
+    data class ReadingPosition(
+        override val url: String,
+        val page: Int,
+        val pageCount: Int,
+        /** How far down the page the top of the screen is, from 0 up to 1. */
+        val offset: Float = 0f
+    ) : Detection
 
     /** Neither a chapter nor a series page. */
     data class None(override val url: String) : Detection

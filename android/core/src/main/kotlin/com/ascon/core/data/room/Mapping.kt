@@ -28,7 +28,7 @@ internal fun SeriesRecord.toModel(): Series {
         chapters = chapters.sortedBy { it.number }.map {
             Chapter(it.number, it.publishedOn, it.read, it.isNew, it.downloaded, it.readOnSourceId)
         },
-        progress = progress?.let { ReadingProgress(it.chapter, it.page, it.pageCount, it.sourceId) },
+        progress = progress?.let { ReadingProgress(it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset) },
         lastReadAt = series.lastReadAt
     )
 }
@@ -64,7 +64,7 @@ internal fun Series.toRecord(): SeriesRecord {
         chapters = chapters.map {
             ChapterEntity(id, it.number, it.publishedOn, it.read, it.isNew, it.downloaded, it.readOnSourceId)
         },
-        progress = progress?.let { ProgressEntity(id, it.chapter, it.page, it.pageCount, it.sourceId) }
+        progress = progress?.let { ProgressEntity(id, it.chapter, it.page, it.pageCount, it.sourceId, it.pageOffset) }
     )
 }
 

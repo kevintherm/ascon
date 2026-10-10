@@ -120,6 +120,13 @@ class BrowserViewModel(
 
     /** A page on screen reported before its chapter's card exists, applied once it does. */
     private var earlyPosition: Pair<String, Detection.ReadingPosition>? = null
+    private var lastPosition: Detection.ReadingPosition? = null
+
+    /**
+     * A page that started loading and has no chapter result yet. Reloading the same page
+     * keeps its card, but the new document reports its top before it can scroll back.
+     */
+    private var loadedSinceChapter: String? = null
     private var scrollY = 0
 
     /**
@@ -135,6 +142,7 @@ class BrowserViewModel(
 
     override fun onPageStarted(url: String) {
         moveTo(url)
+        loadedSinceChapter = url.withoutFragment()
         _state.update { it.copy(loading = true, progress = 0, error = null) }
     }
 
@@ -208,10 +216,16 @@ class BrowserViewModel(
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             showChapter(page, card, reader, available, unavailable)
             if (reader == null) series?.progress?.let { requestResume(page, it, chapter) }
-            earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->
-                earlyPosition = null
-                onPosition(page, position)
-            }
+            replayPosition(page)
+        }
+    }
+
+    /** Saves the position [page] reported before its chapter was found, now that the card can show it. */
+    private fun replayPosition(page: String) {
+        if (loadedSinceChapter == page) loadedSinceChapter = null
+        earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->
+            earlyPosition = null
+            onPosition(page, position)
         }
     }
 
@@ -265,21 +279,33 @@ class BrowserViewModel(
 
     /** Saves the page on screen of a chapter read as the site shows it, and shows it on the card. */
     private fun onPosition(page: String, position: Detection.ReadingPosition) {
-        val old = chapterCard?.takeIf { it.url == page }
+        val old = chapterCard?.takeIf { it.url == page && loadedSinceChapter != page }
         if (old == null) {
             // The library may still be finding the series; the card shows it when ready.
             earlyPosition = page to position
             return
         }
-        if (old.page == position.page && old.pageCount == position.pageCount) return
+        // A place already saved isn't saved again, so the site behind the reader, sending
+        // the same place again, can't undo the reader's progress.
+        if (position == lastPosition) return
+        lastPosition = position
         val card = old.copy(page = position.page, pageCount = position.pageCount)
-        chapterCard = card
-        _state.update { if (it.card?.url == page) it.copy(card = card) else it }
+        if (card != old) {
+            chapterCard = card
+            _state.update { if (it.card?.url == page) it.copy(card = card) else it }
+        }
         val seriesId = card.seriesId
         val chapter = card.chapter
         if (seriesId != null && chapter != null) {
             viewModelScope.launch {
-                library.recordPageRead(seriesId, chapter, position.page, position.pageCount, clock.instant())
+                library.recordPageRead(
+                    seriesId,
+                    chapter,
+                    position.page,
+                    position.pageCount,
+                    clock.instant(),
+                    position.offset
+                )
             }
         }
     }

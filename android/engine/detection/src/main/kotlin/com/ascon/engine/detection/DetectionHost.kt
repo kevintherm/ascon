@@ -42,10 +42,13 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
         internal var url: String? = null
         internal var reply: JavaScriptReplyProxy? = null
 
-        /** Brings page [page] of [pageCount] of the chapter at [url] on screen, if it is still the page shown. */
-        fun scrollToPage(url: String, page: Int, pageCount: Int) {
+        /**
+         * Brings page [page] of [pageCount] of the chapter at [url] to the top of the screen,
+         * [offset] of the way down it, if it is still the page shown.
+         */
+        fun scrollToPage(url: String, page: Int, pageCount: Int, offset: Float) {
             if (this.url?.substringBefore('#') != url.substringBefore('#')) return
-            reply?.postMessage(BridgeProtocol.encodeScroll(page, pageCount))
+            reply?.postMessage(BridgeProtocol.encodeScroll(page, pageCount, offset))
         }
     }
 

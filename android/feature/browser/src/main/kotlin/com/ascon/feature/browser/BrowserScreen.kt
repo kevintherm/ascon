@@ -114,7 +114,7 @@ fun BrowserRoute(
     }
     LaunchedEffect(state.resumeScroll) {
         state.resumeScroll?.let {
-            session.scrollToPage(it.url, it.page, it.pageCount)
+            session.scrollToPage(it.url, it.page, it.pageCount, it.offset)
             viewModel.resumeScrolled()
         }
     }

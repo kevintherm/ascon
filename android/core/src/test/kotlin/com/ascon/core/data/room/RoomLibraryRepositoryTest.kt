@@ -50,13 +50,14 @@ class RoomLibraryRepositoryTest {
 
     @Test
     fun `progress survives reopening the database`() = runBlocking {
-        repo().recordPageRead(aztec, BigDecimal(13), page = 5, pageCount = 40, at = clock.instant())
+        repo().recordPageRead(aztec, BigDecimal(13), page = 5, pageCount = 40, at = clock.instant(), pageOffset = 0.62f)
         closeAll()
 
         val progress = repo(seed = null).aztec().progress!!
         assertEquals(BigDecimal(13), progress.chapter)
         assertEquals(5, progress.page)
         assertEquals(40, progress.pageCount)
+        assertEquals(0.62f, progress.pageOffset)
     }
 
     @Test

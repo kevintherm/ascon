@@ -87,8 +87,11 @@ class BridgeProtocolTest {
     }
 
     @Test
-    fun `a scroll names the page and how many pages it is counted against`() {
-        assertEquals("""{"page":9,"pageCount":20,"type":"scroll"}""", BridgeProtocol.encodeScroll(9, 20))
+    fun `a scroll names the page, how many pages it is counted against and how far down it`() {
+        assertEquals(
+            """{"page":9,"pageCount":20,"offset":0.5,"type":"scroll"}""",
+            BridgeProtocol.encodeScroll(9, 20, 0.5f)
+        )
     }
 
     @Test
@@ -137,6 +140,18 @@ class RuleLookupTest {
             Detection.ReadingPosition(chapterUrl, page = 4, pageCount = 56),
             BridgeProtocol.toPosition(message as PageMessage.Position)
         )
+    }
+
+    @Test
+    fun `a position keeps how far down the page it is, and only from 0 up to 1`() {
+        fun offset(value: String) = BridgeProtocol.toPosition(
+            BridgeProtocol.decode(
+                """{"type":"position","url":"$chapterUrl","page":4,"pageCount":56,"offset":$value}"""
+            ) as PageMessage.Position
+        )?.offset
+        assertEquals(0.62f, offset("0.62"))
+        assertEquals(0f, offset("1.5"))
+        assertEquals(0f, offset("-0.2"))
     }
 
     @Test

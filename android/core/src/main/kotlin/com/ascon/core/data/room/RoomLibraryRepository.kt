@@ -51,8 +51,14 @@ class RoomLibraryRepository(
         it.opened(chapter, at)
     }
 
-    override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant) =
-        change(seriesId) { it.opened(chapter, at).onPage(chapter, page, pageCount) }
+    override suspend fun recordPageRead(
+        seriesId: String,
+        chapter: BigDecimal,
+        page: Int,
+        pageCount: Int,
+        at: Instant,
+        pageOffset: Float
+    ) = change(seriesId) { it.opened(chapter, at).onPage(chapter, page, pageCount, pageOffset) }
 
     private suspend fun change(seriesId: String, transform: (Series) -> Series) {
         ensureSeeded()

@@ -116,7 +116,8 @@ class BrowserSession internal constructor(private val pool: WebViewPool, first: 
 
     /** Ends the session: a fresh view replaces this one, so its page and history are gone. */
     /** Scrolls the chapter at [url], read as the site shows it, to page [page] of [pageCount]. */
-    fun scrollToPage(url: String, page: Int, pageCount: Int) = webView.page?.scrollToPage(url, page, pageCount)
+    fun scrollToPage(url: String, page: Int, pageCount: Int, offset: Float) =
+        webView.page?.scrollToPage(url, page, pageCount, offset)
 
     fun clear() = replaceView()
 

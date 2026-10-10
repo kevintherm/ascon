@@ -75,7 +75,18 @@ data class Chapter(
     val readOnSourceId: String? = null
 )
 
-data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String) {
+/**
+ * Page [page] of [pageCount], counted from 1, of [chapter]. [pageOffset] is how far down
+ * that page the top of the screen was, from 0 at its top to just under 1 at its bottom,
+ * so a long page reopens where the user was in it.
+ */
+data class ReadingProgress(
+    val chapter: BigDecimal,
+    val page: Int,
+    val pageCount: Int,
+    val sourceId: String,
+    val pageOffset: Float = 0f
+) {
     val fraction: Float get() = if (pageCount <= 0) 0f else page.toFloat() / pageCount
 }
 
