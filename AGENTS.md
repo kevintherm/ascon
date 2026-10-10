@@ -251,6 +251,12 @@ Found by the owner while testing steps 6 and 7. Decided with the owner: the UI p
 16. Done: the menu ends with Back to Ascon, with the app icon, which keeps the page, and Close, which discards the page and its history and shows Browser closed · Undo. Decided with the owner: Back on the first page of history asks before it closes the browser, instead of leaving it.
 17. Done: every bottom sheet can be dragged down to close.
 
+## Known bugs
+
+Found by the owner, to fix later.
+
+1. On asurascans.com the reader shows blurry pages. The site's pages are single 800 by about 11,600 px strips, and Coil decodes at most 4096 by 4096 px by default, so a page is decoded at about 282 by 4096 and stretched about 3.8 times to the screen's width. Raising the limit would mean bitmaps of about 67 MB per page. Fix with tiled decoding for tall strips, per the stack table, or by splitting tall pages into pieces as they decode. Chapter 150 of Trash of the Count's Family is free to test with; newer chapters ask to sign in.
+
 ## Workflow
 
 How agents work in this repo, agreed with the owner to keep the loop fast.
