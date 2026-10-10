@@ -141,6 +141,19 @@ class RoomLibraryRepositoryTest {
     }
 
     @Test
+    fun `each chapter keeps the page it was opened at, for sites with ids in their addresses`() = runBlocking {
+        val repo = repo(seed = null)
+        val found = repo.seriesFor("Lantern Code", "ids.example", BigDecimal(2), "https://ids.example/series/41/bbbb")
+        repo.seriesFor("Lantern Code", "ids.example", BigDecimal.ONE, "https://ids.example/series/41/aaaa")
+        closeAll()
+
+        val saved = repo(seed = null).series(found.id).first()!!
+        assertEquals("https://ids.example/series/41/bbbb", saved.chapterUrl(BigDecimal(2), "ids.example"))
+        assertEquals("https://ids.example/series/41/aaaa", saved.chapterUrl(BigDecimal.ONE, "ids.example"))
+        assertEquals(null, saved.chapterUrl(BigDecimal(3), "ids.example"))
+    }
+
+    @Test
     fun `a known series read on a new site gains it as a source`() = runBlocking {
         val repo = repo()
         val found = repo.seriesFor(

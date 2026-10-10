@@ -36,15 +36,19 @@ data class Series(
     fun source(id: String): Source? = sources.firstOrNull { it.id == id }
 
     /**
-     * The address of chapter [number], made from a chapter page the user opened. Sources
-     * known to have the chapter come first, [sourceId] before the others; then [sourceId]
-     * anyway, since a site may have chapters no one has seen yet. Null when no source has
-     * an address the number can be swapped into.
+     * The address of chapter [number]. The page the chapter was last opened at comes first
+     * when it was on [sourceId]. Then an address made from a chapter page the user opened:
+     * sources known to have the chapter first, [sourceId] before the others, then
+     * [sourceId] anyway, since a site may have chapters no one has seen yet. Last, the page
+     * the chapter was opened at on another source, for sites whose addresses carry an id
+     * instead of the number. Null when none of these gives an address.
      */
     fun chapterUrl(number: BigDecimal, sourceId: String?): String? {
+        val opened = chapters.firstOrNull { it.number.compareTo(number) == 0 }?.takeIf { it.openedUrl != null }
+        if (opened != null && opened.openedOnSourceId == sourceId) return opened.openedUrl
         val (having, lacking) = sources.partition { number in it.firstChapter..it.lastChapter }
         val tried = having.sortedByDescending { it.id == sourceId } + lacking.filter { it.id == sourceId }
-        return tried.firstNotNullOfOrNull { it.chapterUrl(number) }
+        return tried.firstNotNullOfOrNull { it.chapterUrl(number) } ?: opened?.openedUrl
     }
 }
 
@@ -72,7 +76,10 @@ data class Chapter(
     val isNew: Boolean = false,
     val downloaded: Boolean = false,
     /** Source the chapter was read on, when known. */
-    val readOnSourceId: String? = null
+    val readOnSourceId: String? = null,
+    /** The chapter page the user last opened this chapter at, and the source it is on. */
+    val openedUrl: String? = null,
+    val openedOnSourceId: String? = null
 )
 
 /**

@@ -62,9 +62,18 @@ private fun Series.withChapter(number: BigDecimal): List<Chapter> =
 
 /**
  * The series with [host] as a source whose chapter range takes in [chapter], and [url] as
- * the chapter page last opened there.
+ * the chapter page last opened there and the page [chapter] was opened at.
  */
 internal fun Series.withSite(host: String, chapter: BigDecimal, url: String): Series {
+    val addressed = copy(
+        chapters = withChapter(chapter).map {
+            if (it.number.compareTo(chapter) == 0) it.copy(openedUrl = url, openedOnSourceId = host) else it
+        }
+    )
+    return addressed.withSource(host, chapter, url)
+}
+
+private fun Series.withSource(host: String, chapter: BigDecimal, url: String): Series {
     val link = ChapterLink(url, chapter)
     val known = source(host)
         ?: return copy(sources = sources + Source(host, host, official = false, chapter, chapter, link))

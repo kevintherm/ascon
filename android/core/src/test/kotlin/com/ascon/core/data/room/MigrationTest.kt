@@ -110,4 +110,22 @@ class MigrationTest {
         assertNull(rule)
         assertEquals(emptyList<Any>(), health)
     }
+
+    @Test
+    fun `version 4 to 5 keeps chapters, with no page they were opened at yet`() = runBlocking {
+        create(4) {
+            execSQL(
+                "INSERT INTO series VALUES ('aztec', 'Aztec', '[]', 1, 2, 3, 'Reading', 0, NULL)"
+            )
+            execSQL("INSERT INTO chapter VALUES ('aztec', '12', NULL, 1, 0, 0, 'site.example')")
+        }
+
+        val db = AsconDatabase.open(context, name)
+        val chapter = RoomLibraryRepository(db).series("aztec").first()!!.chapters.single()
+        db.close()
+
+        assertEquals(BigDecimal(12), chapter.number)
+        assertEquals("site.example", chapter.readOnSourceId)
+        assertNull(chapter.openedUrl)
+    }
 }

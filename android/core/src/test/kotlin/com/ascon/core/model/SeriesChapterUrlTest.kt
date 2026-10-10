@@ -41,6 +41,27 @@ class SeriesChapterUrlTest {
     }
 
     @Test
+    fun `a chapter opened at an id address opens there, before a swapped number`() {
+        val flame = source("ids.example", 2, ChapterLink("https://ids.example/series/57/aaaa", BigDecimal.ONE))
+        val opened =
+            Chapter(
+                BigDecimal(2),
+                null,
+                read = false,
+                openedUrl = "https://ids.example/series/57/bbbb",
+                openedOnSourceId = "ids.example"
+            )
+        val withIds = series(flame, two).copy(chapters = listOf(opened))
+        assertEquals("https://ids.example/series/57/bbbb", withIds.chapterUrl(BigDecimal(2), "ids.example"))
+        // Asked for another source, a swapped number there comes first.
+        assertEquals("https://two.example/read/aztec/2", withIds.chapterUrl(BigDecimal(2), "two.example"))
+        assertEquals(
+            "https://ids.example/series/57/bbbb",
+            series(flame).copy(chapters = listOf(opened)).chapterUrl(BigDecimal(2), null)
+        )
+    }
+
+    @Test
     fun `gives nothing when no source has a page to start from`() {
         assertNull(series(source("three.example", 20, link = null)).chapterUrl(BigDecimal(3), null))
     }
