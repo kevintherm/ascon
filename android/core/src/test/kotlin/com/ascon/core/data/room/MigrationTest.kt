@@ -146,4 +146,22 @@ class MigrationTest {
         assertNull(series.progress?.updatedAt)
         assertNull(series.sources.single().updatedAt)
     }
+
+    @Test
+    fun `version 6 to 7 keeps chapters, not yet stamped for sync`() = runBlocking {
+        create(6) {
+            execSQL("INSERT INTO series VALUES ('aztec', 'Aztec', '[]', 1, 2, 3, 'Reading', 0, NULL, NULL, NULL)")
+            execSQL(
+                "INSERT INTO chapter VALUES " +
+                    "('aztec', '12', NULL, 1, 0, 0, NULL, 'https://site.example/12', 'site.example')"
+            )
+        }
+
+        val db = AsconDatabase.open(context, name)
+        val chapter = RoomLibraryRepository(db).series("aztec").first()!!.chapters.single()
+        db.close()
+
+        assertEquals("https://site.example/12", chapter.openedUrl)
+        assertNull(chapter.updatedAt)
+    }
 }

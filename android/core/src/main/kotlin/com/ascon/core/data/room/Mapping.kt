@@ -34,7 +34,8 @@ internal fun SeriesRecord.toModel(): Series {
                 it.downloaded,
                 it.readOnSourceId,
                 it.openedUrl,
-                it.openedOnSourceId
+                it.openedOnSourceId,
+                it.updatedAt
             )
         },
         progress = progress?.let {
@@ -87,7 +88,8 @@ internal fun Series.toRecord(): SeriesRecord {
                 it.downloaded,
                 it.readOnSourceId,
                 it.openedUrl,
-                it.openedOnSourceId
+                it.openedOnSourceId,
+                it.updatedAt
             )
         },
         progress = progress?.let {

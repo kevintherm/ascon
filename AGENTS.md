@@ -162,8 +162,8 @@ docs/               ADRs and longer notes
 
 Built on 2026-10-10, step 2 of Next steps. Decided while planning:
 
-- A signed-in phone syncs the library with `/v1/sync/changes`: series, sources, progress and the library entry's status. Chapter read flags aren't sent; a phone marks the chapters before the synced place read, and the place's chapter once its last page is reached, as reading does.
-- Each series has a sync id, a name-based UUID from its title key, so the same series found on two phones before syncing becomes one. Sources, progress and the library entry take ids made from the series' sync id, and the source's domain.
+- A signed-in phone syncs the library with `/v1/sync/changes`: series, sources, progress, the library entry's status, and each chapter the user opened or read, with its read flag and the page it was opened at. Chapters a check only found aren't sent. Chapters were added after the owner found a fresh install showed only the chapter in progress; a phone also marks the chapters before the synced place read, as reading does.
+- Each series has a sync id, a name-based UUID from its title key, so the same series found on two phones before syncing becomes one. Sources, chapters, progress and the library entry take ids made from the series' sync id, plus the source's domain or the chapter number.
 - Progress carries `page`, `pageCount` and `pageOffset` beside `pagePosition`, and sources carry `lastChapter`, added to the contract for this.
 - Fields of one entity change together and share one `updatedAt`. The phone pushes entities changed since its last push, pulls from its own cursor, and applies a pulled field only when it is newer than the phone's own.
 - The phone syncs when the app starts signed in or an account signs in, 5 seconds after the library last changed, and from Sync now in the account sheet, which shows Last synced. Another phone's changes arrive on those syncs; there is no push message or periodic job yet. Series can't be removed yet, so there are no tombstones from the phone, and pulled tombstones are ignored. A series another phone dropped shows as paused, since the app has no Dropped status.

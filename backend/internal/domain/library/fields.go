@@ -16,6 +16,7 @@ const (
 	Source       = "source"
 	Progress     = "progress"
 	LibraryEntry = "libraryEntry"
+	Chapter      = "chapter"
 )
 
 type kind int
@@ -53,6 +54,13 @@ var fields = map[string]map[string]kind{
 		"pageCount":    kindNullableInt,
 		"pageOffset":   kindFraction,
 		"readAt":       kindDateTime,
+	},
+	Chapter: {
+		"seriesId":     kindUUID,
+		"number":       kindChapter,
+		"read":         kindBool,
+		"openedUrl":    kindNullableString,
+		"openedDomain": kindNullableString,
 	},
 	LibraryEntry: {
 		"seriesId": kindUUID,

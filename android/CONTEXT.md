@@ -571,7 +571,7 @@ data class Series(val id: String, val title: String, val altTitles: List<String>
 data class Source(val id: String, val siteName: String, val official: Boolean, val firstChapter: BigDecimal, val lastChapter: BigDecimal, val lastOpened: ChapterLink? = null, val updatedAt: Instant? = null)
     fun chapterUrl(number: BigDecimal): String?
 data class ChapterLink(val url: String, val chapter: BigDecimal)
-data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null, val openedUrl: String? = null, val openedOnSourceId: String? = null)
+data class Chapter(val number: BigDecimal, val publishedOn: LocalDate?, val read: Boolean, val isNew: Boolean = false, val downloaded: Boolean = false, val readOnSourceId: String? = null, val openedUrl: String? = null, val openedOnSourceId: String? = null, val updatedAt: Instant? = null)
 data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount: Int, val sourceId: String, val pageOffset: Float = 0f, val updatedAt: Instant? = null)
     val fraction: Float get()
 sealed interface Cover
@@ -600,12 +600,14 @@ sealed interface SyncRecord
     data class SeriesRecord(override val id: String, val title: Stamped<String>?) : SyncRecord
     data class Entry(override val id: String, val seriesId: Stamped<String>?, val status: Stamped<ReadingStatus>?) :
     data class SourceRecord(override val id: String, val seriesId: Stamped<String>?, val domain: Stamped<String>?, val lastChapterUrl: Stamped<String?>?, val lastChapter: Stamped<BigDecimal>?) : SyncRecord
+    data class ChapterRecord(override val id: String, val seriesId: Stamped<String>?, val number: Stamped<BigDecimal>?, val read: Stamped<Boolean>?, val openedUrl: Stamped<String?>?, val openedDomain: Stamped<String?>?) : SyncRecord
     data class Progress(override val id: String, val seriesId: Stamped<String>?, val chapter: Stamped<BigDecimal>?, val page: Stamped<Int>?, val pageCount: Stamped<Int>?, val pageOffset: Stamped<Float>?, val readAt: Stamped<Instant>?) : SyncRecord
 data class SyncPage(val records: List<SyncRecord>, val cursor: String, val hasMore: Boolean)
 data class SyncPosition(val cursor: String? = null, val pushedAt: Instant? = null, val syncedAt: Instant? = null)
 fun seriesSyncId(title: String): String
 fun entrySyncId(seriesSyncId: String): String
 fun progressSyncId(seriesSyncId: String): String
+fun chapterSyncId(seriesSyncId: String, number: BigDecimal): String
 fun sourceSyncId(seriesSyncId: String, domain: String): String
 ```
 

@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.floatOrNull
@@ -38,6 +39,13 @@ internal fun SyncRecord.toJson(): JsonObject {
             "domain" to domain.json { JsonPrimitive(it) },
             "lastChapterUrl" to lastChapterUrl.json { JsonPrimitive(it) },
             "lastChapter" to lastChapter.json { JsonPrimitive(it.toChapterLabel()) }
+        )
+        is SyncRecord.ChapterRecord -> "chapter" to mapOf(
+            "seriesId" to seriesId.json { JsonPrimitive(it) },
+            "number" to number.json { JsonPrimitive(it.toChapterLabel()) },
+            "read" to read.json { JsonPrimitive(it) },
+            "openedUrl" to openedUrl.json { JsonPrimitive(it) },
+            "openedDomain" to openedDomain.json { JsonPrimitive(it) }
         )
         is SyncRecord.Progress -> "progress" to progressFields()
     }
@@ -95,6 +103,14 @@ internal fun JsonObject.toSyncRecord(): SyncRecord? {
             field("domain") { it.contentOrNull },
             field("lastChapterUrl") { it.contentOrNull },
             field("lastChapter") { it.contentOrNull?.toBigDecimalOrNull() }
+        )
+        "chapter" -> SyncRecord.ChapterRecord(
+            id,
+            field("seriesId") { it.contentOrNull },
+            field("number") { it.contentOrNull?.toBigDecimalOrNull() },
+            field("read") { it.booleanOrNull },
+            field("openedUrl") { it.contentOrNull },
+            field("openedDomain") { it.contentOrNull }
         )
         "progress" -> SyncRecord.Progress(
             id,

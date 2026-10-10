@@ -69,7 +69,9 @@ internal data class ChapterEntity(
     @ColumnInfo(name = "read_on_source_id") val readOnSourceId: String?,
     /** The chapter page the chapter was last opened at, and its source. Added in version 5. */
     @ColumnInfo(name = "opened_url") val openedUrl: String? = null,
-    @ColumnInfo(name = "opened_source_id") val openedOnSourceId: String? = null
+    @ColumnInfo(name = "opened_source_id") val openedOnSourceId: String? = null,
+    /** Added in version 7. */
+    @ColumnInfo(name = "updated_at") val updatedAt: Instant? = null
 )
 
 @Entity(

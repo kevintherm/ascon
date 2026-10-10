@@ -1,11 +1,13 @@
 package com.ascon.core.data
 
+import com.ascon.core.model.Chapter
 import com.ascon.core.model.ChapterLink
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.Series
 import com.ascon.core.model.Source
 import com.ascon.core.model.Stamped
 import com.ascon.core.model.SyncRecord
+import com.ascon.core.model.chapterSyncId
 import com.ascon.core.model.entrySyncId
 import com.ascon.core.model.progressSyncId
 import com.ascon.core.model.seriesSyncId
@@ -36,9 +38,19 @@ internal fun Series.stamped(old: Series?, at: Instant): Series {
             val before = old?.source(source.id)?.copy(updatedAt = null)
             if (before != source.copy(updatedAt = null)) source.copy(updatedAt = now) else source
         },
+        chapters = chapters.map { chapter ->
+            val before = old?.chapters?.firstOrNull { it.number.compareTo(chapter.number) == 0 }
+            if (before?.synced != chapter.synced) chapter.copy(updatedAt = now) else chapter
+        },
         progress = progress?.let { if (it.copy(updatedAt = null) != oldProgress) it.copy(updatedAt = now) else it }
     )
 }
+
+/** The parts of a chapter that sync. */
+private val Chapter.synced get() = Triple(read, openedUrl, openedOnSourceId)
+
+/** A chapter worth syncing: one the user opened or read, not one a check only found. */
+private val Chapter.touched get() = read || openedUrl != null
 
 /**
  * The records for what changed after [since], or everything when [since] is null. A part
@@ -53,6 +65,7 @@ internal fun Series.syncRecords(since: Instant?): List<SyncRecord> {
             add(SyncRecord.Entry(entrySyncId(id), series, Stamped(status, statusUpdatedAt ?: Instant.EPOCH)))
         }
         sources.filter { changed(it.updatedAt) }.forEach { add(it.record(id)) }
+        chapters.filter { it.touched && changed(it.updatedAt) }.forEach { add(it.record(id)) }
         progress?.takeIf { changed(it.updatedAt) }?.let { add(it.record(id, lastReadAt)) }
     }
     // A record that names a series follows the series' own, so a phone new to it can make it.
@@ -72,6 +85,18 @@ private fun Source.record(seriesId: String): SyncRecord.SourceRecord {
         domain = Stamped(id, at),
         lastChapterUrl = Stamped(lastOpened?.url, at),
         lastChapter = Stamped(lastOpened?.chapter ?: lastChapter, at)
+    )
+}
+
+private fun Chapter.record(seriesId: String): SyncRecord.ChapterRecord {
+    val at = updatedAt ?: Instant.EPOCH
+    return SyncRecord.ChapterRecord(
+        id = chapterSyncId(seriesId, number),
+        seriesId = Stamped(seriesId, at),
+        number = Stamped(number, at),
+        read = Stamped(read, at),
+        openedUrl = Stamped(openedUrl, at),
+        openedDomain = Stamped(openedOnSourceId, at)
     )
 }
 
@@ -99,7 +124,9 @@ internal fun pulled(library: List<Series>, records: List<SyncRecord>, newId: () 
     // A record names its series by sync id, or only by its own id when just some fields changed.
     val owners = bySyncId.keys.flatMap { id ->
         val series = bySyncId.getValue(id)
-        listOf(entrySyncId(id) to id, progressSyncId(id) to id) + series.sources.map { sourceSyncId(id, it.id) to id }
+        listOf(entrySyncId(id) to id, progressSyncId(id) to id) +
+            series.sources.map { sourceSyncId(id, it.id) to id } +
+            series.chapters.map { chapterSyncId(id, it.number) to id }
     }.toMap().toMutableMap()
     for (record in records.sortedBy { it.order }) {
         val seriesId = record.seriesId ?: owners[record.id]
@@ -109,6 +136,7 @@ internal fun pulled(library: List<Series>, records: List<SyncRecord>, newId: () 
             bySyncId[seriesId] = next
             changed += seriesId
             next.sources.forEach { owners[sourceSyncId(seriesId, it.id)] = seriesId }
+            next.chapters.forEach { owners[chapterSyncId(seriesId, it.number)] = seriesId }
             owners[entrySyncId(seriesId)] = seriesId
             owners[progressSyncId(seriesId)] = seriesId
         }
@@ -121,6 +149,7 @@ private fun Series?.applying(record: SyncRecord, syncId: String, newId: () -> St
     is SyncRecord.SeriesRecord -> this ?: record.title?.let { newPulledSeries(newId(), it.value, syncId) }
     is SyncRecord.Entry -> this?.withEntry(record)
     is SyncRecord.SourceRecord -> this?.withSource(record)
+    is SyncRecord.ChapterRecord -> this?.withPulledChapter(record)
     is SyncRecord.Progress -> this?.withProgress(record)
 }
 
@@ -130,7 +159,8 @@ private val SyncRecord.order: Int
         is SyncRecord.SeriesRecord -> 0
         is SyncRecord.Entry -> 1
         is SyncRecord.SourceRecord -> 2
-        is SyncRecord.Progress -> 3
+        is SyncRecord.ChapterRecord -> 3
+        is SyncRecord.Progress -> 4
     }
 
 private val SyncRecord.seriesId: String?
@@ -138,6 +168,7 @@ private val SyncRecord.seriesId: String?
         is SyncRecord.SeriesRecord -> id
         is SyncRecord.Entry -> seriesId?.value
         is SyncRecord.SourceRecord -> seriesId?.value
+        is SyncRecord.ChapterRecord -> seriesId?.value
         is SyncRecord.Progress -> seriesId?.value
     }
 
@@ -191,6 +222,26 @@ private fun pulledLink(record: SyncRecord.SourceRecord, own: ChapterLink?): Chap
     val url = record.lastChapterUrl?.value ?: own?.url
     return if (url != null && chapter != null) ChapterLink(url, chapter) else own
 }
+
+private fun Series.withPulledChapter(record: SyncRecord.ChapterRecord): Series {
+    val at = newest(record.number, record.read, record.openedUrl, record.openedDomain)
+    val known = chapters.firstOrNull { chapterSyncId(syncKey, it.number) == record.id }
+    val number = known?.number ?: record.number?.value
+    val stale = known?.updatedAt?.let { at == null || it >= at } == true
+    return if (at == null || number == null || stale) {
+        this
+    } else {
+        copy(chapters = withChapter(number).map { if (it.number.compareTo(number) == 0) it.pulled(record, at) else it })
+    }
+}
+
+private fun Chapter.pulled(record: SyncRecord.ChapterRecord, at: Instant): Chapter = copy(
+    read = record.read?.value ?: read,
+    isNew = isNew && record.read?.value != true,
+    openedUrl = record.openedUrl?.value ?: openedUrl,
+    openedOnSourceId = record.openedDomain?.value ?: openedOnSourceId,
+    updatedAt = at
+)
 
 private fun Series.withProgress(record: SyncRecord.Progress): Series {
     val place = pulledPlace(record) ?: return this

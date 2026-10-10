@@ -28,6 +28,16 @@ sealed interface SyncRecord {
         val lastChapter: Stamped<BigDecimal>?
     ) : SyncRecord
 
+    /** A chapter the user opened or read. */
+    data class ChapterRecord(
+        override val id: String,
+        val seriesId: Stamped<String>?,
+        val number: Stamped<BigDecimal>?,
+        val read: Stamped<Boolean>?,
+        val openedUrl: Stamped<String?>?,
+        val openedDomain: Stamped<String?>?
+    ) : SyncRecord
+
     data class Progress(
         override val id: String,
         val seriesId: Stamped<String>?,
@@ -57,6 +67,9 @@ fun seriesSyncId(title: String): String = nameId("series:${titleKey(title)}")
 fun entrySyncId(seriesSyncId: String): String = nameId("entry:$seriesSyncId")
 
 fun progressSyncId(seriesSyncId: String): String = nameId("progress:$seriesSyncId")
+
+fun chapterSyncId(seriesSyncId: String, number: BigDecimal): String =
+    nameId("chapter:$seriesSyncId:${number.toChapterLabel()}")
 
 fun sourceSyncId(seriesSyncId: String, domain: String): String = nameId("source:$seriesSyncId:$domain")
 

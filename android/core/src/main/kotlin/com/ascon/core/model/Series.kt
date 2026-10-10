@@ -85,7 +85,9 @@ data class Chapter(
     val readOnSourceId: String? = null,
     /** The chapter page the user last opened this chapter at, and the source it is on. */
     val openedUrl: String? = null,
-    val openedOnSourceId: String? = null
+    val openedOnSourceId: String? = null,
+    /** When [read] or the page it was opened at last changed, for sync. */
+    val updatedAt: Instant? = null
 )
 
 /**

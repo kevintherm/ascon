@@ -862,6 +862,7 @@ components:
         - $ref: "#/components/schemas/SourceChange"
         - $ref: "#/components/schemas/ProgressChange"
         - $ref: "#/components/schemas/LibraryEntryChange"
+        - $ref: "#/components/schemas/ChapterChange"
       discriminator:
         propertyName: entity
         mapping:
@@ -869,6 +870,7 @@ components:
           source: "#/components/schemas/SourceChange"
           progress: "#/components/schemas/ProgressChange"
           libraryEntry: "#/components/schemas/LibraryEntryChange"
+          chapter: "#/components/schemas/ChapterChange"
 
     Tombstone:
       type: object
@@ -968,6 +970,31 @@ components:
                   enum: [reading, planned, paused, completed, dropped]
                 updatedAt: { type: string, format: date-time }
             hidden: { $ref: "#/components/schemas/BooleanField" }
+
+    ChapterChange:
+      description: |
+        One chapter of a series the user has opened or read, so another device
+        lists it, knows it was read, and can open it at the page it was opened at.
+      type: object
+      additionalProperties: false
+      required: [entity, id]
+      properties:
+        entity: { const: chapter }
+        id: { type: string, format: uuid }
+        deleted: { $ref: "#/components/schemas/Tombstone" }
+        fields:
+          type: object
+          additionalProperties: false
+          properties:
+            seriesId: { $ref: "#/components/schemas/UuidField" }
+            number: { $ref: "#/components/schemas/ChapterField" }
+            read: { $ref: "#/components/schemas/BooleanField" }
+            openedUrl:
+              description: The chapter page it was last opened at.
+              $ref: "#/components/schemas/StringField"
+            openedDomain:
+              description: The site of `openedUrl`.
+              $ref: "#/components/schemas/StringField"
 
     StringField:
       type: object

@@ -54,6 +54,23 @@ class LibrarySyncTest {
     }
 
     @Test
+    fun `chapters read on one phone show as read on another`() = runBlocking {
+        val a = phone()
+        for (chapter in 1..4) {
+            val url = "https://asurascans.com/ferry/chapter-$chapter"
+            val id = a.seriesFor("Moonlit Ferry", "asurascans.com", BigDecimal(chapter), url).id
+            a.recordPageRead(id, BigDecimal(chapter), page = 20, pageCount = 20, at = start)
+        }
+        val b = phone()
+        b.applyPulled(a.syncRecords(since = null))
+
+        val ferry = b.series.first().single()
+        assertEquals((1..4).toList(), ferry.chapters.filter { it.read }.map { it.number.toInt() })
+        assertEquals("https://asurascans.com/ferry/chapter-2", ferry.chapters[1].openedUrl)
+        assertEquals("asurascans.com", ferry.chapters[1].openedOnSourceId)
+    }
+
+    @Test
     fun `the same series found on two phones becomes one`() = runBlocking {
         val a = phone()
         a.readFerry(12)
@@ -82,7 +99,8 @@ class LibrarySyncTest {
         val a = phone()
         a.readFerry(12)
         assertEquals(emptyList<SyncRecord>(), a.syncRecords(since = start))
-        assertEquals(4, a.syncRecords(since = start.minusMillis(1)).size)
+        // The series, its entry, source, the opened chapter and the place.
+        assertEquals(5, a.syncRecords(since = start.minusMillis(1)).size)
     }
 
     @Test
