@@ -43,11 +43,15 @@ var fields = map[string]map[string]kind{
 		"seriesUrl":      kindNullableString,
 		"domain":         kindNullableString,
 		"lastChapterUrl": kindNullableString,
+		"lastChapter":    kindChapter,
 	},
 	Progress: {
 		"seriesId":     kindUUID,
 		"chapter":      kindChapter,
 		"pagePosition": kindFraction,
+		"page":         kindNullableInt,
+		"pageCount":    kindNullableInt,
+		"pageOffset":   kindFraction,
 		"readAt":       kindDateTime,
 	},
 	LibraryEntry: {

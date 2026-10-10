@@ -158,6 +158,16 @@ docs/               ADRs and longer notes
 - Decided while fixing a bug the owner found on 2026-10-10: progress follows what the user reads, not the highest chapter opened. A chapter counts as read into from its second page, or once its last page is reached. Opening a chapter moves the series' place only while the chapter in progress hasn't been read into; otherwise the place moves when the user reads into a later chapter. A chapter opened by mistake and left on its first page gives way to the next chapter read, even an earlier one. Chapters before a chapter are marked read only once it is read into. The reader's end button names the chapter the site's next link goes to, read from its address, and falls back to the next chapter the library knows.
 - On the device the library lives in Room, in `core/data/room`. Rules for how reading changes a series are plain functions in `core/data/LibraryChanges.kt`, shared by Room and the fake. Schemas are exported to `core/schemas`; every schema change after version 1 needs a migration and a test against the previous schema.
 
+### Sync
+
+Being built from 2026-10-10, step 2 of Next steps. Decided while planning:
+
+- A signed-in phone syncs the library with `/v1/sync/changes`: series, sources, progress and the library entry's status. Chapter read flags aren't sent; a phone marks the chapters before the synced place read, and the place's chapter once its last page is reached, as reading does.
+- Each series has a sync id, a name-based UUID from its title key, so the same series found on two phones before syncing becomes one. Sources, progress and the library entry take ids made from the series' sync id, and the source's domain.
+- Progress carries `page`, `pageCount` and `pageOffset` beside `pagePosition`, and sources carry `lastChapter`, added to the contract for this.
+- Fields of one entity change together and share one `updatedAt`. The phone pushes entities changed since its last push, pulls from its own cursor, and applies a pulled field only when it is newer than the phone's own.
+- The phone syncs when the app starts, a few seconds after the library changes, and from Sync now in the account sheet, which shows Last synced. Series can't be removed yet, so there are no tombstones from the phone.
+
 ### Reader mode
 
 - Decided with the owner: the reader opens by itself when a chapter's pages are found. Back returns to the site page, and a page the reader already showed stays on the site. A switch in the reader settings, Open reader automatically on <site>, turns this off for the whole site and is saved with DataStore; only that switch turns it back on. Until the user sets that switch for a site, a chapter where detection finds no next or previous chapter stays on the site, since the reader would have no way on and the site's own buttons do; the switch shows off there, and turning it on opens the reader by itself on that site from then on. With it off, chapters stay on the site and the menu's Open in Reader or the detection card still opens the reader.

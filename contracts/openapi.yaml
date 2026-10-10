@@ -910,6 +910,9 @@ components:
             seriesUrl: { $ref: "#/components/schemas/StringField" }
             domain: { $ref: "#/components/schemas/StringField" }
             lastChapterUrl: { $ref: "#/components/schemas/StringField" }
+            lastChapter:
+              description: The chapter `lastChapterUrl` shows.
+              $ref: "#/components/schemas/ChapterField"
 
     ProgressChange:
       description: |
@@ -930,6 +933,15 @@ components:
             chapter: { $ref: "#/components/schemas/ChapterField" }
             pagePosition:
               description: How far through the chapter, from 0 to 1.
+              $ref: "#/components/schemas/FractionField"
+            page:
+              description: The page on screen, counted from 1, or 0 before one is known.
+              $ref: "#/components/schemas/NullableIntegerField"
+            pageCount:
+              description: The chapter's pages, or 0 before they are known.
+              $ref: "#/components/schemas/NullableIntegerField"
+            pageOffset:
+              description: How far down `page` the place is, from 0 to 1.
               $ref: "#/components/schemas/FractionField"
             readAt: { $ref: "#/components/schemas/DateTimeField" }
 
