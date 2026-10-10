@@ -9,6 +9,7 @@ Shared definitions that the Android app and the Go backend both implement. A cha
 | `fixtures/conformance/` | Pages, rules and expected results that both evaluators must reproduce exactly |
 | `fixtures/chapter-numbers.json` | Chapter label parsing cases |
 | `fixtures/urls.json` | URL resolution cases, with expected values recorded from Chromium by `npm run record-urls` in `android/engine/detection` |
+| `fixtures/signed-rule.json` | A rule signed with the public development key, verified by the Go signer and the app |
 
 ## Evaluating a rule
 

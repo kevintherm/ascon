@@ -183,6 +183,46 @@ test("a broken rule is skipped", async () => {
   assert.equal(got.result.chapter, "12");
 });
 
+test("a chapter page without its own rule sends what it is built from, once", async () => {
+  const url = "https://tidepool.example/manga/aztec-turning-of-heaven/chapter-12/";
+  const page = await open(url, fixture("madara/chapter.html"));
+  await sendRules(page, builtinCandidates);
+  await results(page);
+  // New rules from the app run detection again, which must not send it twice.
+  await sendRules(page, builtinCandidates);
+  await page.waitForTimeout(50);
+  const sent = await page.evaluate(() => __sent.filter((m) => m.type === "structure"));
+  await page.close();
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url, url);
+  const features = sent[0].features;
+  assert.equal(features[0], "generator:madara");
+  assert.ok(features.includes("class:reading-content"));
+  assert.ok(features.includes("tag:body>div"));
+  assert.ok(features.every((f) => !/^class:.*\d/.test(f)));
+});
+
+test("a page read by its own rule, or not a chapter, sends no structure", async () => {
+  const own = {
+    via: "rule",
+    when: null,
+    rule: { schemaVersion: 1, domain: "tidepool.example", version: 1, chapterPage: { url: ".+", images: { selector: "img" } } },
+  };
+  for (const [url, html, rules] of [
+    ["https://tidepool.example/manga/aztec-turning-of-heaven/chapter-12/", fixture("madara/chapter.html"), [own]],
+    ["https://inkwell.example/rust-belt-saints/", fixture("heuristic/title.html"), []],
+  ]) {
+    const page = await open(url, html);
+    await sendRules(page, rules);
+    await results(page);
+    await page.waitForTimeout(50);
+    const sent = await page.evaluate(() => __sent.filter((m) => m.type === "structure"));
+    await page.close();
+    assert.deepEqual(sent, [], url);
+  }
+});
+
 test("heuristics read JSON-LD and the URL", async () => {
   const url = "https://inkwell.example/paper-moth/episode-7";
   const got = await detect(url, fixture("heuristic/jsonld.html"), []);

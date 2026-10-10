@@ -1,0 +1,8 @@
+{
+  "description": "A rule signed by the backend's Ed25519 signer with the development key. The seed is public and only for development: debug builds pin its public key under keyId dev, and the backend uses it when started with ASCON_SIGNING_KEY set to the seed. Both the Go signer and the app's verifier test against this file.",
+  "seed": "BVJXFv+SVtoLhp3etgbTU5mGcjZkZuduNYD7aotBkYk=",
+  "publicKey": "Ib8+0ckDUaWc1Xc/aOR6A4vuSQwdY2iGGpond7918+0=",
+  "keyId": "dev",
+  "payload": "eyJzY2hlbWFWZXJzaW9uIjoxLCJkb21haW4iOiJnbGFzc2xpZ2h0LmV4YW1wbGUiLCJ2ZXJzaW9uIjoxLCJjb25maWRlbmNlIjowLjksImNoYXB0ZXJQYWdlIjp7InVybCI6Imh0dHBzOi8vZ2xhc3NsaWdodFxcLmV4YW1wbGUvbWFuZ2EvKD88c2VyaWVzPlthLXowLTktXSspL2NoYXB0ZXItKD88Y2hhcHRlcj5bMC05XSsoPzotWzAtOV0rKT8pLz8iLCJ0aXRsZSI6eyJzZWxlY3RvciI6Ii5icmVhZGNydW1iIGxpOm50aC1jaGlsZCgyKSBhIn0sImNoYXB0ZXJMYWJlbCI6eyJzZWxlY3RvciI6IiNjaGFwdGVyLWhlYWRpbmciLCJwYXR0ZXJuIjoiIC0gKD88dmFsdWU-Q2hhcHRlciAuKykkIn0sImltYWdlcyI6eyJzZWxlY3RvciI6Ii5yZWFkaW5nLWNvbnRlbnQgLnBhZ2UtYnJlYWsgaW1nIiwiYXR0cmlidXRlcyI6WyJkYXRhLXNyYyIsInNyYyJdfSwibmV4dCI6eyJzZWxlY3RvciI6Ii5uYXYtbmV4dCBhLm5leHRfcGFnZSJ9LCJwcmV2aW91cyI6eyJzZWxlY3RvciI6Ii5uYXYtcHJldmlvdXMgYS5wcmV2X3BhZ2UifX0sInNlcmllc1BhZ2UiOnsidXJsIjoiaHR0cHM6Ly9nbGFzc2xpZ2h0XFwuZXhhbXBsZS9tYW5nYS8oPzxzZXJpZXM-W2EtejAtOS1dKykvPyIsInRpdGxlIjp7InNlbGVjdG9yIjoiLnBvc3QtdGl0bGUgaDEifSwiY2hhcHRlckxpbmtzIjoibGkud3AtbWFuZ2EtY2hhcHRlciA-IGEifX0",
+  "signature": "WqnR_5gqexEHwLi0q-l59Bzr7vy_QUe-d3XoupVTF_UoGTY7JkxZZQf0Rw3FQ1gJzkaGtjdCZr5m_6db08EuAQ"
+}

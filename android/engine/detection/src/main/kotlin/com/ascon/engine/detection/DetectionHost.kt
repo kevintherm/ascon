@@ -16,7 +16,12 @@ import kotlinx.coroutines.launch
  *
  * All calls happen on the main thread, where WebView delivers messages.
  */
-class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope) {
+class DetectionHost(
+    private val script: String,
+    private val rules: RuleSource,
+    private val scope: CoroutineScope,
+    private val health: RuleHealth? = null
+) {
     /**
      * Installs detection on [webView], and returns the way to send its page messages.
      * Returns null when the WebView is too old to run scripts at document start, in which
@@ -60,23 +65,26 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
         link: PageLink
     ) {
         val decoded = message.data?.let(BridgeProtocol::decode) ?: return
-        val url = when (decoded) {
-            is PageMessage.Opened -> decoded.url
-            is PageMessage.Result -> decoded.url
-            is PageMessage.Position -> decoded.url
-            is PageMessage.Tap -> decoded.url
-        }
+        val url = decoded.url
         // A page may only report about itself.
-        if (BridgeProtocol.originOf(url) != sourceOrigin.trimEnd('/').lowercase()) return
+        val host = java.net.URI(url).host?.takeIf {
+            BridgeProtocol.originOf(url) == sourceOrigin.trimEnd('/').lowercase()
+        } ?: return
         when (decoded) {
             is PageMessage.Opened -> scope.launch {
-                val host = java.net.URI(url).host ?: return@launch
                 reply.postMessage(BridgeProtocol.encodeRules(rules.candidatesFor(host)))
             }
             is PageMessage.Result -> {
                 link.url = url
                 link.reply = reply
-                listeners.onDetection(BridgeProtocol.toDetection(decoded))
+                val detection = BridgeProtocol.toDetection(decoded)
+                health?.let { scope.launch { it.record(host.lowercase(), detection) } }
+                listeners.onDetection(detection)
+            }
+            // A site without its own rule may borrow one from a site built the same way.
+            is PageMessage.Structure -> scope.launch {
+                val fingerprint = BridgeProtocol.fingerprintOf(decoded) ?: return@launch
+                rules.forStructure(host, fingerprint)?.let { reply.postMessage(BridgeProtocol.encodeRules(it)) }
             }
             is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(listeners.onDetection)
             is PageMessage.Tap -> listeners.onTap(BridgeProtocol.tappedLink(decoded))

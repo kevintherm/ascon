@@ -14,6 +14,7 @@
  *   page → app  {"type":"position","url":...,"page":n,"pageCount":m,"offset":f}
  *   app → page  {"type":"scroll","page":n,"pageCount":m,"offset":f}
  *   page → app  {"type":"tap","url":...,"href":link|null}
+ *   page → app  {"type":"structure","url":...,"features":[...]}
  *
  * A position is sent on every chapter page: the page slot under the middle of the
  * screen, counted from 1, and how far down that slot the middle is, from 0 up to 1.
@@ -25,6 +26,10 @@
  *
  * A tap reports the link under the finger, or null, for the navigation guard: a tap
  * only lets the tab go to another site through the link that was tapped.
+ *
+ * A chapter page found without the site's own rule sends its structure once: its
+ * generator meta tag, class names and parent>child tag pairs. The app turns them into
+ * a fingerprint and may answer with new rules, borrowed from a site built the same way.
  */
 (function () {
   "use strict";
@@ -75,6 +80,42 @@
       if (document.readyState !== "loading") schedule(0);
     }
   };
+
+  // ---- Structure --------------------------------------------------------
+
+  var MAX_FEATURES = 1000;
+  // Class names with digits are usually generated per page or per build.
+  var CLASS_NAME = /^[a-z][a-z_-]*$/i;
+  var structureSent = false;
+
+  function structure() {
+    var seen = {};
+    var features = [];
+    function add(feature) {
+      if (seen[feature] || features.length >= MAX_FEATURES) return;
+      seen[feature] = true;
+      features.push(feature);
+    }
+    var generator = document.querySelector('meta[name="generator" i]');
+    if (generator && generator.content) {
+      add("generator:" + generator.content.toLowerCase().replace(/[\d.]+/g, " ").replace(/\s+/g, " ").trim());
+    }
+    var all = document.body ? document.body.getElementsByTagName("*") : [];
+    for (var i = 0; i < all.length && features.length < MAX_FEATURES; i++) {
+      var el = all[i];
+      add("tag:" + el.parentElement.tagName.toLowerCase() + ">" + el.tagName.toLowerCase());
+      for (var j = 0; j < el.classList.length; j++) {
+        if (CLASS_NAME.test(el.classList[j])) add("class:" + el.classList[j].toLowerCase());
+      }
+    }
+    return features;
+  }
+
+  function sendStructure(url, found) {
+    if (structureSent || found.via === "rule" || found.result.pageType !== "chapter") return;
+    structureSent = true;
+    send({ type: "structure", url: url, features: structure() });
+  }
 
   // ---- Heuristics -------------------------------------------------------
 
@@ -461,6 +502,7 @@
       lastReport = report;
       postMessage(report);
     }
+    sendStructure(url, found);
   }
 
   function schedule(delay) {

@@ -78,4 +78,16 @@ Settings come from environment variables:
 
 `devaccount` stands in for sign-in, which is not designed yet. No LLM provider is configured, so AI rule generation is rejected and the quota refunded.
 
+### With the debug app
+
+Debug builds ask `http://127.0.0.1:8080/v1/` for rules and trust only the development key from `contracts/fixtures/signed-rule.json`. Start the backend with that key, forward the port, and store a rule to test with, since generation doesn't work yet:
+
+```
+ASCON_SIGNING_KEY=BVJXFv+SVtoLhp3etgbTU5mGcjZkZuduNYD7aotBkYk= go run ./cmd/api
+adb reverse tcp:8080 tcp:8080
+go run ./cmd/devrule -domain 10.0.2.2 rule.json   # stored as the domain's next version
+```
+
+Without the backend the app still works: lookups fail quietly and it uses its kept and built-in rules. Release builds have no backend address until the server is deployed.
+
 CI runs the same commands on every pull request.

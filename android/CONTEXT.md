@@ -35,6 +35,32 @@ interface AccountRepository
     val account: Flow<AccountState>
 ```
 
+## core/src/main/kotlin/com/ascon/core/data/Rules.kt
+
+```kotlin
+data class CachedRule(val domain: String, val json: String?, val version: Int, val fetchedAt: Instant, /** * The structure fingerprint the backend was last asked with, or null if it was asked by * domain only. Refreshing asks with it again, so a rule borrowed from a mirror stays. */ val fingerprint: String? = null)
+data class RuleHealthCount(val domain: String, val version: Int, val successes: Int, val emptyResults: Int, val backwardJumps: Int)
+interface RuleStore
+    suspend fun rule(domain: String): CachedRule?
+    suspend fun saveRule(rule: CachedRule)
+    suspend fun addHealth(count: RuleHealthCount)
+    suspend fun health(): List<RuleHealthCount>
+    suspend fun removeHealth(sent: List<RuleHealthCount>)
+interface DeviceTokenStore
+    suspend fun token(): String?
+    suspend fun saveToken(token: String?)
+```
+
+## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreDeviceToken.kt
+
+```kotlin
+class DataStoreDeviceToken(private val store: DataStore<Preferences>) : DeviceTokenStore
+    override suspend fun token(): String?
+    override suspend fun saveToken(token: String?)
+    companion object
+        fun open(context: Context, scope: CoroutineScope)
+```
+
 ## core/src/main/kotlin/com/ascon/core/data/datastore/DataStoreProtectionSettings.kt
 
 ```kotlin
@@ -99,6 +125,21 @@ class FakeReadingPace(samples: List<Float> = emptyList()) : ReadingPaceRepositor
     override suspend fun recordSecondsPerImage(seconds: Float)
 ```
 
+## core/src/main/kotlin/com/ascon/core/data/fake/FakeRuleStore.kt
+
+```kotlin
+class FakeRuleStore : RuleStore
+    val rules
+    override suspend fun rule(domain: String): CachedRule?
+    override suspend fun saveRule(rule: CachedRule)
+    override suspend fun addHealth(count: RuleHealthCount)
+    override suspend fun health(): List<RuleHealthCount>
+    override suspend fun removeHealth(sent: List<RuleHealthCount>)
+class FakeDeviceToken(var value: String? = null) : DeviceTokenStore
+    override suspend fun token(): String?
+    override suspend fun saveToken(token: String?)
+```
+
 ## core/src/main/kotlin/com/ascon/core/data/fake/FakeSettingsRepository.kt
 
 ```kotlin
@@ -128,6 +169,17 @@ class RoomLibraryRepository(database: AsconDatabase, private val seed: Seed? = n
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float)
+```
+
+## core/src/main/kotlin/com/ascon/core/data/room/RoomRuleStore.kt
+
+```kotlin
+class RoomRuleStore(database: AsconDatabase) : RuleStore
+    override suspend fun rule(domain: String): CachedRule?
+    override suspend fun saveRule(rule: CachedRule)
+    override suspend fun addHealth(count: RuleHealthCount)
+    override suspend fun health(): List<RuleHealthCount>
+    override suspend fun removeHealth(sent: List<RuleHealthCount>)
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Basics.kt
@@ -495,7 +547,7 @@ data class ChapterLink(val url: String, val label: String?, val number: BigDecim
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/DetectionHost.kt
 
 ```kotlin
-class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope)
+class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope, private val health: RuleHealth? = null)
     fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): PageLink?
     companion object
         const val BRIDGE_NAME
@@ -505,20 +557,65 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
         fun loadBuiltInRules(context: Context): List<RuleCandidate>
 ```
 
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/Fingerprint.kt
+
+```kotlin
+object Fingerprint
+    fun of(features: List<String>): String?
+    fun distance(a: String, b: String): Int
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleBackend.kt
+
+```kotlin
+data class SignedRule(val payload: String, val signature: String, val keyId: String)
+sealed interface RuleAnswer
+    data class Found(val rule: SignedRule) : RuleAnswer
+    data object Missing : RuleAnswer
+interface RuleBackend
+    suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer
+    suspend fun sendHealth(counts: List<RuleHealthCount>)
+class HttpRuleBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val tokens: DeviceTokenStore, private val appVersion: String) : RuleBackend
+    override suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer
+    override suspend fun sendHealth(counts: List<RuleHealthCount>)
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleHealth.kt
+
+```kotlin
+class RuleHealth(private val store: RuleStore)
+    suspend fun record(domain: String, detection: Detection)
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleHealthWorker.kt
+
+```kotlin
+interface RuleHealthOwner
+    val ruleStore: RuleStore
+    val ruleBackend: RuleBackend?
+class RuleHealthWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params)
+    override suspend fun doWork(): Result
+    companion object
+        fun schedule(context: Context)
+```
+
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleLookup.kt
 
 ```kotlin
-fun interface RuleSource
+interface RuleSource
     suspend fun candidatesFor(host: String): List<RuleCandidate>
-interface RuleCache
-    suspend fun ruleFor(domain: String): JsonObject?
-    suspend fun put(domain: String, rule: JsonObject)
-class InMemoryRuleCache : RuleCache
-    override suspend fun ruleFor(domain: String): JsonObject?
-    override suspend fun put(domain: String, rule: JsonObject)
-class RuleLookup(private val cache: RuleCache, private val builtIn: List<RuleCandidate>) : RuleSource
+    suspend fun forStructure(host: String, fingerprint: String): List<RuleCandidate>?
+class RuleLookup(private val store: RuleStore, private val builtIn: List<RuleCandidate>, private val backend: RuleBackend? = null, private val verifier: RuleVerifier? = null, private val scope: CoroutineScope, private val clock: () -> Instant = Instant::now, private val wait: Duration = FIRST_LOOKUP_WAIT) : RuleSource
     override suspend fun candidatesFor(host: String): List<RuleCandidate>
+    override suspend fun forStructure(host: String, fingerprint: String): List<RuleCandidate>?
 object BuiltInRules
     const val ASSET
     fun parse(json: String): List<RuleCandidate>
+```
+
+## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleVerifier.kt
+
+```kotlin
+class RuleVerifier(publicKeys: Map<String, String>)
+    fun verify(signed: SignedRule): JsonObject?
 ```

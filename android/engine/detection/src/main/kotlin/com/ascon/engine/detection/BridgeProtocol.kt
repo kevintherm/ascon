@@ -19,22 +19,31 @@ import kotlinx.serialization.json.JsonObject
 /** Messages from the page. */
 @Serializable
 internal sealed interface PageMessage {
+    /** The page the message is about. */
+    val url: String
+
     @Serializable
     @SerialName("page")
-    data class Opened(val url: String) : PageMessage
+    data class Opened(override val url: String) : PageMessage
 
     @Serializable
     @SerialName("result")
-    data class Result(val url: String, val via: DetectionSource, val result: Evaluation) : PageMessage
+    data class Result(override val url: String, val via: DetectionSource, val result: Evaluation) : PageMessage
 
     @Serializable
     @SerialName("position")
-    data class Position(val url: String, val page: Int, val pageCount: Int, val offset: Float = 0f) : PageMessage
+    data class Position(override val url: String, val page: Int, val pageCount: Int, val offset: Float = 0f) :
+        PageMessage
 
     /** [href] is the link under a tap, or null for a tap elsewhere. */
     @Serializable
     @SerialName("tap")
-    data class Tap(val url: String, val href: String? = null) : PageMessage
+    data class Tap(override val url: String, val href: String? = null) : PageMessage
+
+    /** What the page is built from, for its structure fingerprint. See [Fingerprint]. */
+    @Serializable
+    @SerialName("structure")
+    data class Structure(override val url: String, val features: List<String>) : PageMessage
 }
 
 /** The evaluator's result, as contracts/README.md defines it. */
@@ -81,6 +90,7 @@ internal object BridgeProtocol {
     const val MAX_MESSAGE_CHARS = 512 * 1024
     private const val MAX_IMAGES = 2000
     private const val MAX_CHAPTERS = 5000
+    private const val MAX_FEATURES = 1000
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -134,6 +144,9 @@ internal object BridgeProtocol {
             else -> Detection.None(url)
         }
     }
+
+    /** The page's structure fingerprint, from at most [MAX_FEATURES] features. */
+    fun fingerprintOf(message: PageMessage.Structure): String? = Fingerprint.of(message.features.take(MAX_FEATURES))
 
     /** The tapped link, if it is a web page. */
     fun tappedLink(message: PageMessage.Tap): String? = message.href?.takeIf(::isWebUrl)

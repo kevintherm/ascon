@@ -122,6 +122,15 @@ docs/               ADRs and longer notes
 - The JS and Go evaluators share one conformance suite in `contracts/fixtures/` so they cannot drift.
 - `singleflight` dedupes concurrent generation for the same domain.
 
+**On the device**, decided while building the lookup on 2026-10-10:
+
+- Backend answers are kept in Room for a day, a missing rule included, then refreshed in the background while the kept answer is used. A site seen for the first time waits up to 1.5 seconds for the backend, which usually answers while the page loads; a later answer is kept for the next page. An unreachable backend is asked again on the next page.
+- A rule that fails its Ed25519 signature is treated as no rule. Debug builds pin the development key in `contracts/fixtures/signed-rule.json`, which the Go signer and the app's verifier both test against. Release builds have no backend address or key until the server is deployed.
+- bridge.js sends a page's structure only from a chapter page read without the site's own rule, once per document: the generator meta tag, class names without digits, and parent>child tag pairs. The app hashes them into the fingerprint and asks the backend once per site. A borrowed rule is kept under the asking site with the fingerprint, so refreshing keeps it. A site where neither built-in rules nor heuristics find a chapter never sends its structure; AI generation covers it.
+- Simhash is sensitive: one changed feature in 200 can flip a few bits, and the backend reuses a rule within 4. Tune the features or the limit with real mirror pairs once generated rules carry fingerprints.
+- Health counts only the site's own rule from the backend. A page is judged once, by its best result, when the next page arrives, so the last page before the app is closed isn't counted. A WorkManager job sends the counts daily.
+- The backend client registers the device on its first call and again if the token is refused. The token is in plain DataStore, since it is anonymous.
+
 **Health:** successful extractions raise confidence; empty results or backward chapter jumps lower it. Below a threshold the rule is suspect and regenerated, keeping the previous version for rollback. Users are asked only when a rule is suspect, and several reports are needed before regeneration so one confused user cannot break a working rule.
 
 **Fingerprint:** simhash of the generator meta tag, theme class names and DOM skeleton, so a new mirror domain inherits an existing rule.

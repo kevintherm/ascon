@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     // Routes are saved across process death through kotlinx.serialization.
     implementation(libs.kotlinx.serialization.core)
+    // The backend client for detection rules is built here.
+    implementation(libs.okhttp)
 
     testImplementation(libs.junit)
 }

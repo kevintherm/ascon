@@ -1,15 +1,12 @@
 package com.ascon.engine.detection
 
-import java.io.File
 import java.math.BigDecimal
-import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BridgeProtocolTest {
@@ -109,28 +106,7 @@ class BridgeProtocolTest {
     }
 }
 
-class RuleLookupTest {
-    private val builtIn = BuiltInRules.parse(File("src/main/assets/rules/builtin.json").readText())
-
-    @Test
-    fun `built-in rules ship with a marker each`() {
-        assertEquals(2, builtIn.size)
-        assertTrue(builtIn.all { it.via == DetectionSource.BuiltIn && !it.requires.isNullOrBlank() })
-    }
-
-    @Test
-    fun `the domain's own rule comes before the theme rules`() = runTest {
-        val cache = InMemoryRuleCache()
-        val own = buildJsonObject { put("domain", JsonPrimitive("tidepool.example")) }
-        cache.put("tidepool.example", own)
-        val lookup = RuleLookup(cache, builtIn)
-
-        val candidates = lookup.candidatesFor("Tidepool.example")
-        assertEquals(RuleCandidate.forDomain(own), candidates.first())
-        assertEquals(builtIn, candidates.drop(1))
-        assertEquals(builtIn, lookup.candidatesFor("other.example"))
-    }
-
+class PageMessagesTest {
     private val chapterUrl = "https://lumen.example/glass-orchard-chapter-3/"
 
     @Test

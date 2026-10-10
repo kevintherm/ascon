@@ -10,6 +10,7 @@ coroutines = "1.11.0"
 serialization = "1.11.0"
 webkit = "1.17.1"
 okhttp = "5.5.0"
+bouncycastle = "1.81"
 coil = "3.6.3"
 room = "2.8.5"
 ksp = "2.3.12"
@@ -45,6 +46,7 @@ kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }

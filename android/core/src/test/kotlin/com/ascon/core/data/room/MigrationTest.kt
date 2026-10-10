@@ -88,4 +88,26 @@ class MigrationTest {
         assertEquals(40, progress.pageCount)
         assertEquals(0f, progress.pageOffset)
     }
+
+    @Test
+    fun `version 3 to 4 keeps the library and starts with no rules`() = runBlocking {
+        create(3) {
+            execSQL(
+                "INSERT INTO series VALUES ('aztec', 'Aztec', '[]', 1, 2, 3, 'Reading', 0, NULL)"
+            )
+            execSQL("INSERT INTO source VALUES ('aztec', 'site.example', 0, 'site.example', 0, '1', '12', NULL, NULL)")
+            execSQL("INSERT INTO progress VALUES ('aztec', '12', 5, 40, 'site.example', 0.5)")
+        }
+
+        val db = AsconDatabase.open(context, name)
+        val progress = RoomLibraryRepository(db).series("aztec").first()!!.progress!!
+        val store = RoomRuleStore(db)
+        val rule = store.rule("site.example")
+        val health = store.health()
+        db.close()
+
+        assertEquals(0.5f, progress.pageOffset)
+        assertNull(rule)
+        assertEquals(emptyList<Any>(), health)
+    }
 }
