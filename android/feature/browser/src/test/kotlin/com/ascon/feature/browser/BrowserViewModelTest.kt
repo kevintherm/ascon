@@ -368,6 +368,37 @@ class BrowserViewModelTest {
     }
 
     @Test
+    fun `a partly read chapter read as the site shows it scrolls back to its saved page, once`() = runTest {
+        // Aztec is at page 34 of 58 in chapter 12, and the reader can't take this page.
+        val chapter12 = "https://mangafire.to/read/aztec/chapter-12"
+        val vm = viewModel().also { it.onPageStarted(chapter12) }
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 1, pageCount = 58))
+        vm.onDetection(chapter(url = chapter12, number = "12"))
+        assertEquals(ResumeScroll(chapter12, 34, 58), vm.state.value.resumeScroll)
+
+        // The page's top, reported before the scroll lands, doesn't replace the saved page.
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 1, pageCount = 58))
+        suspend fun progress() = library.series("aztec-turning-of-heaven").first()?.progress?.page
+        assertEquals(34, progress())
+
+        vm.resumeScrolled()
+        vm.onDetection(Detection.ReadingPosition(chapter12, page = 35, pageCount = 58))
+        assertEquals(35, progress())
+
+        // Another result for the same page doesn't scroll it again.
+        vm.onDetection(chapter(url = chapter12, number = "12"))
+        assertNull(vm.state.value.resumeScroll)
+    }
+
+    @Test
+    fun `a chapter the reader opens on doesn't scroll the site`() = runTest {
+        val chapter12 = "https://mangafire.to/read/aztec/chapter-12"
+        val vm = viewModel().also { it.onPageStarted(chapter12) }
+        vm.onDetection(chapter(url = chapter12, number = "12", images = (1..29).map { "https://cdn.example/$it.webp" }))
+        assertNull(vm.state.value.resumeScroll)
+    }
+
+    @Test
     fun `a chapter not started opens at its first page`() = runTest {
         val vm = viewModel()
         vm.onDetection(chapter(images = listOf("https://cdn.example/1.webp", "https://cdn.example/2.webp")))

@@ -22,6 +22,9 @@ class TabWebView internal constructor(val wrapper: MutableContextWrapper) : WebV
     internal var onDetection: ((Detection) -> Unit)? = null
     internal var onTap: ((String?) -> Unit)? = null
 
+    /** Sends messages to the page, when detection runs on this WebView. */
+    internal var page: DetectionHost.PageLink? = null
+
     /** The script that sets what `window.open` does, and whether it blocks popups. */
     internal var windowOpen: ScriptHandler? = null
     internal var popupsBlocked: Boolean? = null
@@ -84,7 +87,10 @@ class WebViewPool(
         hideAppFromSites(view)
         applyPopupSetting(view)
         cosmetics()?.install(view)
-        detection().install(view, onDetection = { view.onDetection?.invoke(it) }, onTap = { view.onTap?.invoke(it) })
+        view.page =
+            detection().install(view, onDetection = {
+                view.onDetection?.invoke(it)
+            }, onTap = { view.onTap?.invoke(it) })
         return view
     }
 

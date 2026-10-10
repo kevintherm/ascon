@@ -1,0 +1,39 @@
+# A chapter read as the site shows it opens again from the library at the page the user
+# reached. The page is maestro/site/swiper/, which the reader can't take.
+appId: com.ascon.app
+---
+- launchApp:
+    clearState: true
+    arguments:
+      url: "http://10.0.2.2:8765/swiper/aztec-turning-of-heaven/chapter-16/"
+- extendedWaitUntil:
+    visible: "Reader mode isn't available on this site.*"
+    timeout: 15000
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- swipe:
+    direction: UP
+- swipe:
+    start: 50%, 40%
+    end: 50%, 50%
+- extendedWaitUntil:
+    visible: "Tracking chapter 16, page ([3-9]|1[0-2])"
+    timeout: 5000
+- tapOn: "Menu"
+- tapOn: "Back to Ascon"
+- tapOn: "Resume"
+# The page loads at its top, then scrolls back down to the saved page, which slides the
+# toolbar away like any scroll down. A short scroll up shows it with the page tracked.
+- extendedWaitUntil:
+    notVisible: "Back to Ascon"
+    timeout: 3000
+- waitForAnimationToEnd:
+    timeout: 5000
+- swipe:
+    start: 50%, 40%
+    end: 50%, 45%
+- extendedWaitUntil:
+    visible: "Tracking chapter 16, page ([3-9]|1[0-2])"
+    timeout: 5000

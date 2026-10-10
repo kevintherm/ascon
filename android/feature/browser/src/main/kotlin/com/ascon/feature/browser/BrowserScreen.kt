@@ -112,6 +112,12 @@ fun BrowserRoute(
             session.reload()
         }
     }
+    LaunchedEffect(state.resumeScroll) {
+        state.resumeScroll?.let {
+            session.scrollToPage(it.url, it.page, it.pageCount)
+            viewModel.resumeScrolled()
+        }
+    }
     LaunchedEffect(state.reader) {
         state.reader?.let {
             viewModel.readerOpened()

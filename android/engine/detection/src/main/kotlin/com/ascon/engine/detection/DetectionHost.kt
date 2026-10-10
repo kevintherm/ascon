@@ -18,25 +18,43 @@ import kotlinx.coroutines.launch
  */
 class DetectionHost(private val script: String, private val rules: RuleSource, private val scope: CoroutineScope) {
     /**
-     * Installs detection on [webView]. Returns false when the WebView is too old to run
-     * scripts at document start, in which case the page is shown without detection.
+     * Installs detection on [webView], and returns the way to send its page messages.
+     * Returns null when the WebView is too old to run scripts at document start, in which
+     * case the page is shown without detection.
      */
     @SuppressLint("RequiresFeature") // Checked by isSupported.
-    fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): Boolean {
-        if (!isSupported()) return false
+    fun install(webView: WebView, onDetection: (Detection) -> Unit, onTap: (String?) -> Unit = {}): PageLink? {
+        if (!isSupported()) return null
         WebViewCompat.addDocumentStartJavaScript(webView, script, ORIGIN_RULES)
+        val link = PageLink()
         val listener = WebViewCompat.WebMessageListener { _, message, origin, isMainFrame, reply ->
-            if (isMainFrame) onMessage(message, origin.toString(), reply, Listeners(onDetection, onTap))
+            if (isMainFrame) onMessage(message, origin.toString(), reply, Listeners(onDetection, onTap), link)
         }
         WebViewCompat.addWebMessageListener(webView, BRIDGE_NAME, ORIGIN_RULES, listener)
-        return true
+        return link
+    }
+
+    /**
+     * Messages to the page on screen, sent through the reply channel of its latest
+     * detection result, so they reach only the page that reported.
+     */
+    class PageLink internal constructor() {
+        internal var url: String? = null
+        internal var reply: JavaScriptReplyProxy? = null
+
+        /** Brings page [page] of [pageCount] of the chapter at [url] on screen, if it is still the page shown. */
+        fun scrollToPage(url: String, page: Int, pageCount: Int) {
+            if (this.url?.substringBefore('#') != url.substringBefore('#')) return
+            reply?.postMessage(BridgeProtocol.encodeScroll(page, pageCount))
+        }
     }
 
     private fun onMessage(
         message: WebMessageCompat,
         sourceOrigin: String,
         reply: JavaScriptReplyProxy,
-        listeners: Listeners
+        listeners: Listeners,
+        link: PageLink
     ) {
         val decoded = message.data?.let(BridgeProtocol::decode) ?: return
         val url = when (decoded) {
@@ -52,7 +70,11 @@ class DetectionHost(private val script: String, private val rules: RuleSource, p
                 val host = java.net.URI(url).host ?: return@launch
                 reply.postMessage(BridgeProtocol.encodeRules(rules.candidatesFor(host)))
             }
-            is PageMessage.Result -> listeners.onDetection(BridgeProtocol.toDetection(decoded))
+            is PageMessage.Result -> {
+                link.url = url
+                link.reply = reply
+                listeners.onDetection(BridgeProtocol.toDetection(decoded))
+            }
             is PageMessage.Position -> BridgeProtocol.toPosition(decoded)?.let(listeners.onDetection)
             is PageMessage.Tap -> listeners.onTap(BridgeProtocol.tappedLink(decoded))
         }

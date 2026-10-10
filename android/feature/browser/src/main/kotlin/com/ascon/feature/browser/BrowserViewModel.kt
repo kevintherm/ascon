@@ -7,6 +7,7 @@ import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
+import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.Series
 import com.ascon.core.model.matchSeries
 import com.ascon.engine.adblock.BlockCategory
@@ -43,10 +44,15 @@ data class BrowserUiState(
     val readerChapter: ReaderChapter? = null,
     /** What protection stopped on this page. */
     val blocked: BlockedCounts = BlockedCounts(),
-    /** The card has gone, into the toolbar's Reader button. It shows again when the chapter changes. */
+    /** The card has gone, into the toolbar's tracking chip. It shows again when the chapter changes. */
     val cardDocked: Boolean = false,
     /** Scrolling down slid the toolbar out of view. Scrolling up, or the top or end of the page, brings it back. */
-    val toolbarHidden: Boolean = false
+    val toolbarHidden: Boolean = false,
+    /**
+     * A chapter read as the site shows it, waiting to be scrolled to its saved page.
+     * See [BrowserViewModel.resumeScrolled].
+     */
+    val resumeScroll: ResumeScroll? = null
 ) {
     val host: String get() = displayHost(url)
 }
@@ -106,6 +112,9 @@ class BrowserViewModel(
     private val readerOpenedFor = mutableSetOf<String>()
     private val bannerDismissedFor = mutableSetOf<String>()
 
+    /** Pages already scrolled to their saved page, so going back to one keeps where it was. */
+    private val resumedFor = mutableSetOf<String>()
+
     /** The chapter on screen, kept when its card is hidden so its page is still saved. */
     private var chapterCard: DetectionCard? = null
 
@@ -161,7 +170,12 @@ class BrowserViewModel(
         val page = detection.url.withoutFragment()
         if (page != state.value.url.withoutFragment()) return
         when {
-            detection is Detection.ReadingPosition -> onPosition(page, detection)
+            // Until a resume scroll is sent, the page reports its top, not where the user was.
+            detection is Detection.ReadingPosition -> if (state.value.resumeScroll?.url !=
+                page
+            ) {
+                onPosition(page, detection)
+            }
             detection is Detection.ChapterPage -> onChapter(page, detection)
             else -> _state.update { it.copy(card = null, readerUnavailable = false) }
         }
@@ -193,6 +207,7 @@ class BrowserViewModel(
             val reader = available?.takeIf { auto && readerOpenedFor.add(page) }
             val unavailable = detection.images.isEmpty() && page !in bannerDismissedFor
             showChapter(page, card, reader, available, unavailable)
+            if (reader == null) series?.progress?.let { requestResume(page, it, chapter) }
             earlyPosition?.takeIf { (url, _) -> url == page }?.let { (_, position) ->
                 earlyPosition = null
                 onPosition(page, position)
@@ -235,6 +250,19 @@ class BrowserViewModel(
         else -> library.seriesFor(title, displayHost(page), chapter, page)
     }
 
+    /** Asks for [page] to scroll to its saved page, once per page, when [progress] is partway through it. */
+    private fun requestResume(page: String, progress: ReadingProgress, chapter: BigDecimal?) {
+        val resume = resumeScroll(page, progress, chapter)?.takeIf { resumedFor.add(page) } ?: return
+        // The page reports its top before it scrolls; that must not replace the saved page.
+        earlyPosition = null
+        _state.update { if (it.url.withoutFragment() == page) it.copy(resumeScroll = resume) else it }
+    }
+
+    /** The scroll in [BrowserUiState.resumeScroll] was sent to the page. */
+    fun resumeScrolled() {
+        _state.update { it.copy(resumeScroll = null) }
+    }
+
     /** Saves the page on screen of a chapter read as the site shows it, and shows it on the card. */
     private fun onPosition(page: String, position: Detection.ReadingPosition) {
         val old = chapterCard?.takeIf { it.url == page }
@@ -256,9 +284,13 @@ class BrowserViewModel(
         }
     }
 
-    /** Lets the reader open by itself on [url] again, for a page the user asked for rather than went back to. */
+    /**
+     * Lets the reader open by itself on [url] again, or the page scroll to its saved page,
+     * for a page the user asked for rather than went back to.
+     */
     fun allowReader(url: String) {
         readerOpenedFor -= url.withoutFragment()
+        resumedFor -= url.withoutFragment()
     }
 
     fun dismissReaderUnavailable() {
@@ -338,6 +370,7 @@ class BrowserViewModel(
         recordedUrl = null
         readerOpenedFor.clear()
         bannerDismissedFor.clear()
+        resumedFor.clear()
         chapterCard = null
         earlyPosition = null
         scrollY = 0
@@ -367,7 +400,8 @@ class BrowserViewModel(
                 reader = if (samePage) it.reader else null,
                 readerChapter = if (samePage) it.readerChapter else null,
                 blocked = if (samePage) it.blocked else BlockedCounts(),
-                readerUnavailable = samePage && it.readerUnavailable
+                readerUnavailable = samePage && it.readerUnavailable,
+                resumeScroll = if (samePage) it.resumeScroll else null
             )
         }
     }

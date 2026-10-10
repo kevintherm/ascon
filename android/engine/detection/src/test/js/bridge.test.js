@@ -349,6 +349,21 @@ test("a chapter the reader cannot take reports the page slot on screen", async (
   await page.close();
 });
 
+test("the app can send the page back to a saved page slot, scaled to the page's slots", async () => {
+  const html = `<!DOCTYPE html><title>Cinderelle - Chapter 6</title>
+    <div class="pages">${Array.from({ length: 10 }, (_, i) =>
+      `<div class="slide" style="height:900px"><img src="/p/${i}.jpg"></div>`).join("")}</div>`;
+  const page = await open("https://inkwell.example/title/1-cinderelle/chapter/6/", html);
+  // Sent before detection has found the slots, so it waits for them.
+  await page.evaluate(() => __bridge.onmessage({ data: JSON.stringify({ type: "scroll", page: 9, pageCount: 20 }) }));
+  await sendRules(page, []);
+  await results(page);
+  await page.waitForFunction(() => __sent.filter((m) => m.type === "position").some((m) => m.page === 5));
+  const top = await page.evaluate(() => Math.round(document.querySelectorAll(".slide")[4].getBoundingClientRect().top));
+  await page.close();
+  assert.equal(top, 0);
+});
+
 test("a chapter with pages for the reader reports the page on screen too", async () => {
   const page = await open(
     "https://reader-a.example/comics/absolute-sword-sense-bd5bdaf8/chapter/203",

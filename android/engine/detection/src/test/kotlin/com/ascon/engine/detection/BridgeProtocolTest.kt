@@ -87,6 +87,11 @@ class BridgeProtocolTest {
     }
 
     @Test
+    fun `a scroll names the page and how many pages it is counted against`() {
+        assertEquals("""{"page":9,"pageCount":20,"type":"scroll"}""", BridgeProtocol.encodeScroll(9, 20))
+    }
+
+    @Test
     fun `rules go to the page with their marker under when`() {
         val rule = buildJsonObject { put("domain", JsonPrimitive("t.example")) }
         val encoded = BridgeProtocol.json.parseToJsonElement(

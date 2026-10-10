@@ -12,11 +12,14 @@
  *   app → page  {"type":"rules","rules":[{"via":...,"when":selector|null,"rule":{...}}]}
  *   page → app  {"type":"result","url":...,"via":"rule"|"builtin"|"heuristic","result":{...}}
  *   page → app  {"type":"position","url":...,"page":n,"pageCount":m}
+ *   app → page  {"type":"scroll","page":n,"pageCount":m}
  *   page → app  {"type":"tap","url":...,"href":link|null}
  *
  * A position is sent on every chapter page: the page slot most on screen, counted
  * from 1. It saves progress on a chapter read as it is, and opens the reader at the
- * same page when the user switches to it.
+ * same page when the user switches to it. A scroll from the app brings page n of m
+ * back on screen, scaled to this page's slots, as when the user resumes a chapter
+ * read as the site shows it.
  *
  * A tap reports the link under the finger, or null, for the navigation guard: a tap
  * only lets the tab go to another site through the link that was tapped.
@@ -61,7 +64,9 @@
     } catch (e) {
       return;
     }
-    if (message && message.type === "rules" && Array.isArray(message.rules)) {
+    if (message && message.type === "scroll" && message.page > 0 && message.pageCount > 0) {
+      scrollTo(message.page, message.pageCount);
+    } else if (message && message.type === "rules" && Array.isArray(message.rules)) {
       candidates = message.rules;
       // Before DOMContentLoaded the page is half parsed; that event runs detection.
       if (document.readyState !== "loading") schedule(0);
@@ -284,7 +289,12 @@
 
   // ---- Position on a chapter page ----------------------------------
 
-  var tracked = null; // { holder, observer, ratios, page }
+  var tracked = null; // { holder, observer, ratios, page, slots }
+  var pendingScroll = null; // { page, pageCount } until the slots are found
+  // Lazy images above the slot can push it down as they load, so the scroll is made
+  // again once, unless the user has touched the page by then.
+  var RESCROLL_MS = 1000;
+  var touchedSince = 0;
 
   function stopTracking() {
     if (tracked) tracked.observer.disconnect();
@@ -307,7 +317,25 @@
       send({ type: "position", url: location.href, page: state.page, pageCount: slots.length });
     }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
     slots.forEach(function (slot) { state.observer.observe(slot); });
+    state.slots = slots;
     tracked = state;
+    if (pendingScroll) scrollTo(pendingScroll.page, pendingScroll.pageCount);
+  }
+
+  /** Brings page [page] of [pageCount] on screen, or waits for the slots to be found. */
+  function scrollTo(page, pageCount) {
+    if (!tracked) {
+      pendingScroll = { page: page, pageCount: pageCount };
+      return;
+    }
+    pendingScroll = null;
+    var slots = tracked.slots;
+    var slot = slots[Math.min(slots.length - 1, Math.floor((page - 1) * slots.length / pageCount))];
+    touchedSince = 0;
+    slot.scrollIntoView({ block: "start" });
+    setTimeout(function () {
+      if (!touchedSince && tracked && tracked.slots === slots && slot.isConnected) slot.scrollIntoView({ block: "start" });
+    }, RESCROLL_MS);
   }
 
   /** Tracks the position on a chapter page; stops on any other page. */
@@ -364,6 +392,7 @@
     lastUrl = url;
     // A new chapter in the same reader starts its position over.
     stopTracking();
+    pendingScroll = null;
     watchUntil = Date.now() + WATCH_MS;
     schedule(SETTLE_MS);
   }
@@ -371,6 +400,7 @@
   // Registered before any page script, so a page cannot hide a tap from it. Pointerdown
   // comes before the click handlers that hijack taps.
   window.addEventListener("pointerdown", function (event) {
+    touchedSince = Date.now();
     var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
     var href = link ? evaluator.resolveUrl(link.getAttribute("href"), location.href) : null;
     send({ type: "tap", url: location.href, href: href });

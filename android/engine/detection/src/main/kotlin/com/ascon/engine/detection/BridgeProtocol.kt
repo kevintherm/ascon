@@ -72,6 +72,10 @@ data class RuleCandidate(
 @Serializable
 internal data class RulesMessage(val rules: List<RuleCandidate>, val type: String = "rules")
 
+/** Asks a chapter page to bring page [page] of [pageCount] on screen. */
+@Serializable
+internal data class ScrollMessage(val page: Int, val pageCount: Int, val type: String = "scroll")
+
 internal object BridgeProtocol {
     /** Larger messages are dropped. A long chapter's image list fits well under this. */
     const val MAX_MESSAGE_CHARS = 512 * 1024
@@ -97,6 +101,9 @@ internal object BridgeProtocol {
 
     fun encodeRules(rules: List<RuleCandidate>): String =
         json.encodeToString(RulesMessage.serializer(), RulesMessage(rules))
+
+    fun encodeScroll(page: Int, pageCount: Int): String =
+        json.encodeToString(ScrollMessage.serializer(), ScrollMessage(page, pageCount))
 
     fun toDetection(message: PageMessage.Result): Detection {
         val url = message.url
