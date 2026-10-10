@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -56,7 +55,6 @@ internal fun PageImage(
     val context = LocalPlatformContext.current
     val window = LocalWindowInfo.current.containerSize
     val width = window.width
-    val screenHeight = with(LocalDensity.current) { window.height.toDp() }
     var attempt by remember(url) { mutableIntStateOf(0) }
     var state by remember(url) { mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty) }
     val loaded = state is AsyncImagePainter.State.Success
@@ -86,7 +84,7 @@ internal fun PageImage(
                 },
                 modifier = if (loaded) {
                     // Fit to screen keeps the whole page in view, with the background beside it.
-                    if (fitScreen) Modifier.fillMaxWidth().heightIn(max = screenHeight) else Modifier.fillMaxWidth()
+                    if (fitScreen) Modifier.fillMaxWidth().screenShaped(window) else Modifier.fillMaxWidth()
                 } else {
                     Modifier.fillMaxWidth().aspectRatio(
                         1 / PENDING_PAGE_RATIO
@@ -106,6 +104,15 @@ internal fun PageImage(
             )
         }
     }
+}
+
+/** At most as tall as the screen's shape at this width, so zoom scales a fitted page too. */
+private fun Modifier.screenShaped(window: IntSize): Modifier = layout { measurable, constraints ->
+    val tallest = constraints.maxWidth.toLong() * window.height / window.width.coerceAtLeast(1)
+    val placeable = measurable.measure(
+        constraints.copy(maxHeight = tallest.toInt().coerceAtMost(constraints.maxHeight))
+    )
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
 /** A page-shaped space with a line of text in the middle. */

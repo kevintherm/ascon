@@ -21,15 +21,15 @@ import androidx.compose.ui.unit.dp
 import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.designsystem.theme.AsconType
 
-/** An ink pill with a message and one action, such as "Browser closed · Undo". */
+/** An ink pill with a message and one action, such as "Browser closed · Undo", or a message alone. */
 @Composable
-fun Snackbar(text: String, action: String, onAction: () -> Unit, modifier: Modifier = Modifier) {
+fun Snackbar(text: String, modifier: Modifier = Modifier, action: String? = null, onAction: () -> Unit = {}) {
     Row(
         modifier
             .heightIn(min = 52.dp)
             .clip(CircleShape)
             .background(AsconColors.Ink)
-            .padding(start = 18.dp, end = 4.dp),
+            .padding(start = 18.dp, end = if (action != null) 4.dp else 18.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -40,15 +40,17 @@ fun Snackbar(text: String, action: String, onAction: () -> Unit, modifier: Modif
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Box(
-            Modifier
-                .height(44.dp)
-                .clip(CircleShape)
-                .clickable(role = Role.Button, onClick = onAction)
-                .padding(horizontal = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(action, style = AsconType.Button, color = Color.White)
+        if (action != null) {
+            Box(
+                Modifier
+                    .height(44.dp)
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button, onClick = onAction)
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(action, style = AsconType.Button, color = Color.White)
+            }
         }
     }
 }

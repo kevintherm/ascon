@@ -210,7 +210,7 @@ fun Modifier.overlapAbove(amount: Dp): Modifier
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/Snackbar.kt
 
 ```kotlin
-@Composable fun Snackbar(text: String, action: String, onAction: () -> Unit, modifier: Modifier = Modifier)
+@Composable fun Snackbar(text: String, modifier: Modifier = Modifier, action: String? = null, onAction: () -> Unit = {})
 ```
 
 ## core/src/main/kotlin/com/ascon/core/designsystem/component/SystemBars.kt

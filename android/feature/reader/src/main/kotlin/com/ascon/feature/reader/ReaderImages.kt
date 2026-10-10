@@ -5,10 +5,13 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Request
 
 /**
  * Fetches page images natively, the way the WebView would: with its cookies and its
@@ -18,18 +21,33 @@ import okhttp3.OkHttpClient
 class ReaderImages(context: Context) {
     private val app = context.applicationContext
 
-    internal val loader: ImageLoader by lazy {
+    private val client: OkHttpClient by lazy {
         // The browser never changes its WebViews' User-Agent, so the default is theirs.
         val userAgent = WebSettings.getDefaultUserAgent(app)
-        val client = OkHttpClient.Builder()
+        OkHttpClient.Builder()
             .cookieJar(WebViewCookieJar)
             .addInterceptor { chain ->
                 chain.proceed(chain.request().newBuilder().header("User-Agent", userAgent).build())
             }
             .build()
+    }
+
+    internal val loader: ImageLoader by lazy {
         ImageLoader.Builder(app)
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
             .build()
+    }
+
+    /** A page's original file, for saving or sharing. Null when the site refuses it. */
+    internal suspend fun fetch(url: String, referer: String): PageFile? = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url).header("Referer", referer).build()
+        runCatching {
+            client.newCall(request).execute().use { response ->
+                val type = response.body.contentType()
+                if (!response.isSuccessful || type?.type != "image") return@use null
+                PageFile(response.body.bytes(), "${type.type}/${type.subtype}")
+            }
+        }.getOrNull()
     }
 }
 

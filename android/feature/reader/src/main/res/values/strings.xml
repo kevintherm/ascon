@@ -4,6 +4,11 @@
     <string name="reader_subtitle">Chapter %1$s · %2$s</string>
     <string name="reader_page_count">%1$d / %2$d</string>
     <string name="reader_page">Page %1$d</string>
+    <string name="reader_page_save">Save image</string>
+    <string name="reader_page_share">Share image</string>
+    <string name="reader_page_saved">Page %1$d saved to Pictures</string>
+    <string name="reader_page_not_fetched">Couldn\'t get page %1$d from the site</string>
+    <string name="reader_page_not_saved">Couldn\'t save page %1$d</string>
     <string name="reader_page_failed">Page %1$d didn\'t load. Tap to try again.</string>
     <string name="reader_previous">Previous</string>
     <string name="reader_next">Next chapter</string>

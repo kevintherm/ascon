@@ -1,9 +1,11 @@
 package com.ascon.feature.reader
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -61,9 +63,41 @@ class ReaderScreenTest {
         val shown = mutableListOf<Int>()
         show(state, ReaderCommands(onToggleBars = { toggles++ }, onPageShown = { shown += it }))
         compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(center) }
+        // A single tap waits to tell itself from a double tap.
+        compose.mainClock.advanceTimeBy(DOUBLE_TAP_WAIT)
         compose.waitForIdle()
         assertEquals(1, toggles)
         assertEquals(listOf(0), shown)
+    }
+
+    @Test
+    fun `side taps scroll most of a screen and leave the bars`() {
+        var toggles = 0
+        val shown = mutableListOf<Int>()
+        show(state, ReaderCommands(onToggleBars = { toggles++ }, onPageShown = { shown += it }))
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(centerRight - Offset(10f, 0f)) }
+        compose.mainClock.advanceTimeBy(DOUBLE_TAP_WAIT)
+        compose.waitForIdle()
+        assertEquals(0, toggles)
+        assertEquals(listOf(0, 1), shown)
+        // Quick side taps each scroll, rather than making a double tap.
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(centerRight - Offset(10f, 0f)) }
+        compose.waitForIdle()
+        assertEquals(2, shown.last())
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { click(centerLeft + Offset(10f, 0f)) }
+        compose.mainClock.advanceTimeBy(DOUBLE_TAP_WAIT)
+        compose.waitForIdle()
+        assertEquals(1, shown.last())
+    }
+
+    @Test
+    fun `a long press on a page offers to share it`() {
+        var shared = -1
+        show(state, ReaderCommands(onSharePage = { shared = it }))
+        compose.onNodeWithTag(PAGES_TAG).performTouchInput { longClick(center) }
+        compose.onNodeWithText("Page 1").assertExists()
+        compose.onNodeWithText("Share image").performClick()
+        assertEquals(0, shared)
     }
 
     @Test
@@ -72,3 +106,5 @@ class ReaderScreenTest {
         compose.onNodeWithText("Aztec Turning of Heaven").assertDoesNotExist()
     }
 }
+
+private const val DOUBLE_TAP_WAIT = 500L

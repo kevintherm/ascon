@@ -8,20 +8,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -43,20 +35,21 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ascon.core.designsystem.component.Snackbar
 import com.ascon.core.designsystem.component.StatusBarIcons
-import com.ascon.core.designsystem.theme.AsconColors
 import com.ascon.core.model.PageFit
-import com.ascon.core.model.PageGap
 import com.ascon.core.model.ReaderSettings
+import com.ascon.core.model.toChapterLabel
 import java.math.BigDecimal
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -73,35 +66,84 @@ fun ReaderRoute(viewModel: ReaderViewModel, images: ReaderImages, actions: Reade
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Each page's image size once it loads, for the gaps between pages.
     val sizes = remember(state.url) { mutableStateMapOf<Int, IntSize>() }
-    ReaderScreen(
-        state = state,
-        pageSizes = sizes,
-        commands = ReaderCommands(
-            onBack = actions.onBack,
-            onPrevious = { state.previous?.let(actions.onOpenChapter) },
-            onNext = { state.next?.let(actions.onOpenChapter) },
-            onPageShown = viewModel::onPageShown,
-            onToggleBars = viewModel::toggleBars,
-            onNearEnd = viewModel::nearEnd,
-            onOpenSeries = actions.onOpenSeries,
-            onOpenChapterNumber = { number ->
-                chapterUrl(state.url, state.chapter, number)?.let(actions.onOpenChapter)
-            },
-            onSettingsScope = viewModel::setSettingsScope,
-            onChangeSettings = viewModel::updateSettings
-        )
-    ) { index, url, modifier ->
-        PageImage(
-            index,
-            url,
-            referer = state.url,
-            images = images,
-            onSize = { sizes[index] = it },
-            modifier = modifier,
-            fitScreen = state.settings.fit == PageFit.Screen
-        )
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
+    var message by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(message) {
+        if (message != null) {
+            delay(MESSAGE_MILLIS)
+            message = null
+        }
+    }
+    // Fetches the page's original file, then saves or shares it.
+    fun withPage(index: Int, use: suspend (PageFile, name: String) -> String?) {
+        scope.launch {
+            val file = images.fetch(state.pages[index], referer = state.url)
+            val name = listOfNotNull(state.title, state.chapter?.toChapterLabel(), "${index + 1}")
+                .joinToString(" ") { it.replace(Regex("[^\\p{L}\\p{N}.]+"), "-") }
+            message =
+                if (file == null) resources.getString(R.string.reader_page_not_fetched, index + 1) else use(file, name)
+        }
+    }
+    Box {
+        ReaderScreen(
+            state = state,
+            pageSizes = sizes,
+            commands = ReaderCommands(
+                onBack = actions.onBack,
+                onPrevious = { state.previous?.let(actions.onOpenChapter) },
+                onNext = { state.next?.let(actions.onOpenChapter) },
+                onPageShown = viewModel::onPageShown,
+                onToggleBars = viewModel::toggleBars,
+                onNearEnd = viewModel::nearEnd,
+                onOpenSeries = actions.onOpenSeries,
+                onOpenChapterNumber = { number ->
+                    chapterUrl(state.url, state.chapter, number)?.let(actions.onOpenChapter)
+                },
+                onSettingsScope = viewModel::setSettingsScope,
+                onChangeSettings = viewModel::updateSettings,
+                onSavePage = { index ->
+                    withPage(index) { file, name ->
+                        if (canSavePages && savePage(context, file, name)) {
+                            resources.getString(R.string.reader_page_saved, index + 1)
+                        } else {
+                            resources.getString(R.string.reader_page_not_fetched, index + 1)
+                        }
+                    }
+                },
+                onSharePage = { index ->
+                    withPage(index) { file, name ->
+                        sharePage(context, file, name)
+                        null
+                    }
+                }
+            )
+        ) { index, url, modifier ->
+            PageImage(
+                index,
+                url,
+                referer = state.url,
+                images = images,
+                onSize = { sizes[index] = it },
+                modifier = modifier,
+                fitScreen = state.settings.fit == PageFit.Screen
+            )
+        }
+        message?.let {
+            Snackbar(
+                it,
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 12.dp)
+            )
+        }
     }
 }
+
+/** How long a saved or failed page message stays. */
+private const val MESSAGE_MILLIS = 3000L
 
 /** What the screen asks of the view model and the app. */
 data class ReaderCommands(
@@ -116,7 +158,10 @@ data class ReaderCommands(
     /** A chapter picked in the chapters sheet. */
     val onOpenChapterNumber: (BigDecimal) -> Unit = {},
     val onSettingsScope: (SettingsScope) -> Unit = {},
-    val onChangeSettings: ((ReaderSettings) -> ReaderSettings) -> Unit = {}
+    val onChangeSettings: ((ReaderSettings) -> ReaderSettings) -> Unit = {},
+    /** Long press on a page, counted from 0. */
+    val onSavePage: (Int) -> Unit = {},
+    val onSharePage: (Int) -> Unit = {}
 )
 
 internal const val PAGES_TAG = "reader-pages"
@@ -145,6 +190,7 @@ fun ReaderScreen(
     val settings = state.settings
     var settingsOpen by remember { mutableStateOf(false) }
     var chaptersOpen by remember { mutableStateOf(false) }
+    var menuPage by remember { mutableStateOf<Int?>(null) }
     KeepScreenOn(settings.keepScreenOn)
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
@@ -163,40 +209,21 @@ fun ReaderScreen(
                 val down = event.key == Key.VolumeDown
                 if (!settings.volumeKeys || !(down || event.key == Key.VolumeUp)) return@onPreviewKeyEvent false
                 if (event.type == KeyEventType.KeyDown) {
-                    val step = list.layoutInfo.viewportSize.height * VOLUME_SCROLL
+                    val step = list.layoutInfo.viewportSize.height * TURN_SCROLL
                     scope.launch { list.animateScrollBy(if (down) step else -step) }
                 }
                 true
             }
     ) {
-        LazyColumn(
-            state = list,
-            contentPadding = PaddingValues(bottom = endSpace),
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag(PAGES_TAG)
-                .pointerInput(Unit) { detectTapGestures { commands.onToggleBars() } }
-        ) {
-            itemsIndexed(state.pages, key = { index, _ -> index }) { index, url ->
-                Column {
-                    page(index, url, Modifier.fillMaxWidth())
-                    if (index < state.pages.lastIndex) {
-                        val gap = when (settings.gap) {
-                            PageGap.Auto -> autoPageGap(pageSizes[index], pageSizes[index + 1])
-                            PageGap.None -> 0.dp
-                            PageGap.Small -> SmallPageGap
-                        }
-                        Spacer(Modifier.height(gap))
-                    }
-                }
-            }
-            item(key = END_KEY) {
-                // The chapter end is drawn for a dark ground, whatever the page background.
-                Box(Modifier.background(AsconColors.ReaderGround)) {
-                    ChapterEnd(state, commands.onNext, commands.onOpenSeries)
-                }
-            }
-        }
+        ReaderPages(
+            state = state,
+            list = list,
+            commands = commands,
+            pageSizes = pageSizes,
+            endSpace = endSpace,
+            onLongPress = { menuPage = it },
+            page = page
+        )
         AnimatedVisibility(
             visible = state.barsVisible,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -241,6 +268,12 @@ fun ReaderScreen(
             },
             onDismiss = { chaptersOpen = false }
         )
+        PageMenu(
+            page = menuPage,
+            onSave = { commands.onSavePage(it) },
+            onShare = { commands.onSharePage(it) },
+            onDismiss = { menuPage = null }
+        )
         ReaderSettingsSheet(
             visible = settingsOpen,
             state = state,
@@ -267,11 +300,6 @@ private fun LazyListState.pageOnScreen(pageCount: Int): Int {
     val laidOut = layoutInfo.totalItemsCount > 0
     return if (laidOut && pageCount > 0 && !canScrollForward) last else firstVisibleItemIndex.coerceAtMost(last)
 }
-
-private const val END_KEY = "end"
-
-/** Volume keys scroll this share of the screen. */
-private const val VOLUME_SCROLL = 0.8f
 
 /** Keeps the screen on while the reader shows, when [on]. */
 @Composable

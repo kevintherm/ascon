@@ -12,4 +12,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.okhttp)
+    // FileProvider hands a page image to the share sheet.
+    implementation(libs.androidx.core.ktx)
 }
