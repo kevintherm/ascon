@@ -56,7 +56,8 @@ func run(logger *slog.Logger) error {
 	generate := generaterule.New(
 		rules, sqlite.NewCandidates(db), sqlite.NewQuotas(db),
 		cfg.generator, evaluator.HTML{},
-		generaterule.Config{Limits: cfg.limits, MinImages: 3, Timeout: 3 * time.Minute, Attempts: cfg.attempts},
+		generaterule.Config{Limits: cfg.limits, MinImages: 3, Timeout: 3 * time.Minute, Attempts: cfg.attempts,
+			FailureCooldown: 7 * 24 * time.Hour},
 		now, logger,
 	)
 	if err := generate.Recover(ctx); err != nil {

@@ -40,4 +40,9 @@ type CandidateRepository interface {
 	// AbandonPending rejects every pending candidate, for a server that
 	// restarted while generations were running.
 	AbandonPending(ctx context.Context, reason string, at time.Time) (int, error)
+	// RecordFailure notes that no usable rule could be written for domain.
+	RecordFailure(ctx context.Context, domain, reason string, at time.Time) error
+	// LastFailure returns when RecordFailure last ran for domain, or the zero
+	// time if it never did.
+	LastFailure(ctx context.Context, domain string) (time.Time, error)
 }

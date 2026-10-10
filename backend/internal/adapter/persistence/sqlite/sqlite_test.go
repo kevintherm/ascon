@@ -183,3 +183,20 @@ func TestSyncMergeAndPull(t *testing.T) {
 		t.Fatalf("AtSeq(1) = %+v", rows)
 	}
 }
+
+func TestGenerationFailureKeepsTheLatest(t *testing.T) {
+	ctx := context.Background()
+	c := NewCandidates(openTest(t))
+
+	if at, err := c.LastFailure(ctx, "a.example"); err != nil || !at.IsZero() {
+		t.Fatalf("LastFailure before any = %v, %v", at, err)
+	}
+	for _, at := range []time.Time{now, now.Add(time.Hour)} {
+		if err := c.RecordFailure(ctx, "a.example", "no title on sample 1", at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if at, err := c.LastFailure(ctx, "a.example"); err != nil || !at.Equal(now.Add(time.Hour)) {
+		t.Fatalf("LastFailure = %v, %v", at, err)
+	}
+}

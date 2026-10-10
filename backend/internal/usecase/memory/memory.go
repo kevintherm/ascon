@@ -156,12 +156,30 @@ func (m *Rules) Status(d string, v int) rule.Status {
 
 // Candidates implements rule.CandidateRepository.
 type Candidates struct {
-	mu   sync.Mutex
-	byID map[string]rule.Candidate
+	mu       sync.Mutex
+	byID     map[string]rule.Candidate
+	failures map[string]time.Time
 }
 
 // NewCandidates returns an empty repository.
-func NewCandidates() *Candidates { return &Candidates{byID: map[string]rule.Candidate{}} }
+func NewCandidates() *Candidates {
+	return &Candidates{byID: map[string]rule.Candidate{}, failures: map[string]time.Time{}}
+}
+
+// RecordFailure implements rule.CandidateRepository.
+func (m *Candidates) RecordFailure(_ context.Context, d, _ string, at time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.failures[d] = at
+	return nil
+}
+
+// LastFailure implements rule.CandidateRepository.
+func (m *Candidates) LastFailure(_ context.Context, d string) (time.Time, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.failures[d], nil
+}
 
 // Insert implements rule.CandidateRepository.
 func (m *Candidates) Insert(_ context.Context, c rule.Candidate) error {

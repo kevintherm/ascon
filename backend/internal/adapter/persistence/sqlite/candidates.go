@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/kevintherm/ascon/backend/internal/adapter/persistence/sqlite/sqlcgen"
@@ -64,6 +65,25 @@ func (c *Candidates) Resolve(ctx context.Context, domain string, status rule.Can
 func (c *Candidates) AbandonPending(ctx context.Context, reason string, at time.Time) (int, error) {
 	n, err := c.db.w.AbandonPendingCandidates(ctx, sqlcgen.AbandonPendingCandidatesParams{Reason: nullString(reason), UpdatedAt: formatTime(at)})
 	return int(n), err
+}
+
+// RecordFailure notes that no usable rule could be written for domain.
+func (c *Candidates) RecordFailure(ctx context.Context, domain, reason string, at time.Time) error {
+	return c.db.w.RecordGenerationFailure(ctx, sqlcgen.RecordGenerationFailureParams{
+		Domain: domain, Reason: reason, FailedAt: formatTime(at),
+	})
+}
+
+// LastFailure returns when generation last failed for domain, or the zero time.
+func (c *Candidates) LastFailure(ctx context.Context, domain string) (time.Time, error) {
+	at, err := c.db.r.LastGenerationFailure(ctx, domain)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return parseTime(at)
 }
 
 func nullInt(n int) sql.NullInt64 { return sql.NullInt64{Int64: int64(n), Valid: n != 0} }

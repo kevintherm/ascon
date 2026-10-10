@@ -2,6 +2,7 @@ package rule
 
 import (
 	"context"
+	"errors"
 	"math/bits"
 	"strconv"
 	"time"
@@ -108,6 +109,11 @@ type Attempt struct {
 	Rule    Rule
 	Problem string
 }
+
+// ErrBadAnswer marks a generator answer that is not a rule at all, such as
+// malformed JSON. Like a rule that fails the check, it counts as a failed
+// attempt, so the next attempt is told what was wrong.
+var ErrBadAnswer = errors.New("the answer is not a rule")
 
 // Generator asks a language model for a rule. Its output is untrusted until
 // the generaterule use case has checked it with an Evaluator.

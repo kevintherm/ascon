@@ -21,3 +21,11 @@ WHERE domain = ? AND status = 'pending';
 UPDATE rule_candidates
 SET status = 'rejected', reason = ?, updated_at = ?
 WHERE status = 'pending';
+
+-- name: RecordGenerationFailure :exec
+INSERT INTO generation_failures (domain, reason, failed_at)
+VALUES (?, ?, ?)
+ON CONFLICT (domain) DO UPDATE SET reason = excluded.reason, failed_at = excluded.failed_at;
+
+-- name: LastGenerationFailure :one
+SELECT failed_at FROM generation_failures WHERE domain = ?;

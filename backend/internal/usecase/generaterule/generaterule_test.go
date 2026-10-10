@@ -3,6 +3,7 @@ package generaterule
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"strings"
@@ -35,6 +36,9 @@ func (g *fakeGenerator) Generate(_ context.Context, _, _ string, _ []rule.Sample
 	url := ".*"
 	if len(g.urls) > 0 {
 		url = g.urls[min(g.calls, len(g.urls))-1]
+	}
+	if url == "bad" {
+		return rule.Rule{}, fmt.Errorf("%w: unexpected end of JSON", rule.ErrBadAnswer)
 	}
 	return rule.Rule{ChapterPage: rule.ChapterPage{URL: url, Images: rule.Images{Selector: "img"}}}, nil
 }
@@ -229,6 +233,23 @@ func TestFailedRuleIsRetriedWithItsProblem(t *testing.T) {
 	}
 }
 
+func TestAnswerThatIsNotARuleIsRetried(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.s.cfg.Attempts = 2
+	h.generator.urls = []string{"bad", ".*"}
+
+	c, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+
+	if got, _ := h.s.Candidate(ctx, free, c.ID); got.Status != rule.Accepted {
+		t.Fatalf("candidate = %s %q, want accepted on the second attempt", got.Status, got.Reason)
+	}
+	if p := h.generator.previous[1]; len(p) != 1 || !strings.Contains(p[0].Problem, "unexpected end of JSON") {
+		t.Fatalf("second call was told %+v", p)
+	}
+}
+
 func TestRejectedAfterTheLastAttempt(t *testing.T) {
 	ctx := context.Background()
 	h := setup(t, limits)
@@ -254,6 +275,55 @@ func TestNonPortableRuleIsRejected(t *testing.T) {
 
 	if got, _ := h.s.Candidate(ctx, free, c.ID); got.Status != rule.Rejected || !strings.Contains(got.Reason, "chapterPage.url") {
 		t.Fatalf("candidate = %s %q, want rejected naming chapterPage.url", got.Status, got.Reason)
+	}
+}
+
+func TestFailedSiteIsTurnedAwayDuringTheCooldown(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.s.cfg.FailureCooldown = 7 * 24 * time.Hour
+	h.generator.urls = []string{"none"}
+
+	first, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+	if got, _ := h.s.Candidate(ctx, free, first.ID); got.Status != rule.Rejected {
+		t.Fatalf("first = %s, want rejected", got.Status)
+	}
+
+	again, err := h.s.Request(ctx, premium, request("a.example", "10|Salt|xxx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Status != rule.Rejected || !strings.Contains(again.Reason, "try again after 2026-10-15T10:00:00Z") {
+		t.Fatalf("second = %s %q, want rejected until the cooldown ends", again.Status, again.Reason)
+	}
+	if len(h.queued) != 0 || h.generator.calls != 1 {
+		t.Fatalf("the model was asked again: %d calls, %d queued", h.generator.calls, len(h.queued))
+	}
+	if q, _ := h.s.Quota(ctx, premium); q.Remaining != 5 {
+		t.Fatalf("remaining = %d, want no quota spent", q.Remaining)
+	}
+	if got, _ := h.s.Candidate(ctx, premium, again.ID); got.Status != rule.Rejected {
+		t.Fatal("the turned-away candidate was not stored")
+	}
+
+	h.s.now = func() time.Time { return now.Add(7 * 24 * time.Hour) }
+	if c, _ := h.s.Request(ctx, premium, request("a.example", "10|Salt|xxx")); c.Status != rule.Pending {
+		t.Fatalf("after the cooldown = %s, want pending", c.Status)
+	}
+}
+
+func TestProviderFailureIsNotRemembered(t *testing.T) {
+	ctx := context.Background()
+	h := setup(t, limits)
+	h.s.cfg.FailureCooldown = 7 * 24 * time.Hour
+	h.generator.err = errors.New("timeout")
+
+	_, _ = h.s.Request(ctx, free, request("a.example", "10|Salt|xxx"))
+	h.runQueued()
+	h.generator.err = nil
+	if c, _ := h.s.Request(ctx, free, request("a.example", "10|Salt|xxx")); c.Status != rule.Pending {
+		t.Fatalf("after a provider failure = %s, want pending", c.Status)
 	}
 }
 

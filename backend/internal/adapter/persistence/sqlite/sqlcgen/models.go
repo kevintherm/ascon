@@ -28,6 +28,12 @@ type Device struct {
 	CreatedAt      string
 }
 
+type GenerationFailure struct {
+	Domain   string
+	Reason   string
+	FailedAt string
+}
+
 type QuotaUsage struct {
 	AccountID string
 	Period    string

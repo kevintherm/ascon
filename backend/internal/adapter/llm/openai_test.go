@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -98,6 +99,19 @@ func TestGenerateTellsTheModelWhyEarlierRulesFailed(t *testing.T) {
 	}
 }
 
+func TestGenerateTellsTheModelItsAnswerWasNotARule(t *testing.T) {
+	o, got := provider(t, http.StatusOK, "stop", `{"chapterPage":{"url":".*","images":{"selector":"img"}}}`)
+	bad := rule.Attempt{Problem: `the answer is not a rule: json: unknown field "images"`}
+
+	if _, err := o.Generate(context.Background(), "t.example", "", samples, []rule.Attempt{bad}); err != nil {
+		t.Fatal(err)
+	}
+	msgs := got.Messages
+	if len(msgs) != 3 || msgs[2].Role != "user" || !strings.Contains(msgs[2].Content, `unknown field "images"`) {
+		t.Fatalf("messages = %+v", msgs)
+	}
+}
+
 func TestGenerateFailures(t *testing.T) {
 	cases := []struct {
 		name, finish, content string
@@ -106,8 +120,8 @@ func TestGenerateFailures(t *testing.T) {
 	}{
 		{"provider error", "stop", "", http.StatusUnauthorized, "llm answered 401"},
 		{"cut off", "length", `{"chapterPage":`, http.StatusOK, "stopped early: length"},
-		{"unknown field", "stop", `{"chapterPage":{"url":".*","images":{"selector":"img"},"author":{}}}`, http.StatusOK, "not a rule"},
-		{"not json", "stop", "Sure! Here is a rule", http.StatusOK, "not a rule"},
+		{"unknown field", "stop", `{"chapterPage":{"url":".*","images":{"selector":"img"},"author":{}}}`, http.StatusOK, "not a rule: json: unknown field"},
+		{"not json", "stop", "Sure! Here is a rule", http.StatusOK, "not a rule: invalid character"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -115,6 +129,9 @@ func TestGenerateFailures(t *testing.T) {
 			_, err := o.Generate(context.Background(), "t.example", "", samples, nil)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err = %v, want %q", err, c.want)
+			}
+			if bad := strings.Contains(c.want, "not a rule"); bad != errors.Is(err, rule.ErrBadAnswer) {
+				t.Fatalf("errors.Is(err, ErrBadAnswer) = %v, want %v", !bad, bad)
 			}
 			if strings.Contains(err.Error(), "sk-test") {
 				t.Fatal("error carries the API key")

@@ -159,6 +159,11 @@ paths:
         same series. Requests for a domain already being generated join
         that run.
 
+        When no usable rule could be written for the domain in the last 7
+        days, the answer is a candidate that is already `rejected`, without
+        asking the LLM again or using quota. Its `reason` says when to try
+        again. Failures of the LLM provider itself don't count.
+
         Needs an account, free or premium. Uses one unit of the account's
         AI detection quota, unless the request joins a generation already
         running for the domain. Premium accounts have a larger quota. The

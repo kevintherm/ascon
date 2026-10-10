@@ -99,6 +99,34 @@ func (q *Queries) InsertCandidate(ctx context.Context, arg InsertCandidateParams
 	return err
 }
 
+const lastGenerationFailure = `-- name: LastGenerationFailure :one
+SELECT failed_at FROM generation_failures WHERE domain = ?
+`
+
+func (q *Queries) LastGenerationFailure(ctx context.Context, domain string) (string, error) {
+	row := q.db.QueryRowContext(ctx, lastGenerationFailure, domain)
+	var failed_at string
+	err := row.Scan(&failed_at)
+	return failed_at, err
+}
+
+const recordGenerationFailure = `-- name: RecordGenerationFailure :exec
+INSERT INTO generation_failures (domain, reason, failed_at)
+VALUES (?, ?, ?)
+ON CONFLICT (domain) DO UPDATE SET reason = excluded.reason, failed_at = excluded.failed_at
+`
+
+type RecordGenerationFailureParams struct {
+	Domain   string
+	Reason   string
+	FailedAt string
+}
+
+func (q *Queries) RecordGenerationFailure(ctx context.Context, arg RecordGenerationFailureParams) error {
+	_, err := q.db.ExecContext(ctx, recordGenerationFailure, arg.Domain, arg.Reason, arg.FailedAt)
+	return err
+}
+
 const resolveCandidates = `-- name: ResolveCandidates :exec
 UPDATE rule_candidates
 SET status = ?, reason = ?, rule_version = ?, updated_at = ?

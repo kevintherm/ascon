@@ -108,6 +108,14 @@ func (o *OpenAI) messages(domain string, samples []rule.Sample, previous []rule.
 	}
 	msgs := []chatMessage{{Role: "system", Content: systemPrompt}, {Role: "user", Content: b.String()}}
 	for _, a := range previous {
+		// An answer that was not a rule has nothing to show back.
+		if a.Rule.ChapterPage.URL == "" && a.Rule.ChapterPage.Images.Selector == "" {
+			msgs = append(msgs, chatMessage{
+				Role:    "user",
+				Content: "Your previous answer failed: " + a.Problem + ". Reply with one JSON object in the shape described.",
+			})
+			continue
+		}
 		answer, _ := json.Marshal(struct {
 			ChapterPage rule.ChapterPage `json:"chapterPage"`
 			SeriesPage  *rule.SeriesPage `json:"seriesPage,omitempty"`
@@ -179,7 +187,7 @@ func decodeRule(content string) (rule.Rule, error) {
 	dec.DisallowUnknownFields()
 	var r rule.Rule
 	if err := dec.Decode(&r); err != nil {
-		return rule.Rule{}, fmt.Errorf("llm answer is not a rule: %w", err)
+		return rule.Rule{}, fmt.Errorf("%w: %w", rule.ErrBadAnswer, err)
 	}
 	return r, nil
 }

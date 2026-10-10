@@ -38,6 +38,10 @@ type Config struct {
 	// rejected. Each retry is told why the previous rule failed. Zero means
 	// one.
 	Attempts int
+	// FailureCooldown is how long a domain the model wrote no usable rule
+	// for is turned away without asking it again. Zero turns it off.
+	// Failures of the provider itself don't count.
+	FailureCooldown time.Duration
 }
 
 // Request is what the app sends.
@@ -110,6 +114,9 @@ func (s *Service) Request(ctx context.Context, acc account.Account, req Request)
 	}
 
 	now := s.now()
+	if c, failed, err := s.recentlyFailed(ctx, acc, site, now); failed || err != nil {
+		return c, err
+	}
 	c, joining, err := s.enqueue(ctx, acc, site, now)
 	if err != nil {
 		return rule.Candidate{}, err
@@ -119,6 +126,25 @@ func (s *Service) Request(ctx context.Context, acc account.Account, req Request)
 		s.spawn(func() { s.generate(site, req.Fingerprint, samples, acc.ID, account.Period(now)) })
 	}
 	return c, nil
+}
+
+// recentlyFailed answers with a rejected candidate, costing no quota, when
+// generation for site failed within the cooldown.
+func (s *Service) recentlyFailed(ctx context.Context, acc account.Account, site string, now time.Time) (rule.Candidate, bool, error) {
+	if s.cfg.FailureCooldown <= 0 {
+		return rule.Candidate{}, false, nil
+	}
+	last, err := s.candidates.LastFailure(ctx, site)
+	if err != nil || last.IsZero() || !now.Before(last.Add(s.cfg.FailureCooldown)) {
+		return rule.Candidate{}, false, err
+	}
+	c := rule.Candidate{
+		ID: domain.NewID(), Domain: site, AccountID: acc.ID, Status: rule.Rejected,
+		Reason: fmt.Sprintf("no rule could be generated for this site recently; try again after %s",
+			last.Add(s.cfg.FailureCooldown).UTC().Format(time.RFC3339)),
+		CreatedAt: now, UpdatedAt: now,
+	}
+	return c, true, s.candidates.Insert(ctx, c)
 }
 
 // enqueue records the candidate and spends quota unless a generation for the
@@ -206,6 +232,8 @@ func (s *Service) generate(site, fingerprint string, samples []rule.Sample, acco
 		if err != nil {
 			s.log.Error("rule generation failed", "domain", site, "err", err)
 			reason = "generation failed"
+		} else if err := s.candidates.RecordFailure(ctx, site, reason, s.now()); err != nil {
+			s.log.Error("recording the failure failed", "domain", site, "err", err)
 		}
 		if err := s.quotas.Refund(ctx, accountID, period); err != nil {
 			s.log.Error("quota refund failed", "account", accountID, "err", err)
@@ -247,10 +275,15 @@ func (s *Service) attempt(ctx context.Context, site, fingerprint string, samples
 	var previous []rule.Attempt
 	for range max(s.cfg.Attempts, 1) {
 		r, err := s.generator.Generate(ctx, site, fingerprint, samples, previous)
-		if err != nil {
+		var reason string
+		switch {
+		case errors.Is(err, rule.ErrBadAnswer):
+			reason = err.Error()
+		case err != nil:
 			return rule.Rule{}, "", err
+		default:
+			reason = Check(s.evaluator, r, samples, s.cfg.MinImages)
 		}
-		reason := Check(s.evaluator, r, samples, s.cfg.MinImages)
 		if reason == "" {
 			return r, "", nil
 		}
