@@ -78,7 +78,7 @@ func (s *Service) Search(ctx context.Context, query string, limit int) ([]series
 	results, ok := s.cached(key)
 	if !ok {
 		var err error
-		if results, err = s.fetch(ctx, query, key); err != nil {
+		if results, err = s.fetch(ctx, plain(query), key); err != nil {
 			return nil, err
 		}
 	}

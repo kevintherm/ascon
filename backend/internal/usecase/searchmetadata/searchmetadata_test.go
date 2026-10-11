@@ -16,12 +16,14 @@ type fakeSource struct {
 	results []series.Metadata
 	err     error
 	calls   int
+	queries []string
 }
 
 func (f *fakeSource) Source() series.Source { return f.source }
 
-func (f *fakeSource) Search(_ context.Context, _ string, _ int) ([]series.Metadata, error) {
+func (f *fakeSource) Search(_ context.Context, query string, _ int) ([]series.Metadata, error) {
 	f.calls++
+	f.queries = append(f.queries, query)
 	return f.results, f.err
 }
 
@@ -189,5 +191,19 @@ func TestLimitsAndQueries(t *testing.T) {
 	}
 	if anilist.calls != 1 {
 		t.Errorf("calls = %d, want invalid searches never sent", anilist.calls)
+	}
+}
+
+func TestServicesAreAskedWithPlainQuotesAndLetters(t *testing.T) {
+	anilist := &fakeSource{source: series.AniList}
+	s, _ := service(anilist)
+	for _, q := range []string{"Omniscient Reader’s Viewpoint", "Ｓｏｌｏ　Ｌｅｖｅｌｉｎｇ", "Salt — Iron “Kitchen”"} {
+		if _, err := s.Search(context.Background(), q, 10); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := []string{"Omniscient Reader's Viewpoint", "Solo Leveling", `Salt - Iron "Kitchen"`}
+	if !reflect.DeepEqual(anilist.queries, want) {
+		t.Fatalf("queries = %q, want %q", anilist.queries, want)
 	}
 }

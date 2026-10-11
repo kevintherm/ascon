@@ -9,6 +9,28 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/domain/series"
 )
 
+// typographic marks AniList's search doesn't treat as their plain forms: it finds
+// nothing for "Omniscient Reader’s Viewpoint" with a curly apostrophe.
+var typographic = strings.NewReplacer(
+	"’", "'", "‘", "'", "ʼ", "'", "`", "'",
+	"“", `"`, "”", `"`,
+	"–", "-", "—", "-",
+	"\u00a0", " ", "　", " ",
+)
+
+// plain is query as the services search best: typographic quotes, dashes and
+// spaces as their plain forms, and full-width letters and digits as ASCII.
+func plain(query string) string {
+	var b strings.Builder
+	for _, r := range typographic.Replace(query) {
+		if r >= '！' && r <= '～' {
+			r -= '！' - '!'
+		}
+		b.WriteRune(r)
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
+}
+
 // normalize lowercases a title and keeps only letters and digits, one space
 // between words, so "Trash of the Count's Family" and "trash of the counts
 // family" compare equal.
