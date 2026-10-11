@@ -1,0 +1,81 @@
+{
+  "data": {
+    "Page": {
+      "media": [
+        {
+          "id": 105398,
+          "title": {
+            "romaji": "Na Honjaman Level Up",
+            "english": "Solo Leveling",
+            "native": "\ub098 \ud63c\uc790\ub9cc \ub808\ubca8\uc5c5"
+          },
+          "synonyms": [
+            "I Level Up Alone",
+            "Only I Level Up",
+            "\u4ffa\u3060\u3051\u30ec\u30d9\u30eb\u30a2\u30c3\u30d7\u306a\u4ef6",
+            "\u6211\u7368\u81ea\u5347\u7d1a",
+            "Ore dake Level Up na Ken",
+            "\u041f\u043e\u0434\u043d\u044f\u0442\u0438\u0435 \u0443\u0440\u043e\u0432\u043d\u044f \u0432 \u043e\u0434\u0438\u043d\u043e\u0447\u043a\u0443",
+            "\u0422\u0456\u043b\u044c\u043a\u0438 \u044f \u0432\u0456\u0437\u044c\u043c\u0443 \u043d\u043e\u0432\u0438\u0439 \u0440\u0456\u0432\u0435\u043d\u044c",
+            "\u0412\u0435\u0431\u0442\u0443\u043d. \u041f\u043e\u0434\u043d\u044f\u0442\u0438\u0435 \u0443\u0440\u043e\u0432\u043d\u044f \u0432 \u043e\u0434\u0438\u043d\u043e\u0447\u043a\u0443. Solo Leveling"
+          ],
+          "format": "MANGA",
+          "status": "FINISHED",
+          "countryOfOrigin": "KR",
+          "startDate": {
+            "year": 2018
+          },
+          "coverImage": {
+            "large": "https:\/\/s4.anilist.co\/file\/anilistcdn\/media\/manga\/cover\/medium\/bx105398-b673Vt5ZSuz3.jpg"
+          }
+        },
+        {
+          "id": 201652,
+          "title": {
+            "romaji": "Insaeng 2-hoechaui Teukgwoneun Pokpung Rebereop",
+            "english": "The Privilege of the Second Life is Power Leveling",
+            "native": "\uc778\uc0dd 2\ud68c\ucc28\uc758 \ud2b9\uad8c\uc740 \ud3ed\ud48d \ub808\ubca8\uc5c5"
+          },
+          "synonyms": [
+            "Aiming for Maximal Level in a Post-Apocalyptic World",
+            "Aiming For Maximal Volume in the Apocalypse",
+            "Apocalypse Reborn Leveling Like Mad",
+            "Solo Leveling in Apocalypse",
+            "\u672b\u65e5\u91cd\u751f\u540e\u6211\u75af\u72c2\u5347\u7ea7",
+            "\u7d42\u672b\u4e16\u754c\u3067\u30ec\u30d9\u30eb\u30ab\u30f3\u30b9\u30c8\u3092\u72d9\u3044\u307e\u3059"
+          ],
+          "format": "MANGA",
+          "status": "RELEASING",
+          "countryOfOrigin": "KR",
+          "startDate": {
+            "year": 2024
+          },
+          "coverImage": {
+            "large": "https:\/\/s4.anilist.co\/file\/anilistcdn\/media\/manga\/cover\/medium\/bx201652-Y5UtAmjHjAQL.jpg"
+          }
+        },
+        {
+          "id": 179445,
+          "title": {
+            "romaji": "Na Honjaman Level Up: Ragnarok",
+            "english": "Solo Leveling: Ragnarok",
+            "native": "\ub098 \ud63c\uc790\ub9cc \ub808\ubca8\uc5c5 : \ub77c\uadf8\ub098\ub85c\ud06c"
+          },
+          "synonyms": [
+            "\u4ffa\u3060\u3051\u30ec\u30d9\u30eb\u30a2\u30c3\u30d7\u306a\u4ef6\u301c\u30e9\u30b0\u30ca\u30ed\u30af\u301c",
+            "\u6211\u72ec\u81ea\u5347\u7ea7 : \u8bf8\u795e\u9ec4\u660f"
+          ],
+          "format": "MANGA",
+          "status": "RELEASING",
+          "countryOfOrigin": "KR",
+          "startDate": {
+            "year": 2024
+          },
+          "coverImage": {
+            "large": "https:\/\/s4.anilist.co\/file\/anilistcdn\/media\/manga\/cover\/medium\/bx179445-ho0nb7baJ1a5.jpg"
+          }
+        }
+      ]
+    }
+  }
+}

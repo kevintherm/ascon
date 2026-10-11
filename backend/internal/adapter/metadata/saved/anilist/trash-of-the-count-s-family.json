@@ -1,0 +1,38 @@
+{
+  "data": {
+    "Page": {
+      "media": [
+        {
+          "id": 123573,
+          "title": {
+            "romaji": "Baekjakgaui Mangnaniga Doeeotda",
+            "english": "Lout of Count\u2019s Family",
+            "native": "\ubc31\uc791\uac00\uc758 \ub9dd\ub098\ub2c8\uac00 \ub418\uc5c8\ub2e4"
+          },
+          "synonyms": [
+            "TCF",
+            "Trash Count",
+            "Trash of the Count's Family",
+            "La Basura De La Familia Del Conde",
+            "\u4f2f\u7235\u5bb6\u306e\u66b4\u308c\u3093\u574a\u306b\u306a\u3063\u305f",
+            "\u6210\u4e3a\u4f2f\u7235\u5bb6\u7684\u5e9f\u7269",
+            "\u8b8a\u6210\u4f2f\u7235\u5bb6\u7684\u6df7\u6df7",
+            "\u0e2d\u0e31\u0e19\u0e18\u0e1e\u0e32\u0e25\u0e41\u0e2b\u0e48\u0e07\u0e15\u0e23\u0e30\u0e01\u0e39\u0e25\u0e40\u0e04\u0e32\u0e19\u0e15\u0e4c",
+            "Pembuat Onar di Keluarga Count",
+            "Je suis devenu le voyou de la famille du comte ",
+            "La Canaille du Comt\u00e9"
+          ],
+          "format": "MANGA",
+          "status": "RELEASING",
+          "countryOfOrigin": "KR",
+          "startDate": {
+            "year": 2020
+          },
+          "coverImage": {
+            "large": "https:\/\/s4.anilist.co\/file\/anilistcdn\/media\/manga\/cover\/medium\/bx123573-LKoCKwRouEMW.png"
+          }
+        }
+      ]
+    }
+  }
+}

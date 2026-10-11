@@ -17,15 +17,18 @@ import (
 	"time"
 
 	"github.com/kevintherm/ascon/backend/internal/adapter/evaluator"
+	"github.com/kevintherm/ascon/backend/internal/adapter/metadata"
 	"github.com/kevintherm/ascon/backend/internal/adapter/persistence/sqlite"
 	"github.com/kevintherm/ascon/backend/internal/adapter/signing"
 	"github.com/kevintherm/ascon/backend/internal/domain"
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
 	"github.com/kevintherm/ascon/backend/internal/domain/rule"
+	"github.com/kevintherm/ascon/backend/internal/domain/series"
 	"github.com/kevintherm/ascon/backend/internal/usecase/generaterule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/searchmetadata"
 	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
@@ -65,6 +68,13 @@ type env struct {
 
 func newEnv(t *testing.T, limits account.Limits) *env {
 	t.Helper()
+	saved := &http.Client{Transport: metadata.Saved{}}
+	return newEnvWith(t, limits, []series.Searcher{metadata.NewAniList(saved, 0), metadata.NewMangaUpdates(saved, 0)})
+}
+
+// newEnvWith searches metadata with sources.
+func newEnvWith(t *testing.T, limits account.Limits, sources []series.Searcher) *env {
+	t.Helper()
 	ctx := context.Background()
 	db, err := sqlite.Open(ctx, filepath.Join(t.TempDir(), "api.db"))
 	if err != nil {
@@ -88,8 +98,9 @@ func newEnv(t *testing.T, limits account.Limits) *env {
 		Generate: generaterule.New(rules, sqlite.NewCandidates(db), sqlite.NewQuotas(db),
 			fixtureGenerator{}, evaluator.HTML{},
 			generaterule.Config{Limits: limits, MinImages: 3, Timeout: 10 * time.Second}, time.Now, log),
-		Sync: synclibrary.New(sqlite.NewSync(db), time.Now),
-		Log:  log,
+		Sync:     synclibrary.New(sqlite.NewSync(db), time.Now),
+		Metadata: searchmetadata.New(sources, searchmetadata.Config{CacheFor: time.Hour, MaxCached: 10}, time.Now),
+		Log:      log,
 	}
 	srv := httptest.NewServer(api.Handler())
 	t.Cleanup(srv.Close)
@@ -309,4 +320,61 @@ func TestSignInAndOut(t *testing.T) {
 	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{"idToken": "forged"}, nil), 401)
 	e.expect(e.call("POST", "/v1/sessions", "", map[string]string{}, nil), 400)
 	e.expect(e.call("DELETE", "/v1/sessions/current", "", nil, nil), 401)
+}
+
+// failingSource answers every search with err.
+type failingSource struct {
+	source series.Source
+	err    error
+}
+
+func (f failingSource) Source() series.Source { return f.source }
+
+func (f failingSource) Search(context.Context, string, int) ([]series.Metadata, error) {
+	return nil, f.err
+}
+
+func TestMetadataSearch(t *testing.T) {
+	e := newEnv(t, account.Limits{account.Free: 10})
+	var dev deviceDTO
+	e.expect(e.call("POST", "/v1/devices", "", map[string]string{"appVersion": "0.1.0"}, &dev), 201)
+
+	var got metadataResultsDTO
+	e.expect(e.call("GET", "/v1/metadata/search?q=Solo%20Leveling&limit=2", dev.Token, nil, &got), 200)
+	if len(got.Results) != 2 {
+		t.Fatalf("results = %d, want the limit of 2", len(got.Results))
+	}
+	solo := got.Results[0]
+	if solo.Ref != "anilist:105398" || solo.OtherRef != "mangaupdates:15180124327" || solo.Format != "manhwa" || solo.CoverURL == "" {
+		t.Fatalf("first = %+v, want Solo Leveling on both services", solo)
+	}
+
+	e.expect(e.call("GET", "/v1/metadata/search?q=never%20saved", dev.Token, nil, &got), 200)
+	if got.Results == nil || len(got.Results) != 0 {
+		t.Fatalf("results = %v, want an empty list", got.Results)
+	}
+
+	e.expect(e.call("GET", "/v1/metadata/search?q=Solo", "", nil, nil), 401)
+	e.expect(e.call("GET", "/v1/metadata/search?q=", dev.Token, nil, nil), 400)
+	e.expect(e.call("GET", "/v1/metadata/search?q=Solo&limit=99", dev.Token, nil, nil), 400)
+}
+
+func TestMetadataSearchWhenBothServicesFail(t *testing.T) {
+	limited := &series.RateLimitedError{Source: series.AniList, RetryAfter: 30 * time.Second}
+	e := newEnvWith(t, account.Limits{}, []series.Searcher{
+		failingSource{series.AniList, limited}, failingSource{series.MangaUpdates, limited},
+	})
+	var dev deviceDTO
+	e.expect(e.call("POST", "/v1/devices", "", map[string]string{"appVersion": "0.1.0"}, &dev), 201)
+	res := e.call("GET", "/v1/metadata/search?q=Solo", dev.Token, nil, nil)
+	e.expect(res, 429)
+	if res.header.Get("Retry-After") != "30" {
+		t.Fatalf("Retry-After = %q, want 30", res.header.Get("Retry-After"))
+	}
+
+	e = newEnvWith(t, account.Limits{}, []series.Searcher{
+		failingSource{series.AniList, series.ErrUpstream}, failingSource{series.MangaUpdates, limited},
+	})
+	e.expect(e.call("POST", "/v1/devices", "", map[string]string{"appVersion": "0.1.0"}, &dev), 201)
+	e.expect(e.call("GET", "/v1/metadata/search?q=Solo", dev.Token, nil, nil), 502)
 }

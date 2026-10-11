@@ -354,7 +354,13 @@ paths:
         Used to link a detected title to a canonical series. The app fuzzy
         matches the detected title against every alternate title returned,
         links above its threshold, and otherwise shows the fix-detection
-        sheet.
+        sheet. A series both services list is one result, with `otherRef`.
+        MangaUpdates returns loose matches even for titles it doesn't know,
+        so results are only candidates for that match.
+
+        Answers are cached for an hour, or 5 minutes when one service
+        failed. One failed service still answers with the other's results.
+        429 means both services asked the server to wait.
       parameters:
         - name: q
           in: query

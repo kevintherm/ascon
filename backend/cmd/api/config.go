@@ -6,14 +6,18 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/kevintherm/ascon/backend/internal/adapter/google"
 	"github.com/kevintherm/ascon/backend/internal/adapter/llm"
+	"github.com/kevintherm/ascon/backend/internal/adapter/metadata"
 	"github.com/kevintherm/ascon/backend/internal/adapter/signing"
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
 	"github.com/kevintherm/ascon/backend/internal/domain/rule"
+	"github.com/kevintherm/ascon/backend/internal/domain/series"
 )
 
 // config is read from ASCON_* environment variables.
@@ -28,6 +32,8 @@ type config struct {
 	attempts  int
 	// identities checks Google ID tokens at sign-in.
 	identities account.IdentityVerifier
+	// metadata searches AniList and MangaUpdates.
+	metadata []series.Searcher
 }
 
 func loadConfig(logger *slog.Logger) (config, error) {
@@ -47,6 +53,7 @@ func loadConfig(logger *slog.Logger) (config, error) {
 	c.limits = account.Limits{account.Free: free, account.Premium: premium}
 
 	c.identities = identities(logger)
+	c.metadata = metadataSources(logger)
 	c.generator = generator(logger)
 	if c.attempts, err = envInt("ASCON_LLM_ATTEMPTS", 2); err != nil {
 		return c, err
@@ -79,6 +86,25 @@ func generator(logger *slog.Logger) rule.Generator {
 			logger.Info("llm usage", "prompt_tokens", u.Prompt, "completion_tokens", u.Completion,
 				"reasoning_tokens", u.Details.Reasoning, "cached_tokens", u.PromptDetails.Cached)
 		},
+	}
+}
+
+// metadataSources reads ASCON_METADATA_LIVE. Only "1" reaches AniList and
+// MangaUpdates; otherwise searches are answered from the responses saved in
+// internal/adapter/metadata/saved, so development never calls the services.
+func metadataSources(logger *slog.Logger) []series.Searcher {
+	client := &http.Client{Timeout: 10 * time.Second}
+	interval := metadata.DefaultInterval
+	if os.Getenv("ASCON_METADATA_LIVE") == "1" {
+		logger.Info("metadata search calls AniList and MangaUpdates")
+	} else {
+		logger.Info("metadata search answers from saved responses; set ASCON_METADATA_LIVE=1 to call AniList and MangaUpdates")
+		client.Transport = metadata.Saved{}
+		interval = 0
+	}
+	return []series.Searcher{
+		metadata.NewAniList(client, interval),
+		metadata.NewMangaUpdates(client, interval),
 	}
 }
 

@@ -1,0 +1,40 @@
+{
+  "data": {
+    "Page": {
+      "media": [
+        {
+          "id": 119257,
+          "title": {
+            "romaji": "Jeonjijeok Dokja Sijeom",
+            "english": "Omniscient Reader",
+            "native": "\uc804\uc9c0\uc801 \ub3c5\uc790 \uc2dc\uc810"
+          },
+          "synonyms": [
+            "Omniscient Reader's Viewpoint",
+            "ORV",
+            "Punkt Widzenia Wszechwiedz\u0105cego Czytelnika",
+            "Lector omnisciente",
+            "Lecteur Omniscient",
+            "Der allwissende Leser",
+            "\uc804\ub3c5\uc2dc",
+            "\u5168\u77e5\u8bfb\u8005",
+            "\u5168\u77e5\u8b80\u8005\u8996\u89d2",
+            "\u0e2d\u0e48\u0e32\u0e19\u0e0a\u0e30\u0e15\u0e32\u0e27\u0e31\u0e19\u0e2a\u0e34\u0e49\u0e19\u0e42\u0e25\u0e01",
+            "\u5168\u77e5\u7684\u306a\u8aad\u8005\u306e\u8996\u70b9\u304b\u3089",
+            "Zenchiteki na Dokusha no Shiten kara",
+            "\u0412\u0441\u0435\u0432\u0435\u0434\u0443\u0449\u0438\u0439 \u0447\u0438\u0442\u0430\u0442\u0435\u043b\u044c"
+          ],
+          "format": "MANGA",
+          "status": "RELEASING",
+          "countryOfOrigin": "KR",
+          "startDate": {
+            "year": 2020
+          },
+          "coverImage": {
+            "large": "https:\/\/s4.anilist.co\/file\/anilistcdn\/media\/manga\/cover\/medium\/bx119257-Pi21aq3ey9GG.jpg"
+          }
+        }
+      ]
+    }
+  }
+}

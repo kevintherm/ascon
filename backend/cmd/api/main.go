@@ -20,6 +20,7 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/searchmetadata"
 	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
@@ -74,7 +75,10 @@ func run(logger *slog.Logger) error {
 		Reports:  reportrule.New(rules, now),
 		Generate: generate,
 		Sync:     synclibrary.New(sqlite.NewSync(db), now),
-		Log:      logger,
+		// Searches are kept an hour, or 5 minutes when one service failed.
+		Metadata: searchmetadata.New(cfg.metadata,
+			searchmetadata.Config{CacheFor: time.Hour, PartialCacheFor: 5 * time.Minute, MaxCached: 5000}, now),
+		Log: logger,
 	}
 
 	srv := &http.Server{

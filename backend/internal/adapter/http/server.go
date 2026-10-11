@@ -17,10 +17,12 @@ import (
 	"github.com/kevintherm/ascon/backend/internal/domain"
 	"github.com/kevintherm/ascon/backend/internal/domain/account"
 	"github.com/kevintherm/ascon/backend/internal/domain/device"
+	"github.com/kevintherm/ascon/backend/internal/domain/series"
 	"github.com/kevintherm/ascon/backend/internal/usecase/generaterule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/registerdevice"
 	"github.com/kevintherm/ascon/backend/internal/usecase/reportrule"
 	"github.com/kevintherm/ascon/backend/internal/usecase/resolverule"
+	"github.com/kevintherm/ascon/backend/internal/usecase/searchmetadata"
 	"github.com/kevintherm/ascon/backend/internal/usecase/signin"
 	"github.com/kevintherm/ascon/backend/internal/usecase/synclibrary"
 )
@@ -42,6 +44,7 @@ type Server struct {
 	Reports  *reportrule.Service
 	Generate *generaterule.Service
 	Sync     *synclibrary.Service
+	Metadata *searchmetadata.Service
 	Log      *slog.Logger
 }
 
@@ -62,6 +65,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/rule-candidates", s.withAccount(s.requestRule))
 	mux.HandleFunc("GET /v1/rule-candidates/{id}", s.withAccount(s.getCandidate))
 	mux.HandleFunc("GET /v1/quota", s.withAccount(s.getQuota))
+
+	mux.HandleFunc("GET /v1/metadata/search", s.withDevice(s.searchMetadata))
 
 	mux.HandleFunc("GET /v1/sync/changes", s.withAccount(s.pullChanges))
 	mux.HandleFunc("POST /v1/sync/changes", s.withAccount(s.pushChanges))
@@ -160,6 +165,7 @@ type problem struct {
 func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 	p := problem{Status: http.StatusInternalServerError, Type: "about:blank", Title: "Internal error"}
 	var quota *generaterule.QuotaExceededError
+	var limited *series.RateLimitedError
 
 	switch {
 	case errors.As(err, &quota):
@@ -168,6 +174,12 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 		p.Quota = &q
 		wait := int(time.Until(quota.Quota.ResetsAt).Seconds()) + 1
 		w.Header().Set("Retry-After", strconv.Itoa(max(wait, 1)))
+	case errors.As(err, &limited):
+		p = problem{Status: http.StatusTooManyRequests, Type: problemType("rate-limited"), Title: "Metadata search is busy", Detail: err.Error()}
+		w.Header().Set("Retry-After", strconv.Itoa(max(int(limited.RetryAfter.Seconds()), 1)))
+	case errors.Is(err, series.ErrUpstream):
+		p = problem{Status: http.StatusBadGateway, Type: problemType("upstream"), Title: "AniList and MangaUpdates both failed"}
+		s.Log.Warn("metadata search failed", "err", err)
 	case errors.Is(err, errTooLarge):
 		p = problem{Status: http.StatusRequestEntityTooLarge, Type: problemType("too-large"), Title: "Request body too large"}
 	case errors.Is(err, domain.ErrInvalid):
