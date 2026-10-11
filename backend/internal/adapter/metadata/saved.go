@@ -24,10 +24,14 @@ var savedFiles embed.FS
 // instead of the network. A query with no saved answer gets an empty result,
 // as from a service that found nothing. Tests and the dev backend use it, so
 // neither ever reaches the services.
-type Saved struct{}
+type Saved struct {
+	// OnMiss, when set, hears of each search with no saved answer, so a
+	// developer knows the empty result isn't the service's.
+	OnMiss func(service, query string)
+}
 
 // RoundTrip implements http.RoundTripper.
-func (Saved) RoundTrip(req *http.Request) (*http.Response, error) {
+func (s Saved) RoundTrip(req *http.Request) (*http.Response, error) {
 	service, query, err := savedKey(req)
 	if err != nil {
 		return nil, err
@@ -35,6 +39,9 @@ func (Saved) RoundTrip(req *http.Request) (*http.Response, error) {
 	body, err := fs.ReadFile(savedFiles, "saved/"+service+"/"+Slug(query)+".json")
 	if errors.Is(err, fs.ErrNotExist) {
 		body, err = []byte(emptyAnswers[service]), nil
+		if s.OnMiss != nil {
+			s.OnMiss(service, query)
+		}
 	}
 	if err != nil {
 		return nil, err

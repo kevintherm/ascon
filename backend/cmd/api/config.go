@@ -99,7 +99,10 @@ func metadataSources(logger *slog.Logger) []series.Searcher {
 		logger.Info("metadata search calls AniList and MangaUpdates")
 	} else {
 		logger.Info("metadata search answers from saved responses; set ASCON_METADATA_LIVE=1 to call AniList and MangaUpdates")
-		client.Transport = metadata.Saved{}
+		client.Transport = metadata.Saved{OnMiss: func(service, query string) {
+			logger.Warn("no saved metadata answer, so this search finds nothing; save one with cmd/devmetadata or set ASCON_METADATA_LIVE=1",
+				"service", service, "query", query)
+		}}
 		interval = 0
 	}
 	return []series.Searcher{

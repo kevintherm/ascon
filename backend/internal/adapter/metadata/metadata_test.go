@@ -55,10 +55,15 @@ func TestMangaUpdatesKeepsTheTitleTheSearchHit(t *testing.T) {
 	}
 }
 
-func TestAnUnsavedQueryFindsNothing(t *testing.T) {
-	got, err := NewAniList(saved, 0).Search(context.Background(), "never saved", 25)
+func TestAnUnsavedQueryFindsNothingAndSaysSo(t *testing.T) {
+	var missed []string
+	client := &http.Client{Transport: Saved{OnMiss: func(service, query string) { missed = append(missed, service+" "+query) }}}
+	got, err := NewAniList(client, 0).Search(context.Background(), "never saved", 25)
 	if err != nil || len(got) != 0 {
 		t.Fatalf("got %v, %v; want no results", got, err)
+	}
+	if len(missed) != 1 || missed[0] != "anilist never saved" {
+		t.Fatalf("missed = %v, want the miss reported", missed)
 	}
 }
 
