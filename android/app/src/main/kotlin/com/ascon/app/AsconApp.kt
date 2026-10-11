@@ -114,7 +114,8 @@ fun AsconApp(container: AppContainer, startUrl: String? = null) {
             container.reader,
             container.clock,
             createSavedStateHandle(),
-            startUrl.orEmpty()
+            startUrl.orEmpty(),
+            container.metadataSearch
         )
     }
     val protection = viewModel { ProtectionViewModel(container.protection) }

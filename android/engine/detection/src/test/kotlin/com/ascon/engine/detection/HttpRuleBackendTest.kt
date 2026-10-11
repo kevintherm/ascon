@@ -2,6 +2,7 @@ package com.ascon.engine.detection
 
 import com.ascon.core.data.RuleHealthCount
 import com.ascon.core.data.fake.FakeDeviceToken
+import com.ascon.core.model.SeriesMetadata
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -93,5 +94,36 @@ class HttpRuleBackendTest {
             ),
             seen.single()
         )
+    }
+
+    @Test
+    fun `metadata search sends the title and reads the candidates`() = runTest {
+        tokens.value = "tok"
+        replies += 200 to """{"results":[{"ref":"anilist:105398","title":"Na Honjaman Level Up",""" +
+            """"altTitles":["Solo Leveling"],"format":"manhwa","status":"completed","year":2018,""" +
+            """"otherRef":"mangaupdates:15180124327"},{"ref":"mangaupdates:1","title":"Solo","altTitles":[]}]}"""
+
+        val results = backend.search("Solo Leveling")
+
+        assertEquals("GET /v1/metadata/search?q=Solo Leveling&limit=10", seen[0][0])
+        assertEquals(
+            SeriesMetadata(
+                ref = "anilist:105398",
+                title = "Na Honjaman Level Up",
+                altTitles = listOf("Solo Leveling"),
+                format = "manhwa",
+                year = 2018,
+                otherRef = "mangaupdates:15180124327"
+            ),
+            results[0]
+        )
+        assertEquals(SeriesMetadata("mangaupdates:1", "Solo"), results[1])
+    }
+
+    @Test(expected = IOException::class)
+    fun `a busy or failed search throws`() = runTest {
+        tokens.value = "tok"
+        replies += 429 to """{"title":"Metadata search is busy"}"""
+        backend.search("Solo Leveling")
     }
 }

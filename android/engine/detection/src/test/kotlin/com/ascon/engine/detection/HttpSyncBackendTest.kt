@@ -10,6 +10,7 @@ import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -104,5 +105,14 @@ class HttpSyncBackendTest {
         replies += 410 to ""
         assertThrows(AccountRefused::class.java) { kotlinx.coroutines.runBlocking { backend.pull("acc-1", null) } }
         assertThrows(SyncCursorExpired::class.java) { kotlinx.coroutines.runBlocking { backend.pull("acc-1", "old") } }
+    }
+
+    @Test
+    fun `series links go out and come back as the contract's ids`() {
+        val at = Instant.parse("2026-10-11T08:00:00Z")
+        val record = SyncRecord.SeriesRecord("s-1", Stamped("Solo Leveling", at), Stamped(105398L, at), Stamped(7L, at))
+        val json = record.toJson()
+        assertEquals("105398", json["fields"]!!.jsonObject["anilistId"]!!.jsonObject["value"].toString())
+        assertEquals(record, json.toSyncRecord())
     }
 }

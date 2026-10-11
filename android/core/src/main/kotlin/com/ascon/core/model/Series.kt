@@ -26,7 +26,12 @@ data class Series(
     /** The id the series syncs under, see [seriesSyncId]. Null until the series is first saved. */
     val syncId: String? = null,
     /** When [status] last changed on this phone, or the change synced from another. */
-    val statusUpdatedAt: Instant? = null
+    val statusUpdatedAt: Instant? = null,
+    /** The series on AniList and MangaUpdates, once linked. */
+    val aniListId: Long? = null,
+    val mangaUpdatesId: Long? = null,
+    /** When the links last changed, for sync. */
+    val linkUpdatedAt: Instant? = null
 ) {
     val latestChapter: Chapter? get() = chapters.lastOrNull()
 

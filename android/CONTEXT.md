@@ -25,7 +25,7 @@ interface LibraryRepository
     val series: Flow<List<Series>>
     val sites: Flow<List<Site>>
     fun series(id: String): Flow<Series?>
-    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
+    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String, link: SeriesMetadata? = null): Series
     suspend fun selectSource(seriesId: String, sourceId: String)
     suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float = 0f)
@@ -71,6 +71,8 @@ data class GoogleCredential(val idToken: String, val displayName: String?, val e
 class SignInCancelled : Exception()
 class NoGoogleAccount : Exception()
 class GoogleUnreachable(cause: Throwable? = null) : Exception(cause)
+interface MetadataSearch
+    suspend fun search(query: String): List<SeriesMetadata>
 ```
 
 ## core/src/main/kotlin/com/ascon/core/data/Rules.kt
@@ -141,7 +143,7 @@ class FakeLibraryRepository(initial: List<Series> = FakeLibrary.series(Clock.sys
     override val series: StateFlow<List<Series>>
     override val sites: Flow<List<Site>>
     override fun series(id: String): Flow<Series?>
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String, link: SeriesMetadata?): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float)
@@ -224,7 +226,7 @@ class RoomLibraryRepository(database: AsconDatabase, private val seed: Seed? = n
     override val series: Flow<List<Series>>
     override val sites: Flow<List<Site>>
     override fun series(id: String): Flow<Series?>
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
+    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String, link: SeriesMetadata?): Series
     override suspend fun selectSource(seriesId: String, sourceId: String)
     override suspend fun recordChapterOpened(seriesId: String, chapter: BigDecimal, at: Instant)
     override suspend fun recordPageRead(seriesId: String, chapter: BigDecimal, page: Int, pageCount: Int, at: Instant, pageOffset: Float)
@@ -565,7 +567,7 @@ data class ReaderSettings(val mode: ReadingMode = ReadingMode.LongStrip, val fit
 
 ```kotlin
 enum class ReadingStatus
-data class Series(val id: String, val title: String, val altTitles: List<String>, val cover: Cover, val status: ReadingStatus, val linkedToAniList: Boolean, val sources: List<Source>, val chapters: List<Chapter>, val progress: ReadingProgress?, val lastReadAt: Instant?, val syncId: String? = null, val statusUpdatedAt: Instant? = null)
+data class Series(val id: String, val title: String, val altTitles: List<String>, val cover: Cover, val status: ReadingStatus, val linkedToAniList: Boolean, val sources: List<Source>, val chapters: List<Chapter>, val progress: ReadingProgress?, val lastReadAt: Instant?, val syncId: String? = null, val statusUpdatedAt: Instant? = null, val aniListId: Long? = null, val mangaUpdatesId: Long? = null, val linkUpdatedAt: Instant? = null)
     val latestChapter: Chapter? get()
     val upNext: List<Chapter>
     val newChapterCount: Int get()
@@ -580,6 +582,16 @@ data class ReadingProgress(val chapter: BigDecimal, val page: Int, val pageCount
 sealed interface Cover
     data class Placeholder(val top: Long, val middle: Long, val bottom: Long) : Cover
 fun BigDecimal.toChapterLabel(): String
+```
+
+## core/src/main/kotlin/com/ascon/core/model/SeriesMetadata.kt
+
+```kotlin
+data class SeriesMetadata(val ref: String, val title: String, val altTitles: List<String> = emptyList(), val format: String? = null, val year: Int? = null, val coverUrl: String? = null, val otherRef: String? = null)
+    val titles: List<String> get()
+    val aniListId: Long? get()
+    val mangaUpdatesId: Long? get()
+fun autoLinkMatch(title: String, results: List<SeriesMetadata>): SeriesMetadata?
 ```
 
 ## core/src/main/kotlin/com/ascon/core/model/SettingsSummary.kt
@@ -600,7 +612,7 @@ data class Site(val domain: String, val name: String, val monogram: String)
 data class Stamped<out T>(val value: T, val updatedAt: Instant)
 sealed interface SyncRecord
     val id: String
-    data class SeriesRecord(override val id: String, val title: Stamped<String>?) : SyncRecord
+    data class SeriesRecord(override val id: String, val title: Stamped<String>?, val aniListId: Stamped<Long?>? = null, val mangaUpdatesId: Stamped<Long?>? = null) : SyncRecord
     data class Entry(override val id: String, val seriesId: Stamped<String>?, val status: Stamped<ReadingStatus>?) :
     data class SourceRecord(override val id: String, val seriesId: Stamped<String>?, val domain: Stamped<String>?, val lastChapterUrl: Stamped<String?>?, val lastChapter: Stamped<BigDecimal>?) : SyncRecord
     data class ChapterRecord(override val id: String, val seriesId: Stamped<String>?, val number: Stamped<BigDecimal>?, val read: Stamped<Boolean>?, val openedUrl: Stamped<String?>?, val openedDomain: Stamped<String?>?) : SyncRecord
@@ -710,9 +722,7 @@ sealed interface RuleAnswer
 interface RuleBackend
     suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer
     suspend fun sendHealth(counts: List<RuleHealthCount>)
-class HttpRuleBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val tokens: DeviceTokenStore, private val appVersion: String) : RuleBackend
-    override suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer
-    override suspend fun sendHealth(counts: List<RuleHealthCount>)
+class HttpRuleBackend(private val baseUrl: HttpUrl, private val client: OkHttpClient, private val tokens: DeviceTokenStore, private val appVersion: String) : RuleBackend,
 ```
 
 ## engine/detection/src/main/kotlin/com/ascon/engine/detection/RuleGeneration.kt

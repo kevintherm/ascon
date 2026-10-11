@@ -164,4 +164,21 @@ class MigrationTest {
         assertEquals("https://site.example/12", chapter.openedUrl)
         assertNull(chapter.updatedAt)
     }
+
+    @Test
+    fun `version 7 to 8 keeps series, not linked yet`() = runBlocking {
+        create(7) {
+            execSQL(
+                "INSERT INTO series VALUES ('aztec', 'Aztec', '[]', 1, 2, 3, 'Reading', 0, NULL, NULL, NULL)"
+            )
+        }
+
+        val db = AsconDatabase.open(context, name)
+        val series = RoomLibraryRepository(db).series("aztec").first()!!
+        db.close()
+
+        assertEquals("Aztec", series.title)
+        assertNull(series.aniListId)
+        assertNull(series.mangaUpdatesId)
+    }
 }

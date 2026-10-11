@@ -5,6 +5,7 @@ import com.ascon.core.data.onPage
 import com.ascon.core.data.opened
 import com.ascon.core.data.withProgressSource
 import com.ascon.core.model.Series
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.core.model.Site
 import com.ascon.core.model.SyncRecord
 import java.math.BigDecimal
@@ -41,9 +42,15 @@ class RoomLibraryRepository(
 
     override fun series(id: String): Flow<Series?> = ready(dao.observe(id).map { it?.toModel() })
 
-    override suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series {
+    override suspend fun seriesFor(
+        title: String,
+        host: String,
+        chapter: BigDecimal,
+        url: String,
+        link: SeriesMetadata?
+    ): Series {
         ensureSeeded()
-        return dao.seriesFor(title, host, chapter, url, clock.instant(), newId)
+        return dao.seriesFor(title, host, chapter, url, link, clock.instant(), newId)
     }
 
     override suspend fun selectSource(seriesId: String, sourceId: String) = change(seriesId) {

@@ -28,7 +28,11 @@ internal data class SeriesEntity(
     @ColumnInfo(name = "last_read_at") val lastReadAt: Instant?,
     /** Sync, added in version 6. */
     @ColumnInfo(name = "sync_id") val syncId: String? = null,
-    @ColumnInfo(name = "status_updated_at") val statusUpdatedAt: Instant? = null
+    @ColumnInfo(name = "status_updated_at") val statusUpdatedAt: Instant? = null,
+    /** Links to AniList and MangaUpdates, added in version 8. */
+    @ColumnInfo(name = "anilist_id") val aniListId: Long? = null,
+    @ColumnInfo(name = "mangaupdates_id") val mangaUpdatesId: Long? = null,
+    @ColumnInfo(name = "link_updated_at") val linkUpdatedAt: Instant? = null
 )
 
 private const val SERIES_ID = "series_id"

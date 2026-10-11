@@ -2,6 +2,7 @@ package com.ascon.core.data
 
 import com.ascon.core.data.fake.FakeLibraryRepository
 import com.ascon.core.model.ReadingStatus
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.core.model.Stamped
 import com.ascon.core.model.SyncRecord
 import com.ascon.core.model.progressSyncId
@@ -125,5 +126,26 @@ class LibrarySyncTest {
         a.applyPulled(listOf(SyncRecord.Progress(id, null, Stamped(BigDecimal.ONE, start), null, null, null, null)))
         assertTrue(a.series.first().isEmpty())
         assertNull(a.series.first().firstOrNull())
+    }
+
+    @Test
+    fun `a series linked on one phone is linked on another`() = runBlocking {
+        val a = phone()
+        val link =
+            SeriesMetadata(
+                "anilist:105398",
+                "Na Honjaman Level Up",
+                listOf("Moonlit Ferry"),
+                "manhwa",
+                otherRef = "mangaupdates:7"
+            )
+        a.seriesFor("Moonlit Ferry", "asurascans.com", BigDecimal(12), "https://asurascans.com/ferry/chapter-12", link)
+        val b = phone()
+        b.applyPulled(a.syncRecords(since = null))
+
+        val ferry = b.series.first().single()
+        assertEquals(105398L, ferry.aniListId)
+        assertEquals(7L, ferry.mangaUpdatesId)
+        assertTrue(ferry.linkedToAniList)
     }
 }

@@ -16,6 +16,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 // Sync records as contracts/openapi.yaml's Change: an entity, an id, and each field as
 // its value and updatedAt.
@@ -29,7 +30,11 @@ private val Statuses = mapOf(
 
 internal fun SyncRecord.toJson(): JsonObject {
     val (entity, fields) = when (this) {
-        is SyncRecord.SeriesRecord -> "series" to mapOf("title" to title.json { JsonPrimitive(it) })
+        is SyncRecord.SeriesRecord -> "series" to mapOf(
+            "title" to title.json { JsonPrimitive(it) },
+            "anilistId" to aniListId.json { JsonPrimitive(it) },
+            "mangaUpdatesId" to mangaUpdatesId.json { JsonPrimitive(it) }
+        )
         is SyncRecord.Entry -> "libraryEntry" to mapOf(
             "seriesId" to seriesId.json { JsonPrimitive(it) },
             "status" to status.json { JsonPrimitive(Statuses.getValue(it)) }
@@ -95,7 +100,12 @@ internal fun JsonObject.toSyncRecord(): SyncRecord? {
         return if (at != null && value != null) Stamped(value, at) else null
     }
     return when (this["entity"]?.jsonPrimitive?.contentOrNull) {
-        "series" -> SyncRecord.SeriesRecord(id, field("title") { it.contentOrNull })
+        "series" -> SyncRecord.SeriesRecord(
+            id,
+            field("title") { it.contentOrNull },
+            field("anilistId") { it.longOrNull },
+            field("mangaUpdatesId") { it.longOrNull }
+        )
         "libraryEntry" -> SyncRecord.Entry(id, field("seriesId") { it.contentOrNull }, field("status", ::status))
         "source" -> SyncRecord.SourceRecord(
             id,

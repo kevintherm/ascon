@@ -7,6 +7,7 @@ import com.ascon.core.data.AccountRepository
 import com.ascon.core.data.GoogleAccounts
 import com.ascon.core.data.LibraryRepository
 import com.ascon.core.data.LibrarySyncer
+import com.ascon.core.data.MetadataSearch
 import com.ascon.core.data.ProtectionSettingsRepository
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.data.ReadingPaceRepository
@@ -86,7 +87,7 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
     }
 
     /** Null when this build has no backend to ask. */
-    val ruleBackend: RuleBackend? = BackendConfig.BASE_URL?.let { url ->
+    private val httpBackend: HttpRuleBackend? = BackendConfig.BASE_URL?.let { url ->
         HttpRuleBackend(
             baseUrl = url.toHttpUrl(),
             client = backendClient,
@@ -94,6 +95,11 @@ class AppContainer(context: Context, val clock: Clock = Clock.systemDefaultZone(
             appVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName.orEmpty()
         )
     }
+
+    val ruleBackend: RuleBackend? = httpBackend
+
+    /** Series search for linking detected titles; null when this build has no backend. */
+    val metadataSearch: MetadataSearch? = httpBackend
 
     /** Null when this build has no backend, so it can't sign in. */
     val accountBackend: AccountBackend? = BackendConfig.BASE_URL?.let {

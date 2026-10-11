@@ -1,15 +1,18 @@
 package com.ascon.feature.browser
 
 import androidx.lifecycle.SavedStateHandle
+import com.ascon.core.data.MetadataSearch
 import com.ascon.core.data.fake.FakeLibrary
 import com.ascon.core.data.fake.FakeLibraryRepository
 import com.ascon.core.data.fake.FakeReaderSettings
 import com.ascon.core.model.ReaderChapter
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.detection.Detection
 import com.ascon.engine.detection.DetectionSource
 import com.ascon.feature.browser.web.BlockedKind
 import com.ascon.feature.browser.web.LoadErrorKind
+import java.io.IOException
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
@@ -543,5 +546,55 @@ class BrowserViewModelTest {
         assertEquals(OpenPage(host = "mangafire.to", title = null), vm.state.value.openPage())
         vm.sessionEnded()
         assertEquals(null, vm.state.value.openPage())
+    }
+
+    private class FakeSearch(private val answer: () -> List<SeriesMetadata>) : MetadataSearch {
+        val queries = mutableListOf<String>()
+
+        override suspend fun search(query: String): List<SeriesMetadata> {
+            queries += query
+            return answer()
+        }
+    }
+
+    private val solo = SeriesMetadata(
+        ref = "anilist:105398",
+        title = "Na Honjaman Level Up",
+        altTitles = listOf("Solo Leveling"),
+        format = "manhwa",
+        otherRef = "mangaupdates:15180124327"
+    )
+    private val soloPage = "https://asura.example/solo-leveling/chapter-3"
+
+    private fun searching(search: MetadataSearch) =
+        BrowserViewModel(library, readerSettings, clock, SavedStateHandle(), soloPage, search).also {
+            it.onPageStarted(soloPage)
+        }
+
+    @Test
+    fun `a new title with one exact match joins the library linked`() = runTest {
+        val search = FakeSearch { listOf(solo) }
+        searching(search).onDetection(chapter(url = soloPage, title = "Solo Leveling", number = "3"))
+
+        val added = library.series.first().single { it.title == "Solo Leveling" }
+        assertEquals(105398L, added.aniListId)
+        assertEquals(15180124327L, added.mangaUpdatesId)
+        assertEquals(listOf("Solo Leveling"), search.queries)
+    }
+
+    @Test
+    fun `a failed search still adds the title, unlinked, until the matching sheet exists`() = runTest {
+        searching(FakeSearch { throw IOException("offline") })
+            .onDetection(chapter(url = soloPage, title = "Solo Leveling", number = "3"))
+
+        val added = library.series.first().single { it.title == "Solo Leveling" }
+        assertEquals(null, added.aniListId)
+    }
+
+    @Test
+    fun `a title the library has is never searched`() = runTest {
+        val search = FakeSearch { listOf(solo) }
+        searching(search).onDetection(chapter(url = soloPage, title = "Aztec Turning of Heaven", number = "14"))
+        assertEquals(emptyList<String>(), search.queries)
     }
 }

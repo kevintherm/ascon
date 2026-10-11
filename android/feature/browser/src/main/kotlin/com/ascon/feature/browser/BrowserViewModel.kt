@@ -4,11 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ascon.core.data.LibraryRepository
+import com.ascon.core.data.MetadataSearch
 import com.ascon.core.data.ReaderSettingsRepository
 import com.ascon.core.model.Cover
 import com.ascon.core.model.ReaderChapter
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.Series
+import com.ascon.core.model.SeriesMetadata
+import com.ascon.core.model.autoLinkMatch
 import com.ascon.core.model.matchSeries
 import com.ascon.engine.adblock.BlockCategory
 import com.ascon.engine.detection.Detection
@@ -17,6 +20,7 @@ import com.ascon.feature.browser.web.BlockedKind
 import com.ascon.feature.browser.web.BrowserEvents
 import com.ascon.feature.browser.web.LoadErrorKind
 import com.ascon.feature.browser.web.displayHost
+import java.io.IOException
 import java.math.BigDecimal
 import java.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class BrowserUiState(
     val url: String,
@@ -104,7 +109,9 @@ class BrowserViewModel(
     private val readerSettings: ReaderSettingsRepository,
     private val clock: Clock,
     private val saved: SavedStateHandle,
-    initialUrl: String
+    initialUrl: String,
+    /** The backend's series search, or null when this build has no backend. */
+    private val metadata: MetadataSearch? = null
 ) : ViewModel(),
     BrowserEvents {
     private val _state = MutableStateFlow(BrowserUiState(url = saved[KEY_URL] ?: initialUrl))
@@ -276,7 +283,22 @@ class BrowserViewModel(
     private suspend fun seriesOf(page: String, title: String?, chapter: BigDecimal?): Series? = when {
         title == null -> null
         chapter == null -> matchSeries(library.series.first(), title)
-        else -> library.seriesFor(title, displayHost(page), chapter, page)
+        else -> library.seriesFor(title, displayHost(page), chapter, page, linkFor(title))
+    }
+
+    /**
+     * The AniList or MangaUpdates series [title] links to by itself, per [autoLinkMatch]. A
+     * title the library already has needs no search. Until the matching sheet is built, a
+     * title with no exact match, or a failed search, still joins the library unlinked.
+     */
+    private suspend fun linkFor(title: String): SeriesMetadata? {
+        val search = metadata?.takeIf { matchSeries(library.series.first(), title) == null } ?: return null
+        val results = try {
+            withTimeoutOrNull(SEARCH_TIMEOUT_MS) { search.search(title) }
+        } catch (_: IOException) {
+            null
+        }
+        return results?.let { autoLinkMatch(title, it) }
     }
 
     /** Asks for [page] to scroll to its saved page, once per page, when [progress] is partway through it. */
@@ -450,6 +472,9 @@ class BrowserViewModel(
 
     private companion object {
         const val KEY_URL = "url"
+
+        /** How long a detected chapter waits for the series search before joining unlinked. */
+        const val SEARCH_TIMEOUT_MS = 4_000L
 
         /** How far the page scrolls past a turn before the toolbar hides or shows, per notes.md. */
         const val TURN_AFTER_DP = 24

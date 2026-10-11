@@ -14,7 +14,13 @@ data class Stamped<out T>(val value: T, val updatedAt: Instant)
 sealed interface SyncRecord {
     val id: String
 
-    data class SeriesRecord(override val id: String, val title: Stamped<String>?) : SyncRecord
+    data class SeriesRecord(
+        override val id: String,
+        val title: Stamped<String>?,
+        /** The series on AniList and MangaUpdates. They change together, with one time. */
+        val aniListId: Stamped<Long?>? = null,
+        val mangaUpdatesId: Stamped<Long?>? = null
+    ) : SyncRecord
 
     /** The library entry: where the user is with the series. */
     data class Entry(override val id: String, val seriesId: Stamped<String>?, val status: Stamped<ReadingStatus>?) :

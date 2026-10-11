@@ -34,6 +34,7 @@ internal fun Series.stamped(old: Series?, at: Instant): Series {
     return copy(
         syncId = syncKey,
         statusUpdatedAt = if (old == null || old.status != status) now else statusUpdatedAt,
+        linkUpdatedAt = if (links != (old?.links ?: NoLinks)) now else linkUpdatedAt,
         sources = sources.map { source ->
             val before = old?.source(source.id)?.copy(updatedAt = null)
             if (before != source.copy(updatedAt = null)) source.copy(updatedAt = now) else source
@@ -45,6 +46,9 @@ internal fun Series.stamped(old: Series?, at: Instant): Series {
         progress = progress?.let { if (it.copy(updatedAt = null) != oldProgress) it.copy(updatedAt = now) else it }
     )
 }
+
+private val Series.links get() = aniListId to mangaUpdatesId
+private val NoLinks = null to null
 
 /** The parts of a chapter that sync. */
 private val Chapter.synced get() = Triple(read, openedUrl, openedOnSourceId)
@@ -68,12 +72,18 @@ internal fun Series.syncRecords(since: Instant?): List<SyncRecord> {
         chapters.filter { it.touched && changed(it.updatedAt) }.forEach { add(it.record(id)) }
         progress?.takeIf { changed(it.updatedAt) }?.let { add(it.record(id, lastReadAt)) }
     }
+    val linked = linkUpdatedAt?.takeIf { changed(it) }
     // A record that names a series follows the series' own, so a phone new to it can make it.
-    return if (parts.isEmpty()) {
+    return if (parts.isEmpty() && linked == null) {
         emptyList()
     } else {
-        listOf(SyncRecord.SeriesRecord(id, Stamped(title, Instant.EPOCH))) +
-            parts
+        val record = SyncRecord.SeriesRecord(
+            id,
+            Stamped(title, Instant.EPOCH),
+            linked?.let { Stamped(aniListId, it) },
+            linked?.let { Stamped(mangaUpdatesId, it) }
+        )
+        listOf(record) + parts
     }
 }
 
@@ -146,7 +156,8 @@ internal fun pulled(library: List<Series>, records: List<SyncRecord>, newId: () 
 
 /** This series, or none yet, with [record] for the series [syncId] applied. */
 private fun Series?.applying(record: SyncRecord, syncId: String, newId: () -> String): Series? = when (record) {
-    is SyncRecord.SeriesRecord -> this ?: record.title?.let { newPulledSeries(newId(), it.value, syncId) }
+    is SyncRecord.SeriesRecord ->
+        (this ?: record.title?.let { newPulledSeries(newId(), it.value, syncId) })?.withPulledLinks(record)
     is SyncRecord.Entry -> this?.withEntry(record)
     is SyncRecord.SourceRecord -> this?.withSource(record)
     is SyncRecord.ChapterRecord -> this?.withPulledChapter(record)
@@ -171,6 +182,19 @@ private val SyncRecord.seriesId: String?
         is SyncRecord.ChapterRecord -> seriesId?.value
         is SyncRecord.Progress -> seriesId?.value
     }
+
+/** The links in [record], when they are newer than the phone's own. */
+private fun Series.withPulledLinks(record: SyncRecord.SeriesRecord): Series {
+    val at = listOfNotNull(record.aniListId?.updatedAt, record.mangaUpdatesId?.updatedAt).maxOrNull()
+        ?.takeIf { linkUpdatedAt == null || it > linkUpdatedAt } ?: return this
+    val aniList = record.aniListId?.value ?: aniListId
+    return copy(
+        aniListId = aniList,
+        mangaUpdatesId = record.mangaUpdatesId?.value ?: mangaUpdatesId,
+        linkedToAniList = aniList != null,
+        linkUpdatedAt = at
+    )
+}
 
 private fun newPulledSeries(id: String, title: String, syncId: String): Series =
     newSeries(id, title).copy(syncId = syncId)

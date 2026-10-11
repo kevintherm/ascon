@@ -1,7 +1,9 @@
 package com.ascon.engine.detection
 
 import com.ascon.core.data.DeviceTokenStore
+import com.ascon.core.data.MetadataSearch
 import com.ascon.core.data.RuleHealthCount
+import com.ascon.core.model.SeriesMetadata
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,14 +37,16 @@ interface RuleBackend {
 
 /**
  * Calls the backend over HTTP with the device's anonymous token, registering the device
- * on the first call and again if the server no longer knows the token.
+ * on the first call and again if the server no longer knows the token. It also runs the
+ * metadata search, which takes the same token.
  */
 class HttpRuleBackend(
     private val baseUrl: HttpUrl,
     private val client: OkHttpClient,
     private val tokens: DeviceTokenStore,
     private val appVersion: String
-) : RuleBackend {
+) : RuleBackend,
+    MetadataSearch {
     override suspend fun lookup(domain: String, fingerprint: String?): RuleAnswer {
         val url = baseUrl.newBuilder().addPathSegment("rules").addQueryParameter("domain", domain)
             .apply { if (fingerprint != null) addQueryParameter("fingerprint", fingerprint) }
@@ -66,6 +70,17 @@ class HttpRuleBackend(
         val body = BridgeProtocol.json.encodeToString(HealthBatch.serializer(), batch).toRequestBody(JSON)
         authorized(Request.Builder().url(baseUrl.resolve("rules/health")!!).post(body)).use { response ->
             if (response.code != HTTP_ACCEPTED) throw IOException("health report failed with ${response.code}")
+        }
+    }
+
+    override suspend fun search(query: String): List<SeriesMetadata> {
+        val url = baseUrl.newBuilder().addPathSegments("metadata/search")
+            .addQueryParameter("q", query).addQueryParameter("limit", "$SEARCH_LIMIT").build()
+        return authorized(Request.Builder().url(url)).use { response ->
+            if (response.code != HTTP_OK) throw IOException("metadata search failed with ${response.code}")
+            response.read(SearchResults.serializer()).results.map {
+                SeriesMetadata(it.ref, it.title, it.altTitles, it.format, it.year, it.coverUrl, it.otherRef)
+            }
         }
     }
 
@@ -123,6 +138,20 @@ class HttpRuleBackend(
     @Serializable
     private data class HealthBatch(val entries: List<HealthEntry>)
 
+    @Serializable
+    private data class SearchResults(val results: List<SearchResult>)
+
+    @Serializable
+    private data class SearchResult(
+        val ref: String,
+        val title: String,
+        val altTitles: List<String> = emptyList(),
+        val format: String? = null,
+        val year: Int? = null,
+        val coverUrl: String? = null,
+        val otherRef: String? = null
+    )
+
     private companion object {
         val JSON = "application/json".toMediaType()
         const val HTTP_OK = 200
@@ -130,5 +159,6 @@ class HttpRuleBackend(
         const val HTTP_ACCEPTED = 202
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_NOT_FOUND = 404
+        const val SEARCH_LIMIT = 10
     }
 }

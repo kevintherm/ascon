@@ -6,7 +6,10 @@ import com.ascon.core.model.Cover
 import com.ascon.core.model.ReadingProgress
 import com.ascon.core.model.ReadingStatus
 import com.ascon.core.model.Series
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.core.model.Source
+import com.ascon.core.model.matchSeries
+import com.ascon.core.model.titleKey
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -119,6 +122,44 @@ private fun Series.withSource(host: String, chapter: BigDecimal, url: String): S
 }
 
 /** A series first seen on [host] at [chapter], page [url], with nothing read yet. */
+/**
+ * The series a detected chapter of [title] joins in [library], with [host] as a source:
+ * the series with that title, else the series [link] names on AniList or MangaUpdates,
+ * which keeps [title] as an alternate title, else a new series linked to [link]. Returns
+ * the series and the one it was before, null when it is new.
+ */
+internal fun joinedSeries(
+    library: List<Series>,
+    title: String,
+    host: String,
+    chapter: BigDecimal,
+    url: String,
+    link: SeriesMetadata?,
+    newId: () -> String
+): Pair<Series, Series?> {
+    val match = matchSeries(library, title) ?: link?.let { l -> library.firstOrNull { it.isLinkedTo(l) } }
+    val joined = match?.withAltTitle(title)?.withSite(host, chapter, url)
+        ?: newSeries(newId(), title, host, chapter, url).let { if (link != null) it.linkedTo(link) else it }
+    return joined to match
+}
+
+private fun Series.isLinkedTo(link: SeriesMetadata): Boolean = (aniListId != null && aniListId == link.aniListId) ||
+    (mangaUpdatesId != null && mangaUpdatesId == link.mangaUpdatesId)
+
+/** This series linked to [link], keeping its titles as alternate titles. */
+internal fun Series.linkedTo(link: SeriesMetadata): Series = link.titles.fold(this) { s, t -> s.withAltTitle(t) }.copy(
+    aniListId = link.aniListId,
+    mangaUpdatesId = link.mangaUpdatesId,
+    linkedToAniList = link.aniListId != null
+)
+
+/** This series with [title] as an alternate title, unless it already has a title with that key. */
+internal fun Series.withAltTitle(title: String): Series {
+    val key = titleKey(title)
+    val known = (listOf(this.title) + altTitles).any { titleKey(it) == key }
+    return if (key.isEmpty() || known) this else copy(altTitles = altTitles + title.trim())
+}
+
 internal fun newSeries(id: String, title: String, host: String, chapter: BigDecimal, url: String): Series =
     newSeries(id, title).withSite(host, chapter, url)
 

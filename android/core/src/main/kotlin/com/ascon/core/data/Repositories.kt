@@ -7,6 +7,7 @@ import com.ascon.core.model.ProtectionSettings
 import com.ascon.core.model.Quota
 import com.ascon.core.model.ReaderSettings
 import com.ascon.core.model.Series
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.core.model.SettingsSummary
 import com.ascon.core.model.Site
 import com.ascon.core.model.SyncPage
@@ -25,12 +26,19 @@ interface LibraryRepository {
     fun series(id: String): Flow<Series?>
 
     /**
-     * The series [title] belongs to, matched by title. A title the library does not have
-     * becomes a new series. Either way [host] becomes one of its sources, with a chapter
-     * range that takes in [chapter], and the chapter page [url] is kept so the library
-     * can open its chapters again.
+     * The series [title] belongs to, matched by title, or else by the AniList or MangaUpdates
+     * series [link] names. A title the library does not have becomes a new series, linked to
+     * [link] when given. Either way [host] becomes one of its sources, with a chapter range
+     * that takes in [chapter], and the chapter page [url] is kept so the library can open
+     * its chapters again.
      */
-    suspend fun seriesFor(title: String, host: String, chapter: BigDecimal, url: String): Series
+    suspend fun seriesFor(
+        title: String,
+        host: String,
+        chapter: BigDecimal,
+        url: String,
+        link: SeriesMetadata? = null
+    ): Series
 
     /** Makes [sourceId] the source the user reads [seriesId] from. */
     suspend fun selectSource(seriesId: String, sourceId: String)
@@ -188,3 +196,9 @@ class SignInCancelled : Exception()
 class NoGoogleAccount : Exception()
 
 class GoogleUnreachable(cause: Throwable? = null) : Exception(cause)
+
+/** The backend's series search over AniList and MangaUpdates, with the device token. */
+interface MetadataSearch {
+    /** Candidates for [query], best first. Throws [java.io.IOException] when the call fails. */
+    suspend fun search(query: String): List<SeriesMetadata>
+}

@@ -5,14 +5,13 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
-import com.ascon.core.data.newSeries
+import com.ascon.core.data.joinedSeries
 import com.ascon.core.data.pulled
 import com.ascon.core.data.stamped
 import com.ascon.core.data.syncRecords
-import com.ascon.core.data.withSite
 import com.ascon.core.model.Series
+import com.ascon.core.model.SeriesMetadata
 import com.ascon.core.model.SyncRecord
-import com.ascon.core.model.matchSeries
 import java.math.BigDecimal
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
@@ -97,12 +96,12 @@ internal abstract class LibraryDao {
         host: String,
         chapter: BigDecimal,
         url: String,
+        link: SeriesMetadata?,
         now: Instant,
         newId: () -> String
     ): Series {
-        val match = matchSeries(all().map { it.toModel() }, title)
-        val found = (match?.withSite(host, chapter, url) ?: newSeries(newId(), title, host, chapter, url))
-            .stamped(match, now)
+        val (joined, match) = joinedSeries(all().map { it.toModel() }, title, host, chapter, url, link, newId)
+        val found = joined.stamped(match, now)
         save(found)
         return found
     }

@@ -43,7 +43,10 @@ internal fun SeriesRecord.toModel(): Series {
         },
         lastReadAt = series.lastReadAt,
         syncId = series.syncId,
-        statusUpdatedAt = series.statusUpdatedAt
+        statusUpdatedAt = series.statusUpdatedAt,
+        aniListId = series.aniListId,
+        mangaUpdatesId = series.mangaUpdatesId,
+        linkUpdatedAt = series.linkUpdatedAt
     )
 }
 
@@ -62,7 +65,10 @@ internal fun Series.toRecord(): SeriesRecord {
             linkedToAniList,
             lastReadAt,
             syncId,
-            statusUpdatedAt
+            statusUpdatedAt,
+            aniListId,
+            mangaUpdatesId,
+            linkUpdatedAt
         ),
         sources = sources.mapIndexed { position, source ->
             SourceEntity(
